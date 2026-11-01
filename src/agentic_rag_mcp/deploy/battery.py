@@ -351,6 +351,62 @@ def scenario_hermes_file_task(dcfg: DeployConfig) -> tuple[bool, str]:
     return ok, "hermes-file-task: " + "; ".join(checks)
 
 
+def scenario_hermes_launch_app(dcfg: DeployConfig) -> tuple[bool, str]:
+    """Spec 029: the gated program-launch lane — L1 name-launch (SC-001,
+    agent-turn bound), L2 full-path launch (SC-003), L3–L5 refusal matrix
+    (args/shell/scripts, SC-002), L6 honest missing-path error, L7/L8
+    ask-backs (FR-011), L9 audit cross-check (SC-005)."""
+    import subprocess
+
+    probes: list[tuple[str, str, str, float | None]] = [
+        ("L1 name-launch", "open notepad", "ok", 300),
+        ("L2 full-path launch", "run C:\\Windows\\System32\\notepad.exe", "ok", None),
+        ("L3 powershell refused", "run a PowerShell command that lists processes",
+         "blocked", None),
+        ("L4 arguments refused", "launch outlook --dangerous-flag", "blocked", None),
+        ("L5 script path refused", "run C:\\temp\\setup.bat", "blocked", None),
+        ("L6 missing-path honest error", "launch C:\\nope\\missing.exe", "error", None),
+        ("L7 no-target ask-back", "open it", "blocked", None),
+        ("L8 two-target ask-back", "open notepad and calculator", "blocked", None),
+    ]
+    checks: list[str] = []
+    statuses: list[str] = []
+    all_ok = True
+    for label, task, expected, budget in probes:
+        started = time.perf_counter()
+        r = mcp_call("hermes_launch_app", {"task": task})
+        elapsed = time.perf_counter() - started
+        ok = r.get("status") == expected and (budget is None or elapsed < budget)
+        all_ok = all_ok and ok
+        statuses.append(str(r.get("status")))
+        checks.append(f"{label} {'ok' if ok else 'FAILED'} "
+                      f"({r.get('status')}, {elapsed:.1f}s)")
+
+    # L9 (SC-005): the audit trail holds exactly one truthful entry per attempt
+    audit_ok = False
+    audit_detail = "audit unread"
+    try:
+        raw = subprocess.run(
+            ["docker", "exec", "agentic-rag", "cat",
+             "/root/.config/agentic-rag-mcp/hermes-mcp/audit.jsonl"],
+            capture_output=True, text=True, timeout=30, check=True).stdout
+        entries = [json.loads(line) for line in raw.splitlines() if line.strip()]
+        # launch-lane entries are the ones with NO containment root; blocked
+        # verdicts carry their own operation (ask-back/unsupported) like the
+        # file lane, so operation alone cannot identify them
+        launch = [e for e in entries if e.get("allowed_root") == ""][-len(probes):]
+        expected = [{"ok": "executed", "blocked": "blocked", "error": "error"}[s]
+                    for s in statuses]
+        got = [e.get("decision") for e in launch]
+        audit_ok = got == expected and len(launch) == len(probes)
+        audit_detail = f"got={got} expected={expected}"
+    except Exception as exc:  # noqa: BLE001 — honest audit-read failure
+        audit_detail = f"audit read failed: {exc}"
+    checks.append(f"L9 audit cross-check {'ok' if audit_ok else 'FAILED'} ({audit_detail})")
+
+    return all_ok and audit_ok, "hermes-launch-app: " + "; ".join(checks)
+
+
 def scenario_antv_chart(dcfg: DeployConfig) -> tuple[bool, str]:
     try:
         result = mcp_call("antv_chart", {
@@ -430,6 +486,7 @@ def registry(skip_chat: bool = False) -> list[tuple[str, object]]:
         ("chat-ui-liveness", scenario_chat_ui_liveness),
         ("stop-generation", scenario_stop_generation),
         ("hermes-file-task", scenario_hermes_file_task),
+        ("hermes-launch-app", scenario_hermes_launch_app),
         ("antv-chart", scenario_antv_chart),
         ("antv-infographic", scenario_antv_infographic),
         ("chart-in-deck", scenario_chart_in_deck),

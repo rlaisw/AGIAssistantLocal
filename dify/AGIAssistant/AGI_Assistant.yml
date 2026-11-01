@@ -562,10 +562,10 @@ workflow:
           topic: 'Everything else: questions, research, chat, knowledge-base queries, and any request that is not about generating a PowerPoint/deck'
         - id: hermes_file
           label: ''
-          name: Hermes file task
-          topic: The user asks to create, write, read, or list files or folders on their Windows computer / local disk (e.g. 'create a folder hello_test in C:\\temp and write hello.txt inside it', 'list the files in C:\\temp', 'read C:\\temp\\notes.txt') — NOT decks/slides, NOT general questions.
+          name: Hermes local task
+          topic: The user asks to create, write, read, or list files or folders on their Windows computer / local disk, OR to launch, open, start, or run a program or application on their Windows computer (e.g. 'create a folder hello_test in C:\\temp and write hello.txt inside it', 'list the files in C:\\temp', 'read C:\\temp\\notes.txt', 'launch Outlook', 'open Excel', 'run C:\\tools\\mytool.exe') — NOT decks/slides, NOT general questions.
         desc: Route deck-generation requests to PPT-Master; everything else to the AgenticRAG agent.
-        instruction: Classify the user's request. Choose 'PPT request' ONLY when the user wants a PowerPoint/deck/slides generated. Choose 'Hermes file task' when the user wants files or folders created, written, read, or listed on their local Windows computer or disk (paths like C:\\...). Otherwise choose 'General'.
+        instruction: Classify the user's request. Choose 'PPT request' ONLY when the user wants a PowerPoint/deck/slides generated. Choose 'Hermes local task' when the user wants files or folders created, written, read, or listed on their local Windows computer or disk (paths like C:\\...), or wants a program/application launched, started, opened, or run on their Windows computer — by name ('launch Outlook', 'open Excel', 'start notepad') or by full path ('run C:\\tools\\mytool.exe'). Requests to open/launch/start/run programs (Excel, Outlook, Word, Notepad, browsers, any application or .exe) are 'Hermes local task', NOT 'General'. Otherwise choose 'General'.
         model:
           completion_params: {}
           mode: chat
@@ -1394,8 +1394,7 @@ workflow:
         agent_parameters:
           instruction:
             type: constant
-            value: "# Hermes File Agent (spec 028, v1)\n\nYou route LOCAL WINDOWS FILE TASKS to the hermes_file_task tool — creating\nfolders, writing, reading, and listing files on the user's Windows computer,\nstrictly inside one allowed root (default C:\\temp, reached as /mnt/c/temp).\n\nRules:\n- Call hermes_file_task(task, allowed_root) for every file task. Pass the\n  user's task text as task; pass allowed_root only when the user names a\n  different root.\n- The tool is the ONLY way anything touches the disk. Never claim direct\n  disk access, and never describe operations the tool did not return.\n- Relay the verdict honestly:\n  - status ok -> report what the tool returned, including windows_path.\n  - status blocked -> give the user the reason verbatim (it names the active\n    root and the v1 scope). On a blocked ask-back, ask the user where under\n    the root the file/folder should go — never pick a location yourself.\n  - status error -> say the local agent failed and include\
-              \ the recovery hint.\n- Never re-attempt a blocked operation with rephrased or alternate paths.\n- File tasks only: if the user asks to run Windows programs, PowerShell, or\n  GUI automation, decline — v1 scope is create/write/read/list inside the root.\n- If a request is not a file task at all, answer it normally.\n"
+            value: "# Hermes Local Agent (specs 028 + 029)\n\nYou route LOCAL WINDOWS TASKS to the Hermes tools — creating folders,\nwriting, reading, and listing files on the user's Windows computer,\nstrictly inside one allowed root (default C:\\temp, reached as /mnt/c/temp),\nand launching programs (any executable by name or full .exe path).\n\nRules:\n- Call hermes_file_task(task, allowed_root) for every file task. Pass the\nuser's task text as task; pass allowed_root only when the user names a\ndifferent root.\n- Call hermes_launch_app(task) for every program-launch request. Pass\nthe user's task text as task.\n- Mixed requests (a file part and a launch part) may call each tool for\nits own part; report both verdicts honestly.\n- The tools are the ONLY way anything touches the disk or starts a\nprogram. Never claim direct disk or desktop access, and never describe\noperations the tools did not return.\n- Relay each verdict honestly:\n  - status ok -> report what the tool returned (windows_path for file\ntasks; what the agent observed for launches — started fresh or already\nrunning).\n  - status blocked -> give the user the reason verbatim. On a blocked\nask-back (missing location, or which application to launch), relay that\nquestion to the user — never pick a location or application yourself.\n  - status error -> say the local agent failed and include the recovery hint.\n- Never re-attempt a blocked operation with rephrased paths, alternate\nspellings, or a different target — the refusal stands.\n- Launch scope: any executable by name or full .exe path, never with\narguments, never scripts or shortcuts. The tool enforces this — if the\nuser asks for launch arguments, PowerShell/shell commands, or GUI\nautomation, relay the refusal verbatim; do not try to work around it.\n- File scope: create/write/read/list inside the active root only — the\ntool enforces it the same way.\n- If a request is not a local task at all, answer it normally.\n"
           model:
             type: constant
             value:
@@ -1420,6 +1419,16 @@ workflow:
               tool_label: hermes_file_task
               tool_name: hermes_file_task
               type: mcp
+            - enabled: true
+              extra:
+                description: 'Launch a DESKTOP APPLICATION on the user''s Windows computer via the Hermes agent (e.g. open Outlook/Excel/Notepad, or run C:\tools\mytool.exe). '
+              parameters: {}
+              provider_name: agentic-rag
+              settings: {}
+              tool_description: 'Launch a DESKTOP APPLICATION on the user''s Windows computer via the Hermes agent (e.g. open Outlook/Excel/Notepad, or run C:\tools\mytool.exe). ANY executable by name or full .exe path — there is no allowlist. EVERY task is security-gated BEFORE execution: launch arguments, command lines, and shell/PowerShell phrasing are BLOCKED with a reason and never executed; script (.bat/.cmd/.ps1) and shortcut (.lnk) targets are BLOCKED (executables only); a task naming NO application is BLOCKED with an ask-back — relay that question to the user verbatim; two applications in one prompt is an ask-back too (one launch per request). Returns {status: ok|blocked|error, result?, reason?, target?} — relay the verdict honestly: on ''ok'' report what the agent observed (started fresh / already running); on ''blocked'' tell the user the reason; on ''error'' say the local agent failed and include the recovery hint. Never claim a launch happened when the status is not ok.'
+              tool_label: hermes_launch_app
+              tool_name: hermes_launch_app
+              type: mcp
           maximum_iterations:
             type: constant
             value: 10
@@ -1429,7 +1438,7 @@ workflow:
         agent_strategy_label: FunctionCalling
         agent_strategy_name: function_calling
         agent_strategy_provider_name: langgenius/agent/agent
-        desc: 'Windows file-task agent wired to the hermes_file_task MCP tool (spec 028): gated create/write/read/list inside the allowed root.'
+        desc: 'Windows local-task agent wired to the hermes_file_task + hermes_launch_app MCP tools (specs 028/029): gated file ops inside the allowed root; gated program launches — name or full .exe path, never arguments.'
         isInIteration: false
         isInLoop: false
         memory:
@@ -1445,7 +1454,7 @@ workflow:
           version: 0.0.2
         plugin_unique_identifier: langgenius/agent:0.0.50@bf1040682cc9e1e5caf9b4670531639c440bf9448025cd5ee0915fdcf7a921f3
         selected: false
-        title: Hermes File Agent
+        title: Hermes Local Agent
         type: agent
         version: '1'
       position:

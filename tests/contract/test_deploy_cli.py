@@ -17,8 +17,10 @@ VENV_PY = "/home/administrator/.local/share/pipx/venvs/agentic-rag-mcp/bin/pytho
 
 CONTRACT_SCENARIOS = [
     "health", "tools-surface", "deck-roundtrip", "completion-page",
-    "honest-errors", "chat-ui-liveness", "antv-chart", "antv-infographic",
-    "chart-in-deck", "chat-journey",
+    "honest-errors", "chat-ui-liveness", "stop-generation",   # spec 027
+    "hermes-file-task",                                     # spec 028
+    "hermes-launch-app",                                    # spec 029
+    "antv-chart", "antv-infographic", "chart-in-deck", "chat-journey",
 ]
 
 

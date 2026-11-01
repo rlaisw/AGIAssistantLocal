@@ -21,6 +21,21 @@ CONTAINMENT_INSTRUCTIONS = (
     "task is impossible or ambiguous, report that honestly instead of acting."
 )
 
+# Spec 029 — the launch lane's system prompt (research R1, contracts §3).
+LAUNCH_INSTRUCTIONS = (
+    "You are launching exactly one program on the user's Windows computer. "
+    "Launch ONLY the target stated in the task — by its name or its full "
+    "path — with NO arguments and NO command line, and never launch a "
+    "script or a shortcut. If the target cannot be found or fails to start, "
+    "report that honestly instead of acting. Report exactly what you "
+    "observed: started fresh, already running (activated), or failed with "
+    "the reason. End your report with a final line that is exactly "
+    "'LAUNCH: SUCCESS' when the program started or was already running and "
+    "is now active, or 'LAUNCH: FAILED: <reason>' when it did not start — "
+    "the caller parses that line to decide the verdict, so never emit "
+    "SUCCESS unless the program is really running."
+)
+
 
 def _extract_text(body: dict[str, Any]) -> str:
     # OpenAI Responses-API shape: output_text, else the output[] content chain

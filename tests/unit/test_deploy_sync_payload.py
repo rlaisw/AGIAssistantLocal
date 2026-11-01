@@ -35,9 +35,10 @@ def test_payload_defaults_missing_fields():
 def test_version_gate_supported():
     assert resync_path("1.17.1") == "db-resync"
     assert resync_path("1.17.0") == "db-resync"
+    # 1.18 validated live during spec 029 (same tools column; read path verified)
+    assert resync_path("1.18.0") == "db-resync"
 
 
 def test_version_gate_unknown_or_missing():
-    assert resync_path("1.18.0") == "skipped"
     assert resync_path("2.0.0") == "skipped"
     assert resync_path(None) == "skipped"

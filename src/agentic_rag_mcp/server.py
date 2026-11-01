@@ -689,8 +689,13 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
     # ---- Hermes Agent lane (spec 028): gated Windows file tasks ----
 
     from .hermes_audit import HermesAudit
+    from .hermes_client import LAUNCH_INSTRUCTIONS as _HERMES_LAUNCH_INSTRUCTIONS
     from .hermes_client import run_task as _hermes_run_task
     from .hermes_gate import DEFAULT_ALLOWED_ROOT, gate_task, normalize_path, to_windows
+    from .hermes_launch_gate import gate_launch
+
+    import re as _re
+    _RE_LAUNCH_RESULT = _re.compile(r"LAUNCH:\s*(SUCCESS|FAILED)", _re.IGNORECASE)
 
     @mcp.tool()
     def hermes_file_task(task: str, allowed_root: str = "") -> dict:
@@ -741,6 +746,59 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
         if verdict.normalized_path:
             result["windows_path"] = to_windows(verdict.normalized_path)
         return result
+
+    @mcp.tool()
+    def hermes_launch_app(task: str) -> dict:
+        """Launch a DESKTOP APPLICATION on the user's Windows computer via the Hermes
+        agent (e.g. open Outlook/Excel/Notepad, or run C:\\tools\\mytool.exe). ANY
+        executable by name or full .exe path — there is no allowlist. EVERY task is
+        security-gated BEFORE execution: launch arguments, command lines, and
+        shell/PowerShell phrasing are BLOCKED with a reason and never executed; script
+        (.bat/.cmd/.ps1) and shortcut (.lnk) targets are BLOCKED (executables only); a
+        task naming NO application is BLOCKED with an ask-back — relay that question to
+        the user verbatim; two applications in one prompt is an ask-back too (one launch
+        per request). Returns {status: ok|blocked|error, result?, reason?, target?} —
+        relay the verdict honestly: on "ok" report what the agent observed (started
+        fresh / already running); on "blocked" give the user the reason verbatim; on
+        "error" say the local agent failed and include the recovery hint. Never claim
+        a launch happened when the status is not ok."""
+        home = str(Path.home())
+        verdict = gate_launch(task, home=home)
+        audit = HermesAudit(cfg.hermes_audit_path)
+
+        if verdict.decision == "blocked":
+            audit.write_attempt(decision="blocked", operation=verdict.operation,
+                                normalized_path=verdict.target, allowed_root="",
+                                reason=verdict.reason)
+            return {"status": "blocked", "decision": "blocked",
+                    "reason": verdict.reason}
+
+        outcome = _hermes_run_task(cfg, verdict.sanitized_task or task,
+                                   instructions=_HERMES_LAUNCH_INSTRUCTIONS)
+        if not outcome.get("ok"):
+            error = outcome.get("error", "error:unknown Hermes failure")
+            audit.write_attempt(decision="error", operation=verdict.operation,
+                                normalized_path=verdict.target, allowed_root="",
+                                reason=error)
+            return {"status": "error", "reason": error}
+
+        output = outcome["output"]
+        # Honest envelope (FR-007): ok only on the agent's explicit SUCCESS
+        # attestation — a report without it (or a FAILED marker) is an error,
+        # never a fabricated launch.
+        m = _RE_LAUNCH_RESULT.search(output)
+        if not m or m.group(1).upper() == "FAILED":
+            reason = (f"error:the local agent could not launch the program — "
+                      f"{output.strip()[-300:]}")
+            audit.write_attempt(decision="error", operation=verdict.operation,
+                                normalized_path=verdict.target, allowed_root="",
+                                reason=reason)
+            return {"status": "error", "reason": reason}
+        audit.write_attempt(decision="executed", operation=verdict.operation,
+                            normalized_path=verdict.target, allowed_root="",
+                            outcome=output[:200])
+        return {"status": "ok", "decision": "executed",
+                "result": output, "target": verdict.target}
 
     return mcp
 

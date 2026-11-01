@@ -14,7 +14,9 @@ import httpx
 
 from . import docker_ops
 
-SUPPORTED_DB_RESYNC = ("1.17",)
+# 1.18 validated live (spec 029): same tool_mcp_providers.tools column shape;
+# read path verified on the running Dify before widening the gate.
+SUPPORTED_DB_RESYNC = ("1.17", "1.18")
 
 
 def fetch_live_tools(mcp_url: str = "http://localhost:28080/mcp") -> list[dict]:

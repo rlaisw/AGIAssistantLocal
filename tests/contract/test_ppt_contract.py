@@ -28,6 +28,8 @@ EXISTING_TOOLS = {
     "web_research", "graph_query", "status", "sources_add", "sources_sync",
     "sources_list", "sources_remove", "fetch_url", "onedrive_list_files",
     "onedrive_embed_files", "sources_auth",
+    "hermes_file_task",        # spec 028 (amended 2026-11-01 — the set was stale since)
+    "hermes_launch_app",       # spec 029
 }
 ANTV_TOOLS = {"antv_chart", "antv_infographic"}  # spec 012 (additive)
 PPT_TOOLS = {
