@@ -50,7 +50,7 @@ Sidecar Python at repo root: `src/agentic_rag_mcp/`, tests in `tests/unit/`, bat
 
 ## Phase 3: User Story 1 — Launch a desktop app from chat (Priority: P1) 🎯 MVP
 
-**Goal**: "open notepad" through the chat launches Notepad on the Windows desktop in the same turn (no confirmation round-trip, FR-013), the answer confirms the launch, audit holds an `executed` entry, < 60 s (SC-001).
+**Goal**: "open notepad" through the chat launches Notepad on the Windows desktop in the same turn (no confirmation round-trip, FR-013), the answer confirms the launch, audit holds an `executed` entry, within the Hermes call timeout (SC-001 amended — measured 10–230 s, agent-turn bound).
 
 **Independent Test**: quickstart §3 L1 via the battery + the manual chat check ("can you open Excel?").
 
@@ -109,7 +109,7 @@ Sidecar Python at repo root: `src/agentic_rag_mcp/`, tests in `tests/unit/`, bat
 
 - [x] T016 [P] Docs sync: root `AGENTS.md` Hermes-lane feature-surface line (adds the launch capability: any executable by name or full `.exe` path; no arguments, no shell, no scripts/shortcuts; audited), `DEPLOY.md` tool-count line 24 → 25 + troubleshooting row (launch blocked → the no-arguments/executables-only rules), `README.md` lane bullet
 - [x] T017 Full green sweep: `pytest tests/unit tests/integration tests/contract -q` (existing 351+ green — no weakened tests), `pnpm typecheck && pnpm lint && pnpm test` in `ai-chat-landing/` (untouched — must stay green), full battery live; update `specs/029-hermes-launch-programs/quickstart.md` with the recorded final L-matrix results
-- [ ] T018 [P] Commit: source + DSL + battery + spec artifacts; leave the audit log and `~/.hermes/.env` out (user data, never committed); note the pending sidecar image rebuild in the commit message (docker cp hot-patch caveat)
+- [x] T018 [P] Commit: source + DSL + battery + spec artifacts; leave the audit log and `~/.hermes/.env` out (user data, never committed); note the pending sidecar image rebuild in the commit message (docker cp hot-patch caveat)
 
 ---
 

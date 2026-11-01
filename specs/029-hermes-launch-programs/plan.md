@@ -6,7 +6,7 @@
 
 ## Summary
 
-Add program-launch as a second capability of the Hermes local lane: one new sidecar MCP tool `hermes_launch_app`, gated by a new pure module (`hermes_launch_gate.py`) — any executable identified by **name or full `.exe` path**, never with arguments, never shell/PowerShell phrasing, scripts (.bat/.cmd/.ps1) and shortcuts (.lnk) refused, one target per request, ask-backs for no-target/ambiguity — executed through the existing Hermes gateway client with a launch-specific system prompt, every attempt recorded in the same append-only audit log (`operation="launch-app"`), wired onto the **existing** Hermes agent node (classifier prompt extended, one new tool added). Supersedes spec 028's US3 decline for launches; the file lane stays byte-identical (FR-009).
+Add program-launch as a second capability of the Hermes local lane: one new sidecar MCP tool `hermes_launch_app`, gated by a new pure module (`hermes_launch_gate.py`) — any executable identified by **name or full `.exe` path**, never with arguments, never shell/PowerShell phrasing, scripts (.bat/.cmd/.ps1) and shortcuts (.lnk) refused, one target per request, ask-backs for no-target/ambiguity — executed through the existing Hermes gateway client with a launch-specific system prompt, every attempt recorded in the same append-only audit log (operation per verdict — `launch-app`/`ask-back`/`unsupported`, `allowed_root=""`), wired onto the **existing** Hermes agent node (classifier prompt extended, one new tool added). Supersedes spec 028's US3 decline for launches; the file lane stays byte-identical (FR-009).
 
 ## Technical Context
 
@@ -14,7 +14,7 @@ Add program-launch as a second capability of the Hermes local lane: one new side
 
 **Primary Dependencies**: Hermes gateway Responses API — `POST /v1/responses` (verified in 028 R1: bearer key, port 8642, `store:false`, stateless) — reached via the existing `hermes_client.run_task`; `httpx` (present). Zero new pip packages.
 
-**Storage**: the existing append-only audit JSONL (`HermesAudit`, default `~/.config/agentic-rag-mcp/hermes-mcp/audit.jsonl`) — launch entries reuse the writer unchanged with `operation="launch-app"`, `allowed_root=""` (no containment root applies to launches).
+**Storage**: the existing append-only audit JSONL (`HermesAudit`, default `~/.config/agentic-rag-mcp/hermes-mcp/audit.jsonl`) — launch entries reuse the writer unchanged with `operation` per verdict (`launch-app`/`ask-back`/`unsupported`) and `allowed_root=""` (no containment root applies — the empty root identifies the lane's entries).
 
 **Testing**: pytest — failing-first unit suite for the pure launch gate (`tests/unit/test_hermes_launch_gate.py`), tool-wrapper suite with the Hermes client mocked at the trust boundary (`tests/unit/test_hermes_launch_tool.py`, respx); contract: tool schema additive, existing suites green; deploy battery — new `scenario_hermes_launch_app`; classifier routing regression.
 
@@ -63,7 +63,7 @@ src/agentic_rag_mcp/
 │                                #      executables-only, one-target, ask-back verdicts)
 ├── hermes_client.py             # MODIFIED: adds LAUNCH_INSTRUCTIONS (run_task unchanged)
 ├── hermes_gate.py               # UNCHANGED — file lane byte-identical (FR-009)
-├── hermes_audit.py              # UNCHANGED — launch entries: operation="launch-app", allowed_root=""
+├── hermes_audit.py              # UNCHANGED — launch entries: operation per verdict, allowed_root=""
 ├── server.py                    # MODIFIED: hermes_launch_app MCP tool (honest envelopes)
 └── deploy/battery.py            # MODIFIED: scenario_hermes_launch_app; B5 keeps file-tool declines
 

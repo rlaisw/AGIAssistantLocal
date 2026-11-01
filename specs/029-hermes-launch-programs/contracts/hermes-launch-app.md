@@ -22,7 +22,7 @@ hermes_launch_app(task: str) -> {
 4. **Executables-only** (FR-004): path targets must end `.exe` after normalization; script (`.bat/.cmd/.ps1/...`) and shortcut (`.lnk`) paths → `blocked` with the executables-only rule named — even when the file exists.
 5. **No arguments, no shell** (FR-005): argument patterns (`--x`, `/x`, `key=value`, quoted argument strings, `;`/`|`/`&` chaining) or shell/PowerShell phrasing anywhere in the task → `blocked` with the no-arguments rule named. A smuggled second instruction leaves at most the clean launch runnable; the smuggled part is refused and reported.
 6. **One target per request**: two launch targets named → `blocked` with an ask-back asking which one; never both from a single prompt.
-7. **Audit**: exactly one `AuditEntry` per attempt at the verdict point (FR-006) — `operation:"launch-app"`, `allowed_root:""`, executed entries post-completion with the agent's report, blocked/error entries with the reason. Blocked verdicts never produce a client call.
+7. **Audit**: exactly one `AuditEntry` per attempt at the verdict point (FR-006) — `operation` mirrors the verdict (`launch-app` allowed · `ask-back`/`unsupported` blocked, like the file lane); `allowed_root:""` on every launch-lane entry (the empty root is the lane's audit discriminator); executed entries post-completion with the agent's report, blocked/error entries with the reason. Blocked verdicts never produce a client call.
 
 ## 3. Execution contract (allowed verdicts only)
 

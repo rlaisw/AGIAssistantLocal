@@ -23,7 +23,7 @@ The gate's decision — the only signal that may reach the Hermes client.
 | Field | Type | Values |
 |-------|------|--------|
 | decision | `ok` \| `blocked` | blocked never produces a client call |
-| operation | str | `launch-app` (also the audit operation value) |
+| operation | str | `launch-app` for allowed verdicts; blocked verdicts carry `ask-back` / `unsupported` (the audit entry mirrors it) |
 | target | str \| None | the extracted target (canonical form for paths) |
 | kind | `name` \| `path` \| None | |
 | reason | str \| None | user-readable, names the violated rule (executables-only / no-arguments / ask-back) and — for ask-backs — asks which application |
@@ -40,7 +40,7 @@ One JSONL line per attempted launch via the existing `HermesAudit` writer — fi
 |-------|--------------------|
 | ts | UTC ISO-8601 (seconds) |
 | decision | `executed` \| `blocked` \| `error` |
-| operation | `launch-app` |
+| operation | `launch-app` (allowed) · `ask-back` / `unsupported` (blocked) — launch-lane entries are identified by `allowed_root == ""` |
 | normalized_path | the target (name as-typed, or canonical path) |
 | allowed_root | `""` (no containment root applies) |
 | outcome \| reason | executed → the agent's report (truncated); blocked/error → the reason |
