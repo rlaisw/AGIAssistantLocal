@@ -241,7 +241,7 @@ first to discover available topics, then picks the right profile for the questio
 curl -s localhost:28080/healthz                                  # {"status": "ok"}
 curl -s -X POST localhost:28080/mcp -H 'Content-Type: application/json' \
   -H 'Accept: application/json, text/event-stream' \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'   # 23 tools (16 + 5 ppt_* + 2 antv_*)
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'   # 24 tools (16 + 5 ppt_* + 2 antv_* + hermes_file_task)
 # then exercise: status, search, ask, sources_list, sources_add/sync/remove,
 # web_search (live), fetch_url (live), graph_query (honest disabled error)
 ```
@@ -265,7 +265,7 @@ The API key stays server-side — the Next.js route handler `app/api/chat/route.
 
 Lets users type "help to generate a powerpoint, introduce Dify software" in the chat and receive a native editable `.pptx` download link. Requires the ppt-master clone (Step 0 of its own README: `git clone https://github.com/hugohe3/ppt-master.git` into the repo root, `python3 -m venv ppt-master/.venv`, install its requirements) plus the sidecar rebuilt with the ppt mount (Step 3 above includes `-v .../ppt-master:/opt/ppt-master`; the image bakes the export-path deps).
 
-1. Rebuild + recreate the sidecar (Step 3), verify 23 tools: `tools/list` shows `ppt_project_init`, `ppt_icon_sync`, `ppt_write_page`, `ppt_check`, `ppt_export`, plus `antv_chart` and `antv_infographic` (spec 012, Step 11).
+1. Rebuild + recreate the sidecar (Step 3), verify 24 tools: `tools/list` shows `ppt_project_init`, `ppt_icon_sync`, `ppt_write_page`, `ppt_check`, `ppt_export`, plus `antv_chart` and `antv_infographic` (spec 012, Step 11) and `hermes_file_task` (spec 028, Step 12).
 2. Dify UI → Tools → MCP → the server → **Update** (cache refresh; new tools appear).
 3. Import the chatflow v2 DSL: `dify/Chatflow Basic (AgenticRAG Agent + PPT-Master).yml` — adds an intent router (deck requests → PPT-Master agent, everything else → the existing AgenticRAG agent). Publish.
 4. Verify: ask for a one-page deck on a known topic; expect progress narration, then a `[Download the deck](http://localhost:28080/exports/<project>/<file>.pptx)` link that downloads a valid PowerPoint. Exported decks land under `ppt-master/projects/<project>/exports/`.
