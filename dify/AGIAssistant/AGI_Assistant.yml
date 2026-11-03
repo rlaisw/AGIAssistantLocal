@@ -286,7 +286,7 @@ workflow:
               \ then\n  onedrive_list_files (args: source_id, optional search/folder/limit) to\n  browse file names, SHOW the matches, and ask the user to confirm which\n  files to embed. Only then call onedrive_embed_files (args: source_id,\n  files: list of paths/ids) for EXACTLY the confirmed files.\n- NEVER embed more files than the user confirmed. NEVER list-and-embed\n  everything. Connection and sign-in ingest ZERO files automatically.\n- onedrive_embed_files returns per-file outcomes; report skipped/failed\n  files with their reasons honestly.\n- When an answer carries a staleness warning (freshness_warnings, also\n  appended to the answer text), relay the reminder verbatim and offer the\n  one-command update: re-embed that file via onedrive_embed_files using the\n  path or item id from the warning. The system never re-downloads on its own.\n\nPick the tool that matches the request, call it, then summarize the result\nfor the user. When a tool returns citations, list them. Never\
               \ invent facts.\n\nANSWER FORMAT — IMAGES (default action):\n- DEFAULT: always try to include images. When answering from web research,\n  prefer web_research (its page scrapes return image URLs in document order)\n  and INLINE the relevant images in your answer as markdown — ![what it shows](URL)\n  — grouped with the text they belong to, in document order.\n- To collect images for a how-to, call fetch_url on the guide/tutorial page FIRST\n  (it needs no search engine and returns an images list with every image on the\n  page as absolute URLs). If you only know the topic's main article, fetch it,\n  then follow its tutorial links with fetch_url. Overview articles often carry\n  only icons; the tutorial pages carry the step screenshots — INLINE those.\n- Fetch as many as are useful: include every scraped image that illustrates the\n  steps or facts in your answer, not just one or two. Skip only logos, avatars,\n  trackers, and decorative banners.\n- Reused research keeps its\
               \ images: when the user repeats a question and you\n  answer from earlier-turn research instead of fresh calls, still INLINE the\n  images those sources provided (they are stable URLs) — never drop them.\n- Dify renders image markdown in the chat.\n- Generated visuals — pick the tool by output type: antv_chart returns image_url\n  (a rendered PNG) — ALWAYS INLINE it in the answer as ![title](image_url).\n  antv_infographic returns an interactive HTML page — give it as a labeled\n  markdown link ([open the infographic](URL)); it cannot be inlined with ![].\n- Skip images only when the web tools returned none or the topic genuinely has\n  no visual content.\n\nANSWER FORMAT — CITATIONS:\n- Whenever your answer uses content from ask/search/web_search/web_research/\n  specialty_search/fetch_url results, cite the source: knowledge base by file\n  name (e.g. hardwareinventory.xlsx), web content by full URL — inline or in a\n  Sources list at the end. Never present tool-sourced facts\
-              \ without a citation.\n\nANSWER FORMAT — VISUALS:\n- For overview/example requests (show me examples, explain X), also create\n  an antv_infographic summary card when the content benefits from a visual.\n\n\nSPECIALTY SEARCH:\n- For domain-specific questions (product docs, security standards, vendor-specific), call\n  specialty_profiles() first to see available profiles, then call BOTH specialty_search\n  (with the matching profile) AND web_search in the same turn.\n- Combine results: specialty_search results are the PRIMARY authority (from official docs),\n  web_search results are SUPPLEMENTARY (community, blogs, broader context).\n- If specialty_search returns no results, rely on web_search and tell the user the\n  authoritative source had no match."
+              \ without a citation.\n\nANSWER FORMAT — VISUALS:\n- For overview/example requests (show me examples, explain X), also create\n  an antv_infographic summary card when the content benefits from a visual.\n\n\nSPECIALTY SEARCH:\n- For domain-specific questions (product docs, security standards, vendor-specific), call\n  specialty_profiles() first to see available profiles, then call BOTH specialty_search\n  (with the matching profile) AND web_search in the same turn.\n- Combine results: specialty_search results are the PRIMARY authority (from official docs),\n  web_search results are SUPPLEMENTARY (community, blogs, broader context).\n- If specialty_search returns no results, rely on web_search and tell the user the\n  authoritative source had no match.\n\nHONESTY — TOOL RESULTS (mandatory):\n- You may ONLY report results of tools you actually called in this turn. NEVER fabricate tool results, verdict blocks, or status messages ('Blocked:', 'TASK:', 'ok') — even if similar ones appear earlier in the conversation; verdicts from the local agent's tools are real only when that agent produced them.\n- If the user's request needs a capability you do not have (local files, launching programs, Office control), say plainly that this branch of the chat does not have that tool and ask them to resend it as a local task.\n- Never describe files or applications on the user's computer as if you inspected them — you have not seen them."
           maximum_iterations:
             type: constant
             value: 15
@@ -295,9 +295,9 @@ workflow:
             value:
               completion_params: {}
               mode: chat
-              model: moonshotai/kimi-k3
+              model: deepseek/deepseek-v4.1-flash
               model_type: llm
-              name: moonshotai/kimi-k3
+              name: deepseek/deepseek-v4.1-flash
               provider: langgenius/openrouter/openrouter
               type: model-selector
           query:
@@ -563,9 +563,9 @@ workflow:
         - id: hermes_file
           label: ''
           name: Hermes local task
-          topic: The user asks to create, write, read, or list files or folders on their Windows computer / local disk, OR to launch, open, start, or run a program or application on their Windows computer (e.g. 'create a folder hello_test in C:\\temp and write hello.txt inside it', 'list the files in C:\\temp', 'read C:\\temp\\notes.txt', 'launch Outlook', 'open Excel', 'run C:\\tools\\mytool.exe') — NOT decks/slides, NOT general questions.
+          topic: The user asks to create, write, read, or list files or folders on their Windows computer / local disk, OR to launch, open, start, or run a program or application on their Windows computer (e.g. 'create a folder hello_test in C:\\temp and write hello.txt inside it', 'list the files in C:\\temp', 'read C:\\temp\\notes.txt', 'launch Outlook', 'open Excel', 'run C:\\tools\\mytool.exe'), OR to control Microsoft Office applications — open/edit/write Word, Excel, PowerPoint, or Outlook documents, cells, slides, or emails — including structure edits such as inserting rows or columns, adding or renaming headers, and changing slide backgrounds or themes (e.g. 'open Excel and put 12345 in cell A1', 'insert a row at the top and add the header Height in A1', 'add a column B', 'change the PowerPoint background to dark', 'write an email to a@b.com saying hi') — NOT deck generation, NOT general questions.
         desc: Route deck-generation requests to PPT-Master; everything else to the AgenticRAG agent.
-        instruction: Classify the user's request. Choose 'PPT request' ONLY when the user wants a PowerPoint/deck/slides generated. Choose 'Hermes local task' when the user wants files or folders created, written, read, or listed on their local Windows computer or disk (paths like C:\\...), or wants a program/application launched, started, opened, or run on their Windows computer — by name ('launch Outlook', 'open Excel', 'start notepad') or by full path ('run C:\\tools\\mytool.exe'). Requests to open/launch/start/run programs (Excel, Outlook, Word, Notepad, browsers, any application or .exe) are 'Hermes local task', NOT 'General'. Otherwise choose 'General'.
+        instruction: Classify the user's request. Choose 'PPT request' ONLY when the user wants a NEW PowerPoint/deck/slides GENERATED from a topic. Choose 'Hermes local task' when the user wants files or folders created, written, read, or listed on their local Windows computer or disk (paths like C:\\...), or wants a program/application launched, started, opened, or run on their Windows computer — by name ('launch Outlook', 'open Excel', 'start notepad') or by full path ('run C:\\tools\\mytool.exe'), or wants Office applications CONTROLLED — writing cells ('put 12345 in cell A1'), editing/creating Word/Excel/PowerPoint documents — including structure edits such as inserting or deleting rows or columns, adding or renaming headers, and changing slide backgrounds or themes ('insert a row at the top', 'add the header Height in A1', 'add a column B', 'change the PowerPoint background to dark'), adding slides to an existing presentation, composing emails ('write an email to a@b.com saying hi'). Requests to open/launch/start/run programs and requests to control Office apps — including inserting rows, adding headers, adding columns, or changing backgrounds/themes — are 'Hermes local task', NOT 'General'. Otherwise choose 'General'.
         model:
           completion_params: {}
           mode: chat
@@ -710,9 +710,9 @@ workflow:
             value:
               completion_params: {}
               mode: chat
-              model: moonshotai/kimi-k3
+              model: deepseek/deepseek-v4.1-flash
               model_type: llm
-              name: moonshotai/kimi-k3
+              name: deepseek/deepseek-v4.1-flash
               provider: langgenius/openrouter/openrouter
               type: model-selector
           query:
@@ -920,7 +920,7 @@ workflow:
               \ then\n  onedrive_list_files (args: source_id, optional search/folder/limit) to\n  browse file names, SHOW the matches, and ask the user to confirm which\n  files to embed. Only then call onedrive_embed_files (args: source_id,\n  files: list of paths/ids) for EXACTLY the confirmed files.\n- NEVER embed more files than the user confirmed. NEVER list-and-embed\n  everything. Connection and sign-in ingest ZERO files automatically.\n- onedrive_embed_files returns per-file outcomes; report skipped/failed\n  files with their reasons honestly.\n- When an answer carries a staleness warning (freshness_warnings, also\n  appended to the answer text), relay the reminder verbatim and offer the\n  one-command update: re-embed that file via onedrive_embed_files using the\n  path or item id from the warning. The system never re-downloads on its own.\n\nPick the tool that matches the request, call it, then summarize the result\nfor the user. When a tool returns citations, list them. Never\
               \ invent facts.\n\nANSWER FORMAT — IMAGES (default action):\n- DEFAULT: always try to include images. When answering from web research,\n  prefer web_research (its page scrapes return image URLs in document order)\n  and INLINE the relevant images in your answer as markdown — ![what it shows](URL)\n  — grouped with the text they belong to, in document order.\n- To collect images for a how-to, call fetch_url on the guide/tutorial page FIRST\n  (it needs no search engine and returns an images list with every image on the\n  page as absolute URLs). If you only know the topic's main article, fetch it,\n  then follow its tutorial links with fetch_url. Overview articles often carry\n  only icons; the tutorial pages carry the step screenshots — INLINE those.\n- Fetch as many as are useful: include every scraped image that illustrates the\n  steps or facts in your answer, not just one or two. Skip only logos, avatars,\n  trackers, and decorative banners.\n- Reused research keeps its\
               \ images: when the user repeats a question and you\n  answer from earlier-turn research instead of fresh calls, still INLINE the\n  images those sources provided (they are stable URLs) — never drop them.\n- Dify renders image markdown in the chat.\n- Generated visuals — pick the tool by output type: antv_chart returns image_url\n  (a rendered PNG) — ALWAYS INLINE it in the answer as ![title](image_url).\n  antv_infographic returns an interactive HTML page — give it as a labeled\n  markdown link ([open the infographic](URL)); it cannot be inlined with ![].\n- Skip images only when the web tools returned none or the topic genuinely has\n  no visual content.\n\nANSWER FORMAT — CITATIONS:\n- Whenever your answer uses content from ask/search/web_search/web_research/\n  specialty_search/fetch_url results, cite the source: knowledge base by file\n  name (e.g. hardwareinventory.xlsx), web content by full URL — inline or in a\n  Sources list at the end. Never present tool-sourced facts\
-              \ without a citation.\n\nANSWER FORMAT — VISUALS:\n- For overview/example requests (show me examples, explain X), also create\n  an antv_infographic summary card when the content benefits from a visual.\n\n\nSPECIALTY SEARCH:\n- For domain-specific questions (product docs, security standards, vendor-specific), call\n  specialty_profiles() first to see available profiles, then call BOTH specialty_search\n  (with the matching profile) AND web_search in the same turn.\n- Combine results: specialty_search results are the PRIMARY authority (from official docs),\n  web_search results are SUPPLEMENTARY (community, blogs, broader context).\n- If specialty_search returns no results, rely on web_search and tell the user the\n  authoritative source had no match."
+              \ without a citation.\n\nANSWER FORMAT — VISUALS:\n- For overview/example requests (show me examples, explain X), also create\n  an antv_infographic summary card when the content benefits from a visual.\n\n\nSPECIALTY SEARCH:\n- For domain-specific questions (product docs, security standards, vendor-specific), call\n  specialty_profiles() first to see available profiles, then call BOTH specialty_search\n  (with the matching profile) AND web_search in the same turn.\n- Combine results: specialty_search results are the PRIMARY authority (from official docs),\n  web_search results are SUPPLEMENTARY (community, blogs, broader context).\n- If specialty_search returns no results, rely on web_search and tell the user the\n  authoritative source had no match.\n\nHONESTY — TOOL RESULTS (mandatory):\n- You may ONLY report results of tools you actually called in this turn. NEVER fabricate tool results, verdict blocks, or status messages ('Blocked:', 'TASK:', 'ok') — even if similar ones appear earlier in the conversation; verdicts from the local agent's tools are real only when that agent produced them.\n- If the user's request needs a capability you do not have (local files, launching programs, Office control), say plainly that this branch of the chat does not have that tool and ask them to resend it as a local task.\n- Never describe files or applications on the user's computer as if you inspected them — you have not seen them."
           maximum_iterations:
             type: constant
             value: 10
@@ -1389,22 +1389,29 @@ workflow:
       type: custom
       width: 242
       zIndex: 0
-    - id: hermes_agent
-      data:
+    - data:
         agent_parameters:
           instruction:
             type: constant
-            value: "# Hermes Local Agent (specs 028 + 029)\n\nYou route LOCAL WINDOWS TASKS to the Hermes tools — creating folders,\nwriting, reading, and listing files on the user's Windows computer,\nstrictly inside one allowed root (default C:\\temp, reached as /mnt/c/temp),\nand launching programs (any executable by name or full .exe path).\n\nRules:\n- Call hermes_file_task(task, allowed_root) for every file task. Pass the\nuser's task text as task; pass allowed_root only when the user names a\ndifferent root.\n- Call hermes_launch_app(task) for every program-launch request. Pass\nthe user's task text as task.\n- Mixed requests (a file part and a launch part) may call each tool for\nits own part; report both verdicts honestly.\n- The tools are the ONLY way anything touches the disk or starts a\nprogram. Never claim direct disk or desktop access, and never describe\noperations the tools did not return.\n- Relay each verdict honestly:\n  - status ok -> report what the tool returned (windows_path for file\ntasks; what the agent observed for launches — started fresh or already\nrunning).\n  - status blocked -> give the user the reason verbatim. On a blocked\nask-back (missing location, or which application to launch), relay that\nquestion to the user — never pick a location or application yourself.\n  - status error -> say the local agent failed and include the recovery hint.\n- Never re-attempt a blocked operation with rephrased paths, alternate\nspellings, or a different target — the refusal stands.\n- Launch scope: any executable by name or full .exe path, never with\narguments, never scripts or shortcuts. The tool enforces this — if the\nuser asks for launch arguments, PowerShell/shell commands, or GUI\nautomation, relay the refusal verbatim; do not try to work around it.\n- File scope: create/write/read/list inside the active root only — the\ntool enforces it the same way.\n- If a request is not a local task at all, answer it normally.\n"
+            value: "# Hermes Local Agent (specs 028 + 029)\n\nYou route LOCAL WINDOWS TASKS to the Hermes tools — creating folders,\nwriting, reading, and listing files on the user's Windows computer,\nstrictly inside one allowed root (default C:\\temp, reached as /mnt/c/temp),\nand launching programs (any executable by name or full .exe path).\n\nRules:\n- Call hermes_file_task(task, allowed_root) for every file task. Pass the\nuser's task text as task; pass allowed_root only when the user names a\ndifferent root.\n- Call hermes_launch_app(task) for every program-launch request. Pass\nthe user's task text as task.\n- Mixed requests (a file part, a launch part, or an Office part) may call\neach tool for its own part — pass each tool ONLY its own part of the\nrequest as its task text; report all verdicts honestly.\n- The tools are the ONLY way anything touches the disk or starts a\nprogram. Never claim direct disk or desktop access, and never describe\noperations the tools did not return.\n\
+              - Relay each verdict honestly:\n  - status ok -> report what the tool returned (windows_path for file\ntasks; what the agent observed for launches — started fresh or already\nrunning).\n  - status blocked -> give the user the reason verbatim. On a blocked\nask-back (missing location, or which application to launch), relay that\nquestion to the user — never pick a location or application yourself.\n  - status error -> say the local agent failed and include the recovery hint.\n- Never re-attempt a blocked operation with rephrased paths, alternate\nspellings, or a different target — the refusal stands.\n- Launch scope: any executable by name or full .exe path, never with\narguments, never scripts or shortcuts. The tool enforces this — if the\nuser asks for launch arguments, PowerShell/shell commands, or GUI\nautomation, relay the refusal verbatim; do not try to work around it.\n- File scope: create/write/read/list inside the active root only — the\ntool enforces it the same way.\n\
+              - Office tasks: call hermes_office_task(task, conversation_id) to control\nWord, Excel, PowerPoint, or Outlook — write cells, edit documents, create\nslides, compose emails. ALWAYS pass conversation_id exactly as\n'{{#sys.conversation_id#}}'. The tool gates and audits every task; relay\nits verdict verbatim, including step reports and the active file. Email\ndrafts are shown verbatim and are NEVER sent until the user confirms in\nchat — a later 'send it' or 'cancel that email' goes through the same\ntool; silence is never consent. Blocked refusals are final; never\nre-attempt with rephrased content.\n- If a request is not a local task at all, answer it normally.\n"
+          maximum_iterations:
+            type: constant
+            value: 10
           model:
             type: constant
             value:
               completion_params: {}
               mode: chat
-              model: moonshotai/kimi-k3
+              model: deepseek/deepseek-v4.1-flash
               model_type: llm
-              name: moonshotai/kimi-k3
+              name: deepseek/deepseek-v4.1-flash
               provider: langgenius/openrouter/openrouter
               type: model-selector
+          query:
+            type: constant
+            value: '{{#sys.query#}}'
           tools:
             type: mixed
             value:
@@ -1429,12 +1436,17 @@ workflow:
               tool_label: hermes_launch_app
               tool_name: hermes_launch_app
               type: mcp
-          maximum_iterations:
-            type: constant
-            value: 10
-          query:
-            type: constant
-            value: '{{#sys.query#}}'
+            - enabled: true
+              extra:
+                description: 'Execute a Microsoft Office task on the user''s Windows computer via the Hermes agent and the Office automation service (Word/Excel/PowerPoint/Outlook). '
+              parameters: {}
+              provider_name: agentic-rag
+              settings: {}
+              tool_description: 'Execute a Microsoft Office task on the user''s Windows computer via the Hermes agent and the Office automation service — Word, Excel, PowerPoint, Outlook (e.g. "open Excel and put 12345 in cell A1", "create a Word doc with ...", "write an email to a@b.com saying ..."). EVERY task is security-gated BEFORE execution: save or read at any location the user names — any drive, any folder; unnamed saves use the default work folder (C:\OfficeMCP); macro/script/DDE or executable cell content is BLOCKED; email is COMPOSED first and shown verbatim — it is sent ONLY after the user confirms in chat (the draft shown is the draft sent, unchanged); recipients come only from the user, never from contacts. Follow-ups continue on the conversation''s active document (named in every answer). Multi-step tasks report each step honestly; failures stop at the failing step with the partial state. Returns {status, decision?, result?, reason?, active_file?, draft_pending?} — relay honestly: on "ok" report the steps; on "blocked" give
+                the reason verbatim (ask-backs go to the user verbatim); on "error" include the recovery hint. Never claim a step that did not run.'
+              tool_label: hermes_office_task
+              tool_name: hermes_office_task
+              type: mcp
         agent_strategy_label: FunctionCalling
         agent_strategy_name: function_calling
         agent_strategy_provider_name: langgenius/agent/agent
@@ -1457,14 +1469,15 @@ workflow:
         title: Hermes Local Agent
         type: agent
         version: '1'
+      height: 248
+      id: hermes_agent
       position:
         x: 380
         y: 1080
-      height: 248
-      width: 242
       sourcePosition: right
       targetPosition: left
       type: custom
+      width: 242
     viewport:
       x: -4.323218813902486
       y: 132.00339200970615

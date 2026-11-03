@@ -134,6 +134,7 @@ class Config:
     hermes_api_key: str = ""
     hermes_timeout_s: float = 300.0
     hermes_allowed_root: Path = Path("/mnt/c/temp")
+    hermes_office_root: str = "C:\\OfficeMCP"   # spec 030: gate containment root (Windows style)
     hermes_audit_path: Path = Path("~/.config/agentic-rag-mcp/hermes-mcp/audit.jsonl")
     raw: dict[str, Any] = field(default_factory=dict)
 
@@ -230,6 +231,9 @@ def load_config(path: Path | None = None) -> Config:
     cfg.hermes_allowed_root = Path(
         str(_get(raw, "hermes", "allowed_root", default=str(cfg.hermes_allowed_root)))
     ).expanduser()
+    cfg.hermes_office_root = str(
+        _get(raw, "hermes", "office_root", default=cfg.hermes_office_root)
+    )
     cfg.hermes_audit_path = Path(
         str(_get(raw, "hermes", "audit_path", default=str(cfg.hermes_audit_path)))
     ).expanduser()

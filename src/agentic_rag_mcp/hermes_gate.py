@@ -28,6 +28,9 @@ OP_UNSUPPORTED = "unsupported"
 OP_ASK_BACK = "ask-back"
 
 _RE_WINDOWS_DRIVE = re.compile(r"^([A-Za-z]):[\\/](.*)$")
+# trailing characters that cannot terminate a legal Windows path —
+# sentence/markup punctuation the path-token regex may capture
+_TRAILING_PUNCT = ".,;:!?)]}>»‹*`"
 # Path-like tokens: windows drive style, /mnt/..., ~/..., ~, absolute POSIX
 # (including bare "/"). Bare relative filenames are deliberately NOT matched
 # (FR-014 ask-back). The lookbehinds stop mid-word picks like "a/b" in prose.
@@ -79,7 +82,11 @@ def normalize_path(token: str, home: str, allowed_root: str = DEFAULT_ALLOWED_RO
     containment comparison. Paths under ``/mnt/`` are lowercased (drvfs
     semantics); other paths keep their case.
     """
-    token = (token or "").strip().strip("\"'")
+    # Windows paths cannot legally end with dots or spaces, so stripping
+    # sentence punctuation the token regex swallows is lossless for every
+    # real path — without it "C:\OfficeMCP." fails containment (bug
+    # fail-to-save-file, 2026-11-03)
+    token = (token or "").strip().strip("\"'").rstrip(_TRAILING_PUNCT)
     if not token:
         return None
     m = _RE_WINDOWS_DRIVE.match(token)

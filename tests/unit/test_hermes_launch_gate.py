@@ -159,6 +159,15 @@ def test_or_phrased_two_targets_ask_back():
     assert "which" in (v.reason or "").lower()
 
 
+def test_trailing_period_after_exe_path_tolerated():
+    """Bug fail-to-save-file: 'run C:\Windows\System32\notepad.exe.' — the
+    sentence period must not defeat the .exe suffix check."""
+    v = gate_launch("run C:\\Windows\\System32\\notepad.exe.")
+    assert v.decision == "ok", v.reason
+    assert v.kind == "path"
+    assert v.target.endswith(".exe")
+
+
 # ------------------------------------------------- mixed launch+file prompts (spec Edge Cases)
 
 def test_mixed_launch_and_file_prompt_launch_side_never_launches():

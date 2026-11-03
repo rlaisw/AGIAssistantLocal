@@ -30,6 +30,7 @@ EXISTING_TOOLS = {
     "onedrive_embed_files", "sources_auth",
     "hermes_file_task",        # spec 028 (amended 2026-11-01 — the set was stale since)
     "hermes_launch_app",       # spec 029
+    "hermes_office_task",      # spec 030
 }
 ANTV_TOOLS = {"antv_chart", "antv_infographic"}  # spec 012 (additive)
 PPT_TOOLS = {

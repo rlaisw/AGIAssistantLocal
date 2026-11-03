@@ -21,7 +21,15 @@ from .ingestion.pipeline import IngestionPipeline
 from .ingestion.watchers import Watcher
 from .logging_setup import configure_logging, current_setup
 from .routing import decision as decision_mod
+from .office_state import OfficeState
 from .search.embeddings import Embedder
+
+_office_state = OfficeState()
+
+
+def get_office_state() -> OfficeState:
+    """The Office lanes' conversation state (spec 030, research R4)."""
+    return _office_state
 from .search.graphify_search import GraphifySearch
 from .search.web.base import build_providers, search_all
 from .sources.sqlite_source import SqliteSource
@@ -692,10 +700,24 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
     from .hermes_client import LAUNCH_INSTRUCTIONS as _HERMES_LAUNCH_INSTRUCTIONS
     from .hermes_client import run_task as _hermes_run_task
     from .hermes_gate import DEFAULT_ALLOWED_ROOT, gate_task, normalize_path, to_windows
+    from .hermes_client import OFFICE_INSTRUCTIONS as _OFFICE_INSTRUCTIONS
     from .hermes_launch_gate import gate_launch
+    from .office_gate import (
+        OP_CANCEL, OP_COMPOSE_EMAIL, OP_CONTINUE, OP_SEND_CONFIRMATION,
+        gate_office,
+    )
 
     import re as _re
     _RE_LAUNCH_RESULT = _re.compile(r"LAUNCH:\s*(SUCCESS|FAILED)", _re.IGNORECASE)
+    _RE_STEP = _re.compile(
+        r"^STEP\s+\d+:\s+.+?\s+(OK|FAILED)\s*[—-]\s*(.*)$", _re.IGNORECASE | _re.MULTILINE)
+    _RE_ACTIVE_FILE = _re.compile(r"^ACTIVE FILE:\s*(.+)$", _re.IGNORECASE | _re.MULTILINE)
+    _RE_DRAFT_ID = _re.compile(r"^DRAFT ID:\s*(\S+)", _re.IGNORECASE | _re.MULTILINE)
+    _RE_TASK = _re.compile(r"^TASK:\s*(COMPLETED|PARTIAL|FAILED)",
+                           _re.IGNORECASE | _re.MULTILINE)
+    _OFFICE_START_HINT = (" — if the Office automation service is down, start "
+                          "it with: officemcp sse --port 8888 --host 127.0.0.1 "
+                          "--folder C:\\OfficeMCP")
 
     @mcp.tool()
     def hermes_file_task(task: str, allowed_root: str = "") -> dict:
@@ -799,6 +821,183 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
                             outcome=output[:200])
         return {"status": "ok", "decision": "executed",
                 "result": output, "target": verdict.target}
+
+    @mcp.tool()
+    def hermes_office_task(task: str, conversation_id: str) -> dict:
+        """Execute a Microsoft Office task on the user's Windows computer via the
+        Hermes agent and the Office automation service — Word, Excel, PowerPoint,
+        Outlook (e.g. "open Excel and put 12345 in cell A1", "create a Word doc
+        with ...", "write an email to a@b.com saying ..."). EVERY task is
+        security-gated BEFORE execution: save or read at any location the user
+        names — any drive, any folder; unnamed saves use the default work folder
+        (C:\\OfficeMCP); macro/script/DDE or executable cell
+        content is BLOCKED; email is COMPOSED first and shown verbatim — it is
+        sent ONLY after the user confirms in chat (the draft shown is the draft
+        sent, unchanged); recipients come only from the user, never from
+        contacts. Follow-ups continue on the conversation's active document
+        (named in every answer). Multi-step tasks report each step honestly;
+        failures stop at the failing step with the partial state. Returns
+        {status, decision?, result?, reason?, active_file?, draft_pending?} —
+        relay honestly: on "ok" report the steps; on "blocked" give the reason
+        verbatim (ask-backs go to the user verbatim); on "error" include the
+        recovery hint. Never claim a step that did not run."""
+        root = cfg.hermes_office_root
+        verdict = gate_office(task, office_root=root)
+        audit = HermesAudit(cfg.hermes_audit_path)
+        state = get_office_state()
+
+        def _audit(decision: str, reason: str | None = None,
+                   outcome: str | None = None) -> None:
+            audit.write_attempt(decision=decision, operation="office-task",
+                                normalized_path=state.active_document(conversation_id),
+                                allowed_root=root, reason=reason, outcome=outcome)
+
+        def _error_envelope(err: str) -> dict:
+            reason = err if "officemcp sse" in err.lower() else err + _OFFICE_START_HINT
+            if "did not finish within" in err:
+                # budget exhaustion is resumable — record it for 'continue' (FR-005)
+                state.set_interrupted(conversation_id,
+                                      {"original_task": task,
+                                       "partial_report": err})
+            _audit("error", reason=reason)
+            return {"status": "error", "reason": reason}
+
+        def _run_agent(directive: str) -> dict:
+            out = _hermes_run_task(cfg, directive,
+                                   instructions=_OFFICE_INSTRUCTIONS)
+            if not out.get("ok"):
+                return _error_envelope(out.get("error", "error:unknown Hermes failure"))
+            output = out["output"]
+            # parse ALL markers first, THEN audit the steps — so every audit
+            # entry carries the actual target from ACTIVE FILE (spec 031 FR-006)
+            af = _RE_ACTIVE_FILE.search(output)
+            if af:
+                state.set_active_document(conversation_id, af.group(1).strip())
+            for m in _RE_STEP.finditer(output):
+                line = m.group(0).strip()
+                if m.group(1).upper() == "OK":
+                    _audit("executed", outcome=line[:200])
+                else:
+                    _audit("error", reason=line[:200])
+            di = _RE_DRAFT_ID.search(output)
+            tm_early = _RE_TASK.search(output)
+            if di:
+                state.set_pending_draft(conversation_id,
+                                        {"entry_id": di.group(1).strip(),
+                                         "composed_for": task[:300]})
+            elif (verdict.kind == OP_COMPOSE_EMAIL and tm_early
+                  and tm_early.group(1).upper() == "COMPLETED"):
+                # robust fallback (bug fix 2026-11-03): a completed compose
+                # whose report carried no DRAFT ID line still registers the
+                # pending draft — the send directive locates it by content
+                state.set_pending_draft(conversation_id,
+                                        {"entry_id": None,
+                                         "composed_for": task[:300]})
+            envelope = {"active_file": state.active_document(conversation_id),
+                        "draft_pending": bool(state.pending_draft(conversation_id))}
+            tm = _RE_TASK.search(output)
+            if not tm:
+                reason = ("error:the local agent did not end with a TASK: "
+                          "COMPLETED/PARTIAL/FAILED marker — never claiming "
+                          f"success. Report was: {output.strip()[-300:]}"
+                          + _OFFICE_START_HINT)
+                _audit("error", reason=reason)
+                return {"status": "error", "reason": reason, **envelope}
+            if tm.group(1).upper() == "COMPLETED":
+                return {"status": "ok", "decision": "executed",
+                        "result": output, **envelope}
+            failed = [m.group(0).strip() for m in _RE_STEP.finditer(output)
+                      if m.group(1).upper() == "FAILED"]
+            reason = ("error:the Office task did not complete — "
+                      + tm.group(1).upper()
+                      + (f"; failing steps: {'; '.join(failed)}" if failed else "")
+                      + f"; partial report: {output.strip()[-300:]}")
+            if not _RE_STEP.search(output):
+                _audit("error", reason=reason[:400])   # nothing else recorded it
+            if tm.group(1).upper() == "PARTIAL":
+                # a partial task is resumable — record it for 'continue' (FR-005)
+                state.set_interrupted(conversation_id,
+                                      {"original_task": task,
+                                       "partial_report": output.strip()[-800:]})
+            return {"status": "error", "reason": reason, **envelope}
+
+        if verdict.decision == "blocked":
+            _audit("blocked", reason=verdict.reason)
+            return {"status": "blocked", "decision": "blocked",
+                    "reason": verdict.reason}
+
+        if verdict.kind == OP_SEND_CONFIRMATION:
+            pending = state.pending_draft(conversation_id)
+            if not pending:
+                reason = ("Blocked: no email is waiting to be sent — which "
+                          "email should I compose? Compose first; sending "
+                          "always needs your confirmation (spec 030 FR-009)")
+                _audit("blocked", reason=reason)
+                return {"status": "blocked", "decision": "blocked", "reason": reason}
+            entry = pending.get("entry_id")
+            context = str(pending.get("composed_for", ""))[:200]
+            if entry:
+                locate = (f"Send the Outlook draft with EntryID {entry} — do "
+                          f"not modify it. It is the one this conversation "
+                          f"composed: {context}")
+            else:
+                locate = (f"Locate the unsent draft in Outlook's Drafts folder "
+                          f"that this conversation composed — {context} — and "
+                          f"send it exactly as composed; do not modify it. If "
+                          f"more than one matching draft exists, send the most "
+                          f"recent and say which one was sent.")
+            directive = (f"SEND PENDING DRAFT — {locate} Report the send as "
+                         f"one step and never modify the draft.")
+            result = _run_agent(directive)
+            if result.get("status") == "ok":
+                state.drop_pending_draft(conversation_id)
+                result["draft_pending"] = False
+            return result
+
+        if verdict.kind == OP_CANCEL:
+            dropped = state.drop_pending_draft(conversation_id)
+            outcome = ("cancelled — the pending email was not sent" if dropped
+                       else "nothing was pending")
+            _audit("executed", outcome=outcome)
+            return {"status": "ok", "decision": "executed", "result": outcome,
+                    "draft_pending": False}
+
+        if verdict.kind == OP_CONTINUE:
+            it = state.interrupted(conversation_id)
+            if not it:
+                reason = ("Blocked: no interrupted Office task to resume — "
+                          "state the Office task you want (a task only becomes "
+                          "resumable when it stops part-way)")
+                _audit("blocked", reason=reason)
+                return {"status": "blocked", "decision": "blocked", "reason": reason}
+            directive = (f"Resume an interrupted Office task. The original "
+                         f"request was: {it['original_task']}. The previous "
+                         f"attempt stopped with: {it['partial_report']}. "
+                         f"Complete the remaining steps now and follow the "
+                         f"step-report protocol.")
+            result = _run_agent(directive)
+            if result.get("status") == "ok":
+                state.clear_interrupted(conversation_id)
+            return result
+
+        active = state.active_document(conversation_id)
+        ctx = (f"The conversation's active document is {active} — continue on "
+               f"it unless the task names another file. ") if active else ""
+        if verdict.kind == OP_COMPOSE_EMAIL:
+            extra = ("This is a COMPOSE task: create an email draft with the "
+                     "dictated recipient(s)/subject/body verbatim in Outlook's "
+                     "Drafts folder — NEVER send it; report the draft with its "
+                     "DRAFT ID and show the content. ")
+        else:
+            extra = ("Save at the location the user names (any drive, any "
+                     "folder; create missing parent folders as needed) or, "
+                     "if none is named, in the default work folder; write "
+                     "literal values only. ")
+        directive = (f"{ctx}Office task ({verdict.kind}, {verdict.app or 'office'}): "
+                     f"{task}. {extra}Unnamed saves use the default work "
+                     f"folder {root}. "
+                     f"Follow the step-report protocol.")
+        return _run_agent(directive)
 
     return mcp
 

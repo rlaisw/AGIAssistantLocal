@@ -20,6 +20,7 @@ CONTRACT_SCENARIOS = [
     "honest-errors", "chat-ui-liveness", "stop-generation",   # spec 027
     "hermes-file-task",                                     # spec 028
     "hermes-launch-app",                                    # spec 029
+    "hermes-office-task", "office-routing",                 # spec 030 + bug office-routing-flake
     "antv-chart", "antv-infographic", "chart-in-deck", "chat-journey",
 ]
 

@@ -407,6 +407,298 @@ def scenario_hermes_launch_app(dcfg: DeployConfig) -> tuple[bool, str]:
     return all_ok and audit_ok, "hermes-launch-app: " + "; ".join(checks)
 
 
+def _xlsx_contains(host_path: str, cell_ref: str, value: str) -> bool:
+    """Verify a cell without new dependencies: the sheet XML carries the cell
+    reference; values live inline or in sharedStrings (stdlib zipfile only)."""
+    import zipfile
+
+    try:
+        with zipfile.ZipFile(host_path) as z:
+            names = z.namelist()
+            sheet = next(n for n in names
+                         if n.startswith("xl/worksheets/sheet") and n.endswith(".xml"))
+            xml = z.read(sheet).decode("utf-8", "replace")
+            if f'r="{cell_ref}"' not in xml:
+                return False
+            if value in xml:
+                return True
+            return any(value in z.read(n).decode("utf-8", "replace")
+                       for n in names if "sharedStrings" in n)
+    except Exception:
+        return False
+
+
+def scenario_hermes_office_task(dcfg: DeployConfig) -> tuple[bool, str]:
+    """Spec 030: the Office task lane — O1 Excel A1 write (verified in the
+    workbook's sheet XML, stdlib only), O2 active-document follow-up (same
+    conversation id), O7 audit cross-check (office entries carry the work
+    folder as allowed_root)."""
+    import subprocess
+
+    checks: list[str] = []
+    conv = f"battery-office-{int(time.time())}"
+
+    # W0 (bug officemcp-connection-error): watchdog pre-flight — a tiny
+    # Office task exercises the gateway->OfficeMCP MCP session; a degraded
+    # session fails here in <10 s instead of burning 300-600 s per turn.
+    w0 = mcp_call("hermes_office_task",
+                  {"task": "check what Office apps are currently running",
+                   "conversation_id": conv + "-w0"})
+    w0_ok = w0.get("status") in ("ok", "blocked") and w0.get("status") != "error"
+    if not w0_ok:
+        return False, ("hermes-office-task: W0 SESSION-STALE pre-flight FAILED — "
+                      "the gateway->OfficeMCP session is degraded; recovery: "
+                      "hermes mcp remove OfficeMCP; yes | hermes mcp add "
+                      "OfficeMCP --url http://127.0.0.1:8888/sse; "
+                      "hermes gateway restart -y --detach")
+
+    r1 = mcp_call("hermes_office_task",
+                  {"task": "open Excel and put 12345 in cell A1",
+                   "conversation_id": conv})
+    b1 = r1.get("status") == "ok"
+    active = r1.get("active_file") or ""
+    checks.append(f"O1 excel-write {'ok' if b1 else 'FAILED'} "
+                  f"({r1.get('status')}, active={active or 'none'})")
+    b1v = False
+    if b1 and active:
+        host = active.replace("C:\\", "/mnt/c/").replace("\\", "/")
+        b1v = _xlsx_contains(host, "A1", "12345")
+    checks.append(f"O1 A1-verified {'ok' if b1v else 'FAILED'}")
+
+    r2 = mcp_call("hermes_office_task",
+                  {"task": "also write 'hello' in cell B2",
+                   "conversation_id": conv})
+    b2 = r2.get("status") == "ok" and r2.get("active_file") == active
+    b2v = False
+    if b2 and active:
+        host = active.replace("C:\\", "/mnt/c/").replace("\\", "/")
+        b2v = _xlsx_contains(host, "B2", "hello")
+    checks.append(f"O2 followup-on-active {'ok' if (b2 and b2v) else 'FAILED'} "
+                  f"({r2.get('status')}, B2={b2v})")
+
+    # O6 (US3, spec 031): refusal matrix — content rules still fire wherever
+    # the target lives (the out-of-folder case retired with the containment)
+    refusals = [
+        "create a macro that formats the sheet",
+        "enable DDE in the workbook",
+        "write an email saying hello",               # no recipient — ask-back
+        "delete my emails",
+    ]
+    b6 = True
+    for t in refusals:
+        rr = mcp_call("hermes_office_task", {"task": t, "conversation_id": conv})
+        if rr.get("status") != "blocked":
+            b6 = False
+            checks.append(f"O6 NOT-BLOCKED: {t[:30]} -> {rr.get('status')}")
+    checks.append(f"O6 refusal-matrix {'ok' if b6 else 'FAILED'} (4/4 blocked)")
+
+    # S1 (US1, spec 031): the owner's exact previously-impossible request —
+    # a named save location OUTSIDE the work folder must now succeed
+    s1_host = "/mnt/c/temp/test/test1.pptx"
+    r_s1 = mcp_call("hermes_office_task",
+                    {"task": "create a PowerPoint file named test1 with the "
+                             "text Hello and save it to C:\\temp\\test",
+                     "conversation_id": conv + "-s1"})
+    s1a = r_s1.get("status") == "ok"
+    s1v = False
+    if s1a:
+        try:
+            import zipfile
+            with zipfile.ZipFile(s1_host) as z:
+                slide = next(n for n in z.namelist()
+                             if n.startswith("ppt/slides/slide") and n.endswith(".xml"))
+                s1v = "Hello" in z.read(slide).decode("utf-8", "replace")
+        except Exception:
+            s1v = False
+    checks.append(f"S1 named-location-save {'ok' if (s1a and s1v) else 'FAILED'} "
+                  f"({r_s1.get('status')}, verified={s1v})")
+
+    # X1 (US2, spec 031): overwrite honesty — create then update the same
+    # named file; the report must say an existing file was replaced
+    x1_create = mcp_call("hermes_office_task",
+                         {"task": "create a Word document with the text 'v1' "
+                                  "and save it to C:\\OfficeMCP\\overwrite_probe.docx",
+                          "conversation_id": conv + "-x1"})
+    x1_update = mcp_call("hermes_office_task",
+                         {"task": "update the Word document "
+                                  "C:\\OfficeMCP\\overwrite_probe.docx with "
+                                  "the text 'v2'",
+                          "conversation_id": conv + "-x1"})
+    x1a = x1_create.get("status") == "ok" and x1_update.get("status") == "ok"
+    x1v = False
+    if x1a:
+        try:
+            import zipfile
+            with zipfile.ZipFile("/mnt/c/OfficeMCP/overwrite_probe.docx") as z:
+                x1v = ("v2" in z.read("word/document.xml").decode("utf-8", "replace")
+                       and "replac" in (x1_update.get("result") or "").lower())
+        except Exception:
+            x1v = False
+    checks.append(f"X1 overwrite-honesty {'ok' if (x1a and x1v) else 'FAILED'} "
+                  f"(create={x1_create.get('status')}, update={x1_update.get('status')}, "
+                  f"verified={x1v})")
+
+    # warm Outlook for the email steps: a cold COM start can exceed the 300 s
+    # agent budget (spec 030 FR-005 — honest error + retry is the designed
+    # fallback); the launch lane opens it (the owner's example starts the same way)
+    mcp_call("hermes_launch_app", {"task": "open Outlook"})
+
+    # O3 (US2/FR-009): compose — draft shown, nothing sent
+    r3 = mcp_call("hermes_office_task",
+                  {"task": "write an email to raymond.lai@tvb.com.hk with "
+                           "subject 'battery test' and body 'test Hello World'",
+                   "conversation_id": conv})
+    b3 = (r3.get("status") == "ok" and r3.get("draft_pending") is True
+          and "DRAFT ID" in (r3.get("result") or ""))
+    checks.append(f"O3 compose-draft-pending {'ok' if b3 else 'FAILED'} "
+                  f"({r3.get('status')}, pending={r3.get('draft_pending')})")
+
+    # O4 (US2/FR-009): confirmation sends the recorded draft exactly
+    r4 = mcp_call("hermes_office_task",
+                  {"task": "send it", "conversation_id": conv})
+    b4 = r4.get("status") == "ok" and r4.get("draft_pending") is False
+    checks.append(f"O4 confirm-send {'ok' if b4 else 'FAILED'} "
+                  f"({r4.get('status')})")
+
+    # O5 (US2/FR-009): cancel flow — compose then cancel, nothing sent
+    r5 = mcp_call("hermes_office_task",
+                  {"task": "write an email to raymond.lai@tvb.com.hk with "
+                           "subject 'battery cancel' and body 'do not send'",
+                   "conversation_id": conv})
+    r6 = mcp_call("hermes_office_task",
+                  {"task": "cancel that email", "conversation_id": conv})
+    b5 = (r5.get("status") == "ok" and r5.get("draft_pending") is True
+          and r6.get("status") == "ok" and r6.get("draft_pending") is False)
+    checks.append(f"O5 cancel-flow {'ok' if b5 else 'FAILED'} "
+                  f"(compose={r5.get('status')}, cancel={r6.get('status')})")
+
+    # W1 (US4): Word document with dictated text — verified in the docx XML
+    rw = mcp_call("hermes_office_task",
+                  {"task": "create a Word document called battery_notes.docx "
+                           "with the text 'hello world'", "conversation_id": conv})
+    bw = rw.get("status") == "ok"
+    bwv = False
+    if bw:
+        try:
+            import zipfile
+            with zipfile.ZipFile("/mnt/c/OfficeMCP/battery_notes.docx") as z:
+                bwv = "hello world" in z.read("word/document.xml").decode("utf-8", "replace")
+        except Exception:
+            bwv = False
+    checks.append(f"W1 word-doc {'ok' if (bw and bwv) else 'FAILED'} "
+                  f"({rw.get('status')}, verified={bwv})")
+
+    # P1 (US4): PowerPoint slide with dictated text — verified in the pptx XML
+    rp = mcp_call("hermes_office_task",
+                  {"task": "create a PowerPoint deck called battery_deck.pptx "
+                           "with one slide saying 'Q3 results'",
+                   "conversation_id": conv})
+    bp = rp.get("status") == "ok"
+    bpv = False
+    if bp:
+        try:
+            import zipfile
+            with zipfile.ZipFile("/mnt/c/OfficeMCP/battery_deck.pptx") as z:
+                slide = next(n for n in z.namelist()
+                             if n.startswith("ppt/slides/slide") and n.endswith(".xml"))
+                bpv = "Q3 results" in z.read(slide).decode("utf-8", "replace")
+        except Exception:
+            bpv = False
+    checks.append(f"P1 ppt-slide {'ok' if (bp and bpv) else 'FAILED'} "
+                  f"({rp.get('status')}, verified={bpv})")
+
+    audit_ok = False
+    audit_detail = "audit unread"
+    try:
+        raw = subprocess.run(
+            ["docker", "exec", "agentic-rag", "cat",
+             "/root/.config/agentic-rag-mcp/hermes-mcp/audit.jsonl"],
+            capture_output=True, text=True, timeout=30, check=True).stdout
+        entries = [json.loads(line) for line in raw.splitlines() if line.strip()]
+        office = [e for e in entries if e.get("operation") == "office-task"]
+        tail = office[-3:]
+        executed = [e for e in office if e.get("decision") == "executed"]
+        audit_ok = (len(tail) == 3
+                   and all(e.get("decision") == "executed" for e in tail)
+                   and all(e.get("allowed_root") == "C:\\OfficeMCP" for e in tail)
+                   and len(executed) >= 5)
+        audit_detail = f"tail={[e.get('decision') for e in tail]}"
+    except Exception as exc:  # noqa: BLE001 — honest audit-read failure
+        audit_detail = f"audit read failed: {exc}"
+    checks.append(f"O7 audit cross-check {'ok' if audit_ok else 'FAILED'} ({audit_detail})")
+
+    ok = (b1 and b1v and b2 and b2v and b6 and b3 and b4 and b5
+          and bw and bwv and bp and bpv and audit_ok
+          and s1a and s1v and x1a and x1v)
+    return ok, "hermes-office-task: " + "; ".join(checks)
+
+
+def scenario_office_routing(dcfg: DeployConfig) -> tuple[bool, str]:
+    """Bug office-routing-flake: Office-edit phrasings (insert-row, add-header,
+    add-column) MUST route to the Hermes branch — the classifier regression
+    guard that was missing when the misroute shipped (2026-11-02).
+    Bug ppt-fail-change-background: a context-less follow-up that lands on the
+    general branch must NEVER receive a fabricated gate verdict — only real
+    gate refusals (from the Hermes branch) may carry 'Blocked:' text."""
+    if not dcfg.api_key:
+        return True, "skipped: no DIFY_API_KEY configured (notice, not failure)"
+
+    def _chat(q: str, conv: str = ""):
+        branch, answer, conv_id = None, "", conv or None
+        with httpx.stream(
+            "POST", dcfg.console_url.rstrip("/") + "/v1/chat-messages",
+            headers={"Authorization": f"Bearer {dcfg.api_key}"},
+            json={"inputs": {}, "query": q, "response_mode": "streaming",
+                  "conversation_id": conv, "user": "deploy-battery-030-routing"},
+            timeout=600,
+        ) as resp:
+            if resp.status_code != 200:
+                return f"http{resp.status_code}", "", None
+            for line in resp.iter_lines():
+                if line.startswith("data:"):
+                    try:
+                        ev = json.loads(line[5:])
+                    except json.JSONDecodeError:
+                        continue
+                    if ev.get("event") == "node_finished":
+                        title = (ev.get("data") or {}).get("title")
+                        if title == "Hermes Local Agent":
+                            branch = "hermes"
+                        elif title and title.startswith("Agentic Strategy"):
+                            branch = "general"
+                    if ev.get("event") in ("message", "agent_message"):
+                        answer += ev.get("answer") or ""
+                        conv_id = ev.get("conversation_id") or conv_id
+        return branch or "unknown", answer, conv_id
+
+    checks: list[str] = []
+    ok_all = True
+    for q in ["Insert a row at the top and add the header 'RouteCheck' in A1.",
+              "add a column B and put the text 'route ok' in it",
+              "change the PowerPoint background to dark",
+              "create a PowerPoint file named test1 with the text Hello "
+              "and save it to C:\\temp\\test"]:
+        branch, answer, _ = _chat(q)
+        ok = branch == "hermes"
+        ok_all = ok_all and ok
+        checks.append(f"{q[:36]!r} -> {branch}{' ok' if ok else ' MISROUTE'}")
+
+    # fabrication guard: build a real gate refusal in history, then send the
+    # bare context-less follow-up in the SAME conversation
+    b1, a1, conv_id = _chat("make cell A1 bold")
+    setup_ok = (b1 == "hermes" and "Blocked:" in a1)   # the REAL gate refuses
+    b2, a2, _ = _chat("change to dark background", conv_id or "")
+    if b2 == "general":
+        fab_ok = "Blocked:" not in a2   # a verdict from a node that never called the gate = fabrication
+    else:
+        fab_ok = True                    # hermes branch: a real gate verdict is fine
+    ok_all = ok_all and setup_ok and fab_ok
+    checks.append(f"real-block-setup {'ok' if setup_ok else 'FAILED'} ({b1})")
+    checks.append(f"no-fabrication {'ok' if fab_ok else 'FAILED'} "
+                  f"(bare-followup -> {b2})")
+    return ok_all, "office-routing: " + "; ".join(checks)
+
+
 def scenario_antv_chart(dcfg: DeployConfig) -> tuple[bool, str]:
     try:
         result = mcp_call("antv_chart", {
@@ -487,6 +779,8 @@ def registry(skip_chat: bool = False) -> list[tuple[str, object]]:
         ("stop-generation", scenario_stop_generation),
         ("hermes-file-task", scenario_hermes_file_task),
         ("hermes-launch-app", scenario_hermes_launch_app),
+        ("hermes-office-task", scenario_hermes_office_task),
+        ("office-routing", scenario_office_routing),
         ("antv-chart", scenario_antv_chart),
         ("antv-infographic", scenario_antv_infographic),
         ("chart-in-deck", scenario_chart_in_deck),

@@ -20,7 +20,7 @@ question ──► System 1: embedded Laya decision model (one pass, no text gen
 
 Outage behavior: if the decision node is unavailable/invalid/timed-out, the keyword heuristic routes and responses are marked `provenance: "fallback"` (FR-003 of spec 002).
 
-## MCP tools — 25 total (16 core below + 5 `ppt_*` spec 009 + 2 `antv_*` spec 012 + `hermes_file_task` spec 028 + `hermes_launch_app` spec 029)
+## MCP tools — 26 total (16 core below + 5 `ppt_*` spec 009 + 2 `antv_*` spec 012 + `hermes_file_task` spec 028 + `hermes_launch_app` spec 029 + `hermes_office_task` spec 030)
 
 | Tool | Purpose |
 |---|---|
@@ -104,6 +104,10 @@ Windows file tasks typed in the chat ("create a folder Test in C:\temp and write
 ### Hermes program-launch lane (spec 029)
 
 Program launches typed in the chat (*"launch Outlook"*, *"open Excel"*, *"run C:\tools\mytool.exe"*) route to the same **Hermes Local Agent** node, which carries a second tool `hermes_launch_app`. Its gate (`src/agentic_rag_mcp/hermes_launch_gate.py`) allows ONE executable — by bare application name or full `.exe` path (Windows/host styles normalized) — and refuses everything else with the rule named: launch arguments and command lines, shell/PowerShell phrasing, scripts (`.bat/.cmd/.ps1`), shortcuts (`.lnk`), non-executable paths, and two applications in one prompt (ask-back). There is **no allowlist** — any executable the prompt names may launch (trusted single-owner model, per the clarify session). Execution goes through the same Hermes gateway; the agent must end its report with `LAUNCH: SUCCESS` or `LAUNCH: FAILED: <reason>`, and the tool stamps `ok` only on an explicit SUCCESS — failures relay honestly with recovery hints, and every attempt is audited as `operation:"launch-app"` in the same append-only log. WSL interop must be enabled on the host (`/etc/wsl.conf` `[interop] enabled=true`) for launches to actually start Windows programs. Full story: `specs/029-hermes-launch-programs/`.
+
+### Hermes Office task lane (spec 030)
+
+Office-control prompts (*"open Excel and put 12345 in cell A1"*, *"write an email to a@b.com saying 'test Hello World'"*) route to the same **Hermes Local Agent** node's third tool `hermes_office_task(task, conversation_id)`. Its gate (`src/agentic_rag_mcp/office_gate.py`) accepts save/read at **any named location** — any drive, any folder; unnamed saves use the default work folder (`C:\OfficeMCP`, owner-configurable) — refuses macro/script/DDE/executable cell content, requires explicit recipient addresses (never from contacts), and classifies confirmations (spec 031 amended the containment: the work folder is a default, not a boundary). The sidecar keeps conversation state (`office_state.py`: the active document a follow-up continues on, and the pending draft), and executes through the Hermes gateway's **native MCP connection** to the owner-installed Office automation service on Windows (SSE over mirrored loopback) — the agent runs bounded step sequences and must report each step with a machine-checkable `STEP/TASK` marker protocol; `ok` requires `TASK: COMPLETED`. Email is **compose → confirm → send**: the draft is shown verbatim and sends only on an explicit chat confirmation of the recorded draft, unchanged; silence is never consent. Every step writes an append-only audit entry (`operation=office-task`). One-time host wiring: start `officemcp sse --port 8888 --host 127.0.0.1 --folder C:\OfficeMCP` on Windows and `yes | hermes mcp add OfficeMCP --url http://127.0.0.1:8888/sse` on the host. Full story: `specs/030-hermes-office-tasks/`.
 
 ## AntV charts & infographics (spec 012)
 

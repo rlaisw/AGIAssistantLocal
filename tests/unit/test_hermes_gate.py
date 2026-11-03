@@ -57,6 +57,19 @@ def test_to_windows_display_form():
 
 # ---------------------------------------------------------------- A2 containment
 
+def test_trailing_punctuation_is_not_a_false_refusal():
+    """Bug fail-to-save-file: 'create a folder probe in C:\temp.' is in-root —
+    sentence punctuation must not defeat containment."""
+    v = gate_task("create a folder probe_dot in C:\\temp.")
+    assert v.decision != "blocked", v.reason
+    assert v.normalized_path == "/mnt/c/temp"
+
+
+def test_trailing_punctuation_does_not_weaken_containment():
+    v = gate_task("create a folder probe_dot in C:\\Other.")
+    assert v.decision == "blocked"
+
+
 def test_in_root_operations_pass_the_gate():
     v = gate_task("create a folder C:\\temp\\hello_test and write hello.txt with 'Hello World' in it")
     assert v.decision == "ok", v.reason  # gate verdict: ok to run
