@@ -398,3 +398,21 @@ def test_os_permission_error_relayed(tmp_path, monkeypatch):
     assert out["status"] == "error"
     assert "Permission denied" in out["reason"]      # the OS error relayed verbatim
     assert _audit(tmp_path)[-1]["decision"] == "error"
+
+
+def test_office_instructions_contain_attach_failure_protocol():
+    """only-one-version-of-outlook recurrence (2026-11-05): when Outlook's
+    process runs but its COM server is unreachable, the agent must NEVER
+    Launch again (dialog risk) and must offer exactly two consent paths.
+    Guards the instruction text against silent removal."""
+    from agentic_rag_mcp.hermes_client import OFFICE_INSTRUCTIONS
+
+    assert "OUTLOOK ATTACH-FAILURE PROTOCOL" in OFFICE_INSTRUCTIONS
+    assert "0x800401E3" in OFFICE_INSTRUCTIONS and "0x80080005" in OFFICE_INSTRUCTIONS
+    assert "NEVER call Launch again" in OFFICE_INSTRUCTIONS
+    assert "'restart Outlook'" in OFFICE_INSTRUCTIONS
+    assert "taskkill /IM outlook.exe /F" in OFFICE_INSTRUCTIONS
+    assert "never be killed silently" in OFFICE_INSTRUCTIONS
+    # the pre-existing legs stay (Nov-4 fix + session-degradation rule)
+    assert "try Dispatch/GetComObject" in OFFICE_INSTRUCTIONS
+    assert "SESSION-DEGRADATION RULE" in OFFICE_INSTRUCTIONS
