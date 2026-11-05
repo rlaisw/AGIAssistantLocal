@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 import yaml
 
-from agentic_rag_mcp.deploy.model_apply import CLOUD_PROVIDER, patch_dsl
+from agentic_rag_mcp.deploy.model_apply import CLOUD_PROVIDER, PINNED_MODEL, patch_dsl
 
 MINIMAL_DSL = """
 app:
@@ -138,8 +138,11 @@ workflow:
 NEW_MODEL = "moonshotai/kimi-k3"
 
 
-def test_sets_model_on_exactly_the_three_main_nodes():
-    doc = yaml.safe_load(patch_dsl(MINIMAL_DSL, NEW_MODEL))
+def test_pins_the_four_lane_nodes_regardless_of_selection():
+    """not-saved-in-outlook-drafts-folder-and-not-send-email (2026-11-05):
+    the lane nodes are pinned to kimi-k3 — the requested model (dropdown or
+    CLI) must be ignored, or a blanket swap re-introduces the fabrication."""
+    doc = yaml.safe_load(patch_dsl(MINIMAL_DSL, "deepseek/deepseek-v4.1-flash"))
     by_id = {n["id"]: n for n in doc["workflow"]["graph"]["nodes"]}
     for nid, get_block in (
         ("intent_router", lambda n: n["data"]["model"]),

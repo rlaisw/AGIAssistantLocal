@@ -543,6 +543,20 @@ def scenario_hermes_office_task(dcfg: DeployConfig) -> tuple[bool, str]:
     # fallback); the launch lane opens it (the owner's example starts the same way)
     mcp_call("hermes_launch_app", {"task": "open Outlook"})
 
+    # A1 (anti-fabrication, not-saved-in-outlook-drafts-folder-and-not-send-email
+    # 2026-11-05): every office turn the tool reports must leave an audit entry —
+    # a fabricated verdict (no call, no audit line) is exactly this bug's shape.
+    from ..config import load_config
+    _audit_file = load_config().hermes_audit_path.expanduser()
+
+    def _office_audit_lines() -> int:
+        if not _audit_file.exists():
+            return 0
+        return sum(1 for line in open(_audit_file, encoding="utf-8", errors="replace")
+                   if '"operation": "office-task"' in line)
+
+    _audit_before = _office_audit_lines()
+
     # O3 (US2/FR-009): compose — draft shown, nothing sent
     r3 = mcp_call("hermes_office_task",
                   {"task": "write an email to raymond.lai@tvb.com.hk with "
@@ -558,7 +572,13 @@ def scenario_hermes_office_task(dcfg: DeployConfig) -> tuple[bool, str]:
                   {"task": "send it", "conversation_id": conv})
     b4 = r4.get("status") == "ok" and r4.get("draft_pending") is False
     checks.append(f"O4 confirm-send {'ok' if b4 else 'FAILED'} "
-                  f"({r4.get('status')})")
+                   f"({r4.get('status')})")
+
+    # A1 continued: O3/O4 must have appended office-task audit entries
+    _audit_after = _office_audit_lines()
+    a1 = _audit_after > _audit_before
+    checks.append(f"A1 audit-trail {'ok' if a1 else 'FAILED'} "
+                  f"(office-task entries {_audit_before} → {_audit_after})")
 
     # O5 (US2/FR-009): cancel flow — compose then cancel, nothing sent
     r5 = mcp_call("hermes_office_task",

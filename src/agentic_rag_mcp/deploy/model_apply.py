@@ -1,8 +1,15 @@
 """Spec 026: apply a cloud LLM to the chatflow — export → patch → overwrite → publish.
 
-The cycle reconfigures the published app itself (contracts §4): the published
-app is untouched until the publish step, so any failure leaves the previous
-configuration serving (FR-004).
+Bug fix not-saved-in-outlook-drafts-folder-and-not-send-email (2026-11-05, owner
+decision "Option B"): the four lane LLM nodes are PINNED to kimi-k3 — the model the
+Hermes lanes were tuned and verified on (office-routing-flake, 2026-11-02). A
+blanket model swap to deepseek (this bug) had the office lane narrate its plan and
+fabricate the tool result — "email sent" with no tool call and no audit entry.
+patch_dsl therefore ignores model_id and always pins PINNED_MODEL; the Chat UI's
+model dropdown and the apply-model CLI keep working but can no longer swap a lane
+node. The cycle still reconfigures the published app itself (contracts §4): the
+published app is untouched until the publish step, so any failure leaves the
+previous configuration serving (FR-004).
 """
 
 from __future__ import annotations
@@ -16,6 +23,8 @@ from .config import REPO_ROOT
 from .dify_console import DifyConsole
 
 CLOUD_PROVIDER = "langgenius/openrouter/openrouter"
+# The lanes are pinned; every apply cycle writes this model regardless of selection.
+PINNED_MODEL = "moonshotai/kimi-k3"
 MAIN_NODE_IDS = ("intent_router", "agentic_strategy", "ppt_master", "hermes_agent")
 START_NODE_ID = "1776072202913"
 REMOVE_NODE_SUFFIXES = ("_kimi", "_glm", "_qwen38")
@@ -61,7 +70,11 @@ def strip_null_variable_params(doc: dict) -> None:
 
 
 def patch_dsl(yaml_text: str, model_id: str) -> str:
-    """Set the four main cloud LLM nodes to model_id + idempotent FR-005 cleanup."""
+    """Pin the four lane LLM nodes to PINNED_MODEL + idempotent FR-005 cleanup.
+
+    model_id is accepted (CLI/UI compatibility) but ignored — the lane nodes
+    are pinned (owner decision 2026-11-05), so no selection can swap them.
+    """
     doc = yaml.safe_load(yaml_text)
     graph = doc["workflow"]["graph"]
     nodes, edges = graph["nodes"], graph["edges"]
@@ -71,7 +84,7 @@ def patch_dsl(yaml_text: str, model_id: str) -> str:
         if nid not in by_id:
             raise ValueError(f"main node missing from DSL: {nid}")
         n = by_id[nid]
-        block = _model_block(model_id)
+        block = _model_block(PINNED_MODEL)
         if n["data"]["type"] == "question-classifier":
             n["data"]["model"] = block
         else:
@@ -128,10 +141,17 @@ def apply_model(dcfg, report, model_id: str) -> None:
     patched = patch_dsl(yaml_text, model_id)
     with open(ARTIFACT, "w", encoding="utf-8") as f:
         f.write(patched)
-    report.add("patch", evidence=f"model={model_id} → {os.path.relpath(ARTIFACT, REPO_ROOT)}")
+    report.add(
+        "patch",
+        evidence=(
+            f"pinned model={PINNED_MODEL} on {', '.join(MAIN_NODE_IDS)} "
+            f"(selection '{model_id}' ignored — lane nodes are pinned) "
+            f"→ {os.path.relpath(ARTIFACT, REPO_ROOT)}"
+        ),
+    )
 
     console.update_workflow_draft(app["id"], yaml.safe_load(patched)["workflow"])
     report.add("overwrite", evidence="draft replaced (published app untouched)")
 
     console.publish(app["id"])
-    report.add("publish", evidence=f"applied {model_id}")
+    report.add("publish", evidence=f"pinned {PINNED_MODEL}")
