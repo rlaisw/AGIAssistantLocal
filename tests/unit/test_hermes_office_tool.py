@@ -416,3 +416,8 @@ def test_office_instructions_contain_attach_failure_protocol():
     # the pre-existing legs stay (Nov-4 fix + session-degradation rule)
     assert "try Dispatch/GetComObject" in OFFICE_INSTRUCTIONS
     assert "SESSION-DEGRADATION RULE" in OFFICE_INSTRUCTIONS
+    # officemcp-connection-error cold-window leg (2026-11-05): the rule must
+    # warm through the ~5-call cold window instead of giving up at 2 echoes
+    assert "cold window" in OFFICE_INSTRUCTIONS
+    assert "up to 8 attempts" in OFFICE_INSTRUCTIONS
+    assert "8 consecutive calls" in OFFICE_INSTRUCTIONS
