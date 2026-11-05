@@ -91,3 +91,10 @@ reproduction for hermes-agent issue #148459.
 **OfficeMCP local patch inventory** (Windows, `uv` tool install): (1) existing local transport
 patch notes, (2) the args-capture line in `RunPython` (OfficeMCP.py) writing to
 `C:\temp\officemcp_calls.log` — keep for future evidence, remove when the upstream fix lands.
+
+**Update 2 (2026-11-05, later same day)**: the "~5-call cold window" model above was superseded within
+hours by clearer evidence — the strip is a **~10–15-minute TIME window after any gateway restart or
+MCP re-registration**, not a call-count window (0 stripped / 5 delivered at ~15 min post-restart,
+live-verified). The canary warm-up was reduced to 3 attempts and the reset recommendation was removed
+entirely — it re-arms the window. Current model, runbook text, and verification live in
+`the-tool-call-failed` (assessment + fix).

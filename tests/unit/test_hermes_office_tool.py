@@ -416,8 +416,13 @@ def test_office_instructions_contain_attach_failure_protocol():
     # the pre-existing legs stay (Nov-4 fix + session-degradation rule)
     assert "try Dispatch/GetComObject" in OFFICE_INSTRUCTIONS
     assert "SESSION-DEGRADATION RULE" in OFFICE_INSTRUCTIONS
-    # officemcp-connection-error cold-window leg (2026-11-05): the rule must
-    # warm through the ~5-call cold window instead of giving up at 2 echoes
-    assert "cold window" in OFFICE_INSTRUCTIONS
-    assert "up to 8 attempts" in OFFICE_INSTRUCTIONS
-    assert "8 consecutive calls" in OFFICE_INSTRUCTIONS
+    # the-tool-call-failed (2026-11-05): the strip window is TIME-based — the
+    # rule must teach WAITING (never a reset, which re-arms the window), cap
+    # canaries at 3, and probe outlook.exe before any Launch
+    assert "TIME-based" in OFFICE_INSTRUCTIONS or "time-window aware" in OFFICE_INSTRUCTIONS
+    assert "up to 3 tiny canaries" in OFFICE_INSTRUCTIONS
+    assert "WAIT about 15 minutes" in OFFICE_INSTRUCTIONS
+    assert "re-arms" in OFFICE_INSTRUCTIONS
+    assert "hermes mcp remove" not in OFFICE_INSTRUCTIONS  # reset hint removed
+    assert "OUTLOOK LAUNCH GUARD" in OFFICE_INSTRUCTIONS
+    assert "process-probe outlook.exe" in OFFICE_INSTRUCTIONS
