@@ -1,7 +1,5 @@
 app:
-  description: AgenticRAG agent + PPT-Master deck generator. Deck requests route to
-    the PPT-Master agent (ppt_* MCP tools, spec 009/010); everything else goes to
-    the AgenticRAG agent.
+  description: AgenticRAG agent + PPT-Master deck generator. Deck requests route to the PPT-Master agent (ppt_* MCP tools, spec 009/010); everything else goes to the AgenticRAG agent.
   icon: 💬
   icon_background: '#FEF7C3'
   icon_type: emoji
@@ -77,10 +75,7 @@ workflow:
         - local_file
         - remote_url
       number_limits: 3
-    opening_statement: Hi! I'm connected to the AgenticRAG MCP server. Test me with
-      — "what is the server status", "list my sources", "ask about quarterly revenue",
-      "search for Apollo 11", "sync all sources", "add the fixtures folder as a source",
-      "query the graph for X", or "remove a source".
+    opening_statement: Hi! I'm connected to the AgenticRAG MCP server. Test me with — "what is the server status", "list my sources", "ask about quarterly revenue", "search for Apollo 11", "sync all sources", "add the fixtures folder as a source", "query the graph for X", or "remove a source".
     retriever_resource:
       enabled: true
     sensitive_word_avoidance:
@@ -285,111 +280,14 @@ workflow:
         agent_parameters:
           instruction:
             type: constant
-            value: "You are a test assistant for the AgenticRAG MCP server. You have\
-              \ 18 tools\nfrom the \"Agentic RAG\" (provider id: agentic-rag) MCP\
-              \ provider:\n\n- ask: full agentic Q&A over the knowledge base; returns\
-              \ answer + citations\n  (optional args: mode \"auto|fast|deep\", max_iterations)\n\
-              - search: raw vector search (args: query, limit)\n- ID/identifier lookups\
-              \ (invoice numbers, asset tags, serial numbers, hostnames):\n  call\
-              \ search with the raw identifier FIRST — it pinpoints exact rows; use\
-              \ ask\n  for open-ended questions. Only turn to web_search/web_research\
-              \ when ask, search,\n  and specialty_search all return no match; if\
-              \ so, say that honestly.\n- web_search: LIVE web search via SearXNG\
-              \ (args: query, limit).\n  Use it for current events, live data (time,\
-              \ weather, news),\n  or anything the knowledge base can't contain. Note:\
-              \ search\n  snippets are CACHED — never trust them for exact time/date.\n\
-              \              - web_research: DEEP web research (args: query, limit).\
-              \ Multi-engine\n                search then scrapes each page into grouped\
-              \ sections (text +\n                belonging images in document order),\
-              \ bounded, with honest\n                fallbacks, plus a rendered HTML\
-              \ artifact per page. Prefer it\n                over web_search when\
-              \ you need real page content (guides,\n                how-tos, documentation\
-              \ steps), not just snippets.\n- fetch_url: fetch a live web page (args:\
-              \ url, max_chars).\n  For current time/date questions: call fetch_url\
-              \ on any URL\n  and use the returned `date_utc` header as the live UTC\
-              \ clock,\n  then convert to the target timezone (e.g. Hong Kong = UTC+8,\n\
-              \  no DST). This is accurate; search snippets are not.\n- status: server\
-              \ health, decision layer, source health, index counters\n- sources_list:\
-              \ list registered sources with health\n- sources_add: register a source\
-              \ (type \"local_folder\" needs config.path;\n  type \"sqlite\" needs\
-              \ config.db_path/table/template; type \"onedrive\" needs\n  config.client_id\
-              \ — registering NEVER ingests anything)\n- sources_sync: manual incremental\
-              \ sync for local sources (optional source_id);\n  onedrive sources are\
-              \ on-demand and are never synced by it\n- sources_remove: remove a source\
-              \ by id (destructive — ask the user to\n  confirm, and call sources_list\
-              \ first to get the source_id)\n- sources_auth: complete Microsoft sign-in\
-              \ for a onedrive source (device\n  code flow); relay the sign-in URL\
-              \ and user code to the user verbatim\n- graph_query: optional graph\
-              \ search layer; if it returns FeatureDisabled,\n  say so honestly instead\
-              \ of guessing\n- antv_chart: statistical charts (bar/column/line/pie/radar/sankey/word-cloud/...)\
-              \ from data; returns an embeddable image URL\n- antv_infographic: declarative\
-              \ infographics (276 templates, 8 families - chart/sequence/list/hierarchy/relation/compare/quadrant);\
-              \ returns a page URL that renders in the browser\n\nONEDRIVE (ON-DEMAND\
-              \ — never embed the whole drive):\n- To add a file from OneDrive: sources_add\
-              \ (if not connected), then\n  onedrive_list_files (args: source_id,\
-              \ optional search/folder/limit) to\n  browse file names, SHOW the matches,\
-              \ and ask the user to confirm which\n  files to embed. Only then call\
-              \ onedrive_embed_files (args: source_id,\n  files: list of paths/ids)\
-              \ for EXACTLY the confirmed files.\n- NEVER embed more files than the\
-              \ user confirmed. NEVER list-and-embed\n  everything. Connection and\
-              \ sign-in ingest ZERO files automatically.\n- onedrive_embed_files returns\
-              \ per-file outcomes; report skipped/failed\n  files with their reasons\
-              \ honestly.\n- When an answer carries a staleness warning (freshness_warnings,\
-              \ also\n  appended to the answer text), relay the reminder verbatim\
-              \ and offer the\n  one-command update: re-embed that file via onedrive_embed_files\
-              \ using the\n  path or item id from the warning. The system never re-downloads\
-              \ on its own.\n\nPick the tool that matches the request, call it, then\
-              \ summarize the result\nfor the user. When a tool returns citations,\
-              \ list them. Never invent facts.\n\nANSWER FORMAT — IMAGES (default\
-              \ action):\n- DEFAULT: always try to include images. When answering\
-              \ from web research,\n  prefer web_research (its page scrapes return\
-              \ image URLs in document order)\n  and INLINE the relevant images in\
-              \ your answer as markdown — ![what it shows](URL)\n  — grouped with\
-              \ the text they belong to, in document order.\n- To collect images for\
-              \ a how-to, call fetch_url on the guide/tutorial page FIRST\n  (it needs\
-              \ no search engine and returns an images list with every image on the\n\
-              \  page as absolute URLs). If you only know the topic's main article,\
-              \ fetch it,\n  then follow its tutorial links with fetch_url. Overview\
-              \ articles often carry\n  only icons; the tutorial pages carry the step\
-              \ screenshots — INLINE those.\n- Fetch as many as are useful: include\
-              \ every scraped image that illustrates the\n  steps or facts in your\
-              \ answer, not just one or two. Skip only logos, avatars,\n  trackers,\
-              \ and decorative banners.\n- Reused research keeps its images: when\
-              \ the user repeats a question and you\n  answer from earlier-turn research\
-              \ instead of fresh calls, still INLINE the\n  images those sources provided\
-              \ (they are stable URLs) — never drop them.\n- Dify renders image markdown\
-              \ in the chat.\n- Generated visuals — pick the tool by output type:\
-              \ antv_chart returns image_url\n  (a rendered PNG) — ALWAYS INLINE it\
-              \ in the answer as ![title](image_url).\n  antv_infographic returns\
-              \ an interactive HTML page — give it as a labeled\n  markdown link ([open\
-              \ the infographic](URL)); it cannot be inlined with ![].\n- Skip images\
-              \ only when the web tools returned none or the topic genuinely has\n\
-              \  no visual content.\n\nANSWER FORMAT — CITATIONS:\n- Whenever your\
-              \ answer uses content from ask/search/web_search/web_research/\n  specialty_search/fetch_url\
-              \ results, cite the source: knowledge base by file\n  name (e.g. hardwareinventory.xlsx),\
-              \ web content by full URL — inline or in a\n  Sources list at the end.\
-              \ Never present tool-sourced facts without a citation.\n\nANSWER FORMAT\
-              \ — VISUALS:\n- For overview/example requests (show me examples, explain\
-              \ X), also create\n  an antv_infographic summary card when the content\
-              \ benefits from a visual.\n\n\nSPECIALTY SEARCH:\n- For domain-specific\
-              \ questions (product docs, security standards, vendor-specific), call\n\
-              \  specialty_profiles() first to see available profiles, then call BOTH\
-              \ specialty_search\n  (with the matching profile) AND web_search in\
-              \ the same turn.\n- Combine results: specialty_search results are the\
-              \ PRIMARY authority (from official docs),\n  web_search results are\
-              \ SUPPLEMENTARY (community, blogs, broader context).\n- If specialty_search\
-              \ returns no results, rely on web_search and tell the user the\n  authoritative\
-              \ source had no match.\n\nHONESTY — TOOL RESULTS (mandatory):\n- You\
-              \ may ONLY report results of tools you actually called in this turn.\
-              \ NEVER fabricate tool results, verdict blocks, or status messages ('Blocked:',\
-              \ 'TASK:', 'ok') — even if similar ones appear earlier in the conversation;\
-              \ verdicts from the local agent's tools are real only when that agent\
-              \ produced them.\n- If the user's request needs a capability you do\
-              \ not have (local files, launching programs, Office control), say plainly\
-              \ that this branch of the chat does not have that tool and ask them\
-              \ to resend it as a local task.\n- Never describe files or applications\
-              \ on the user's computer as if you inspected them — you have not seen\
-              \ them."
+            value: "You are a test assistant for the AgenticRAG MCP server. You have 18 tools\nfrom the \"Agentic RAG\" (provider id: agentic-rag) MCP provider:\n\n- ask: full agentic Q&A over the knowledge base; returns answer + citations\n  (optional args: mode \"auto|fast|deep\", max_iterations)\n- search: raw vector search (args: query, limit)\n- ID/identifier lookups (invoice numbers, asset tags, serial numbers, hostnames):\n  call search with the raw identifier FIRST — it pinpoints exact rows; use ask\n  for open-ended questions. Only turn to web_search/web_research when ask, search,\n  and specialty_search all return no match; if so, say that honestly.\n- web_search: LIVE web search via SearXNG (args: query, limit).\n  Use it for current events, live data (time, weather, news),\n  or anything the knowledge base can't contain. Note: search\n  snippets are CACHED — never trust them for exact time/date.\n              - web_research: DEEP web research (args: query, limit). Multi-engine\n\
+              \                search then scrapes each page into grouped sections (text +\n                belonging images in document order), bounded, with honest\n                fallbacks, plus a rendered HTML artifact per page. Prefer it\n                over web_search when you need real page content (guides,\n                how-tos, documentation steps), not just snippets.\n- fetch_url: fetch a live web page (args: url, max_chars).\n  For current time/date questions: call fetch_url on any URL\n  and use the returned `date_utc` header as the live UTC clock,\n  then convert to the target timezone (e.g. Hong Kong = UTC+8,\n  no DST). This is accurate; search snippets are not.\n- status: server health, decision layer, source health, index counters\n- sources_list: list registered sources with health\n- sources_add: register a source (type \"local_folder\" needs config.path;\n  type \"sqlite\" needs config.db_path/table/template; type \"onedrive\" needs\n  config.client_id — registering\
+              \ NEVER ingests anything)\n- sources_sync: manual incremental sync for local sources (optional source_id);\n  onedrive sources are on-demand and are never synced by it\n- sources_remove: remove a source by id (destructive — ask the user to\n  confirm, and call sources_list first to get the source_id)\n- sources_auth: complete Microsoft sign-in for a onedrive source (device\n  code flow); relay the sign-in URL and user code to the user verbatim\n- graph_query: optional graph search layer; if it returns FeatureDisabled,\n  say so honestly instead of guessing\n- antv_chart: statistical charts (bar/column/line/pie/radar/sankey/word-cloud/...) from data; returns an embeddable image URL\n- antv_infographic: declarative infographics (276 templates, 8 families - chart/sequence/list/hierarchy/relation/compare/quadrant); returns a page URL that renders in the browser\n\nONEDRIVE (ON-DEMAND — never embed the whole drive):\n- To add a file from OneDrive: sources_add (if not connected),\
+              \ then\n  onedrive_list_files (args: source_id, optional search/folder/limit) to\n  browse file names, SHOW the matches, and ask the user to confirm which\n  files to embed. Only then call onedrive_embed_files (args: source_id,\n  files: list of paths/ids) for EXACTLY the confirmed files.\n- NEVER embed more files than the user confirmed. NEVER list-and-embed\n  everything. Connection and sign-in ingest ZERO files automatically.\n- onedrive_embed_files returns per-file outcomes; report skipped/failed\n  files with their reasons honestly.\n- When an answer carries a staleness warning (freshness_warnings, also\n  appended to the answer text), relay the reminder verbatim and offer the\n  one-command update: re-embed that file via onedrive_embed_files using the\n  path or item id from the warning. The system never re-downloads on its own.\n\nPick the tool that matches the request, call it, then summarize the result\nfor the user. When a tool returns citations, list them. Never\
+              \ invent facts.\n\nANSWER FORMAT — IMAGES (default action):\n- DEFAULT: always try to include images. When answering from web research,\n  prefer web_research (its page scrapes return image URLs in document order)\n  and INLINE the relevant images in your answer as markdown — ![what it shows](URL)\n  — grouped with the text they belong to, in document order.\n- To collect images for a how-to, call fetch_url on the guide/tutorial page FIRST\n  (it needs no search engine and returns an images list with every image on the\n  page as absolute URLs). If you only know the topic's main article, fetch it,\n  then follow its tutorial links with fetch_url. Overview articles often carry\n  only icons; the tutorial pages carry the step screenshots — INLINE those.\n- Fetch as many as are useful: include every scraped image that illustrates the\n  steps or facts in your answer, not just one or two. Skip only logos, avatars,\n  trackers, and decorative banners.\n- Reused research keeps its\
+              \ images: when the user repeats a question and you\n  answer from earlier-turn research instead of fresh calls, still INLINE the\n  images those sources provided (they are stable URLs) — never drop them.\n- Dify renders image markdown in the chat.\n- Generated visuals — pick the tool by output type: antv_chart returns image_url\n  (a rendered PNG) — ALWAYS INLINE it in the answer as ![title](image_url).\n  antv_infographic returns an interactive HTML page — give it as a labeled\n  markdown link ([open the infographic](URL)); it cannot be inlined with ![].\n- Skip images only when the web tools returned none or the topic genuinely has\n  no visual content.\n\nANSWER FORMAT — CITATIONS:\n- Whenever your answer uses content from ask/search/web_search/web_research/\n  specialty_search/fetch_url results, cite the source: knowledge base by file\n  name (e.g. hardwareinventory.xlsx), web content by full URL — inline or in a\n  Sources list at the end. Never present tool-sourced facts\
+              \ without a citation.\n\nANSWER FORMAT — VISUALS:\n- For overview/example requests (show me examples, explain X), also create\n  an antv_infographic summary card when the content benefits from a visual.\n\n\nSPECIALTY SEARCH:\n- For domain-specific questions (product docs, security standards, vendor-specific), call\n  specialty_profiles() first to see available profiles, then call BOTH specialty_search\n  (with the matching profile) AND web_search in the same turn.\n- Combine results: specialty_search results are the PRIMARY authority (from official docs),\n  web_search results are SUPPLEMENTARY (community, blogs, broader context).\n- If specialty_search returns no results, rely on web_search and tell the user the\n  authoritative source had no match.\n\nHONESTY — TOOL RESULTS (mandatory):\n- You may ONLY report results of tools you actually called in this turn. NEVER fabricate tool results, verdict blocks, or status messages ('Blocked:', 'TASK:', 'ok') — even if similar ones\
+              \ appear earlier in the conversation; verdicts from the local agent's tools are real only when that agent produced them.\n- If the user's request needs a capability you do not have (local files, launching programs, Office control), say plainly that this branch of the chat does not have that tool and ask them to resend it as a local task.\n- Never describe files or applications on the user's computer as if you inspected them — you have not seen them."
           maximum_iterations:
             type: constant
             value: 30
@@ -411,13 +309,11 @@ workflow:
             value:
             - enabled: true
               extra:
-                description: Answer a question with agentic retrieval and per-source
-                  citations.
+                description: Answer a question with agentic retrieval and per-source citations.
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Answer a question with agentic retrieval and per-source
-                citations.
+              tool_description: Answer a question with agentic retrieval and per-source citations.
               tool_label: ask
               tool_name: ask
               type: mcp
@@ -453,13 +349,11 @@ workflow:
               type: mcp
             - enabled: true
               extra:
-                description: Remove a source; drops documents whose last origin was
-                  this source.
+                description: Remove a source; drops documents whose last origin was this source.
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Remove a source; drops documents whose last origin
-                was this source.
+              tool_description: Remove a source; drops documents whose last origin was this source.
               tool_label: sources_remove
               tool_name: sources_remove
               type: mcp
@@ -479,269 +373,130 @@ workflow:
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Optional graph search (Graphify layer); disabled by
-                default.
+              tool_description: Optional graph search (Graphify layer); disabled by default.
               tool_label: graph_query
               tool_name: graph_query
               type: mcp
             - enabled: true
               extra:
-                description: 'Server health: decision layer, per-source health, index
-                  counters.'
+                description: 'Server health: decision layer, per-source health, index counters.'
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: 'Server health: decision layer, per-source health,
-                index counters.'
+              tool_description: 'Server health: decision layer, per-source health, index counters.'
               tool_label: status
               tool_name: status
               type: mcp
             - enabled: true
               extra:
-                description: 'Domain-scoped web search: results only from the profile
-                  configured authoritative sites (site: hard filter + post-filter).'
+                description: 'Domain-scoped web search: results only from the profile configured authoritative sites (site: hard filter + post-filter).'
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: 'Domain-scoped web search: results only from the profile
-                configured authoritative sites (site: hard filter + post-filter).'
+              tool_description: 'Domain-scoped web search: results only from the profile configured authoritative sites (site: hard filter + post-filter).'
               tool_label: specialty_search
               tool_name: specialty_search
               type: mcp
             - enabled: true
               extra:
-                description: List available specialty search profiles with their sites
-                  and descriptions. Call this first to discover which profiles exist.
+                description: List available specialty search profiles with their sites and descriptions. Call this first to discover which profiles exist.
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: List available specialty search profiles with their
-                sites and descriptions. Call this first to discover which profiles
-                exist.
+              tool_description: List available specialty search profiles with their sites and descriptions. Call this first to discover which profiles exist.
               tool_label: specialty_profiles
               tool_name: specialty_profiles
               type: mcp
             - enabled: true
               extra:
-                description: Complete Microsoft sign-in for OneDrive sources (device
-                  code flow). Returns the sign-in URL and user code; relay both to
-                  the user.
+                description: Complete Microsoft sign-in for OneDrive sources (device code flow). Returns the sign-in URL and user code; relay both to the user.
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Complete Microsoft sign-in for OneDrive sources (device
-                code flow). Returns the sign-in URL and user code; relay both to the
-                user.
+              tool_description: Complete Microsoft sign-in for OneDrive sources (device code flow). Returns the sign-in URL and user code; relay both to the user.
               tool_label: sources_auth
               tool_name: sources_auth
               type: mcp
             - enabled: true
               extra:
-                description: Browse OneDrive file metadata (path, name, size, modified)
-                  without downloading content. Optional name filter. Embed chosen
-                  files with onedrive_embed_files.
+                description: Browse OneDrive file metadata (path, name, size, modified) without downloading content. Optional name filter. Embed chosen files with onedrive_embed_files.
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Browse OneDrive file metadata (path, name, size, modified)
-                without downloading content. Optional name filter. Embed chosen files
-                with onedrive_embed_files.
+              tool_description: Browse OneDrive file metadata (path, name, size, modified) without downloading content. Optional name filter. Embed chosen files with onedrive_embed_files.
               tool_label: onedrive_list_files
               tool_name: onedrive_list_files
               type: mcp
             - enabled: true
               extra:
-                description: Embed ONLY the named OneDrive files (paths and/or item
-                  ids), one-time. Per-file honest outcomes; never syncs the whole
-                  drive.
+                description: Embed ONLY the named OneDrive files (paths and/or item ids), one-time. Per-file honest outcomes; never syncs the whole drive.
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Embed ONLY the named OneDrive files (paths and/or
-                item ids), one-time. Per-file honest outcomes; never syncs the whole
-                drive.
+              tool_description: Embed ONLY the named OneDrive files (paths and/or item ids), one-time. Per-file honest outcomes; never syncs the whole drive.
               tool_label: onedrive_embed_files
               tool_name: onedrive_embed_files
               type: mcp
             - enabled: true
               extra:
-                description: Live web search via configured providers (SearXNG first;
-                  falls back to Tavily/Exa).
+                description: Live web search via configured providers (SearXNG first; falls back to Tavily/Exa).
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Live web search via configured providers (SearXNG
-                first; falls back to Tavily/Exa).
+              tool_description: Live web search via configured providers (SearXNG first; falls back to Tavily/Exa).
               tool_label: web_search
               tool_name: web_search
               type: mcp
             - enabled: true
               extra:
-                description: Fetch a live web page; response includes date_utc (live
-                  UTC clock) for accurate current time/date.
+                description: Fetch a live web page; response includes date_utc (live UTC clock) for accurate current time/date.
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Fetch a live web page; response includes date_utc
-                (live UTC clock) for accurate current time/date.
+              tool_description: Fetch a live web page; response includes date_utc (live UTC clock) for accurate current time/date.
               tool_label: fetch_url
               tool_name: fetch_url
               type: mcp
             - enabled: true
               extra:
-                description: Deep web research; grouped outline-preserving page sections,
-                  bounded, with honest fallbacks and a rendered HTML artifact per
-                  page.
+                description: Deep web research; grouped outline-preserving page sections, bounded, with honest fallbacks and a rendered HTML artifact per page.
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Deep web research; grouped outline-preserving page
-                sections, bounded, with honest fallbacks and a rendered HTML artifact
-                per page.
+              tool_description: Deep web research; grouped outline-preserving page sections, bounded, with honest fallbacks and a rendered HTML artifact per page.
               tool_label: web_research
               tool_name: web_research
               type: mcp
             - enabled: true
               extra:
-                description: 'Generate a chart image from data. Returns {chart_type,
-                  image_url, usage}. MANDATORY data format: each item is an object
-                  with canonical field names "category" and "value" (use "time" instead
-                  of "category" for line/area): [{"category": "Peter", "value": 180}].
-                  Rename source columns to these exact fields ("Student"->"category",
-                  "Height (cm)->"value"); values must be numbers. Any 2-field record
-                  shape is auto-normalized, but canonical fields are safest.\n        EXCEPT
-                  scatter: each point needs TWO numbers — {"x": <number>, "y": <number>}\n        (e.g.
-                  height/weight, age/salary); numeric {"category","value"} pairs are\n        mapped
-                  to x/y automatically, but "x"/"y" is the reliable shape. axis_x_title
-                  / axis_y_title set human axis labels — ALWAYS pass them when the
-                  user names the columns (e.g. axis_x_title="Students", axis_y_title="Height
-                  (cm)"); without them the axes are labeled with the raw field names
-                  category/value. width/height (px, <= 4000, 0 = default) override
-                  render size. Type guide: trends->line/area; comparisons->bar/column;
-                  proportions->pie/treemap; distributions->histogram/boxplot; relationships->scatter/dual-axes;
-                  hierarchies->treemap/organization; flows->sankey/flow; funnels->funnel;
-                  ranking->sorted bar/column; multi-dimensional->radar. Supported:
-                  line, area, bar, column, pie, radar, scatter, histogram, funnel,
-                  treemap, sankey, dual-axes, word-cloud, boxplot, venn, liquid, flow,
-                  mind-map, fishbone, organization, network.'
+                description: 'Generate a chart image from data. Returns {chart_type, image_url, usage}. MANDATORY data format: each item is an object with canonical field names "category" and "value" (use "time" instead of "category" for line/area): [{"category": "Peter", "value": 180}]. Rename source columns to these exact fields ("Student"->"category", "Height (cm)->"value"); values must be numbers. Any 2-field record shape is auto-normalized, but canonical fields are safest.\n        EXCEPT scatter: each point needs TWO numbers — {"x": <number>, "y": <number>}\n        (e.g. height/weight, age/salary); numeric {"category","value"} pairs are\n        mapped to x/y automatically, but "x"/"y" is the reliable shape. axis_x_title / axis_y_title set human axis labels — ALWAYS pass them when the user names the columns (e.g. axis_x_title="Students", axis_y_title="Height (cm)"); without them the axes are labeled with the raw field names category/value. width/height (px, <= 4000, 0 = default) override
+                  render size. Type guide: trends->line/area; comparisons->bar/column; proportions->pie/treemap; distributions->histogram/boxplot; relationships->scatter/dual-axes; hierarchies->treemap/organization; flows->sankey/flow; funnels->funnel; ranking->sorted bar/column; multi-dimensional->radar. Supported: line, area, bar, column, pie, radar, scatter, histogram, funnel, treemap, sankey, dual-axes, word-cloud, boxplot, venn, liquid, flow, mind-map, fishbone, organization, network.'
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: 'Generate a chart image from data. Returns {chart_type,
-                image_url, usage}. MANDATORY data format: each item is an object with
-                canonical field names "category" and "value" (use "time" instead of
-                "category" for line/area): [{"category": "Peter", "value": 180}].
-                Rename source columns to these exact fields ("Student"->"category",
-                "Height (cm)->"value"); values must be numbers. Any 2-field record
-                shape is auto-normalized, but canonical fields are safest.\n        EXCEPT
-                scatter: each point needs TWO numbers — {"x": <number>, "y": <number>}\n        (e.g.
-                height/weight, age/salary); numeric {"category","value"} pairs are\n        mapped
-                to x/y automatically, but "x"/"y" is the reliable shape. axis_x_title
-                / axis_y_title set human axis labels — ALWAYS pass them when the user
-                names the columns (e.g. axis_x_title="Students", axis_y_title="Height
-                (cm)"); without them the axes are labeled with the raw field names
-                category/value. width/height (px, <= 4000, 0 = default) override render
-                size. Type guide: trends->line/area; comparisons->bar/column; proportions->pie/treemap;
-                distributions->histogram/boxplot; relationships->scatter/dual-axes;
-                hierarchies->treemap/organization; flows->sankey/flow; funnels->funnel;
-                ranking->sorted bar/column; multi-dimensional->radar. Supported: line,
-                area, bar, column, pie, radar, scatter, histogram, funnel, treemap,
-                sankey, dual-axes, word-cloud, boxplot, venn, liquid, flow, mind-map,
-                fishbone, organization, network.'
+              tool_description: 'Generate a chart image from data. Returns {chart_type, image_url, usage}. MANDATORY data format: each item is an object with canonical field names "category" and "value" (use "time" instead of "category" for line/area): [{"category": "Peter", "value": 180}]. Rename source columns to these exact fields ("Student"->"category", "Height (cm)->"value"); values must be numbers. Any 2-field record shape is auto-normalized, but canonical fields are safest.\n        EXCEPT scatter: each point needs TWO numbers — {"x": <number>, "y": <number>}\n        (e.g. height/weight, age/salary); numeric {"category","value"} pairs are\n        mapped to x/y automatically, but "x"/"y" is the reliable shape. axis_x_title / axis_y_title set human axis labels — ALWAYS pass them when the user names the columns (e.g. axis_x_title="Students", axis_y_title="Height (cm)"); without them the axes are labeled with the raw field names category/value. width/height (px, <= 4000, 0 = default)
+                override render size. Type guide: trends->line/area; comparisons->bar/column; proportions->pie/treemap; distributions->histogram/boxplot; relationships->scatter/dual-axes; hierarchies->treemap/organization; flows->sankey/flow; funnels->funnel; ranking->sorted bar/column; multi-dimensional->radar. Supported: line, area, bar, column, pie, radar, scatter, histogram, funnel, treemap, sankey, dual-axes, word-cloud, boxplot, venn, liquid, flow, mind-map, fishbone, organization, network.'
               tool_label: antv_chart
               tool_name: antv_chart
               type: mcp
             - enabled: true
               extra:
-                description: "Render an infographic from declarative AntV Infographic\
-                  \ syntax.\nReturns {id, url, usage} — the url opens the rendered\
-                  \ infographic in a browser.\n\nCRITICAL: `description` must be actual\
-                  \ Infographic SYNTAX, NOT a prose design\nbrief. The engine cannot\
-                  \ render prose — write the template call and data\ndirectly. Complete\
-                  \ working example:\n\ninfographic list-row-simple-horizontal-arrow\n\
-                  data\n  lists\n    - label Step 1\n      desc Prepare accounts\n\
-                  \    - label Step 2\n      desc Team introduction\n    - label Step\
-                  \ 3\n      desc Tool setup\n    - label Step 4\n      desc First\
-                  \ sprint\n\nStructure: first line = \"infographic <template-name>\"\
-                  , then an indented\n\"data\" block whose list key depends on the\
-                  \ template family. Items are\n\"- label X / desc Y\" lines (\"value\
-                  \ N\" for charts). ~276 built-in\npresets across 8 families — VARY\
-                  \ the choice to match the user's\nintent. Verified template names\
-                  \ per family (data key in parentheses):\n- chart (values): chart-column-simple,\
-                  \ chart-bar-plain-text,\n  chart-pie-compact-card, chart-line-plain-text,\
-                  \ chart-wordcloud\n- sequence (sequences): sequence-steps, sequence-timeline-done-list,\n\
-                  \  sequence-snake-steps, sequence-roadmap-vertical-pill-badge,\n\
-                  \  sequence-pyramid-simple (TRUE triangle pyramid — use when the\
-                  \ user\n  asks for a pyramid), sequence-funnel-simple,\n  sequence-ascending-stairs-3d-simple\
-                  \ (3D ascending steps)\n- sequence-interaction (UML message flows,\
-                  \ template\n  sequence-interaction-default-compact-card): participants\
-                  \ = top-level\n  items of \"sequences\" (lanes); each child message\
-                  \ needs \"id X\" and\n  \"step N\" (row order across all lanes);\
-                  \ \"relations\" reference those\n  MESSAGE ids: \"- from m1 / to\
-                  \ m2 / label call\" — arrows only draw\n  between messages that\
-                  \ have ids\n- list (lists): list-row, list-grid, list-zigzag-up,\n\
-                  \  list-sector-plain-text, list-pyramid-badge-card (stacked badge\n\
-                  \  rows, NOT a triangle — prefer sequence-pyramid-simple for pyramids)\n\
-                  - hierarchy (root with nested children): hierarchy-mindmap,\n  hierarchy-structure,\
-                  \ hierarchy-tree-tech-style-capsule-item\n  (org charts)\n- relation\
-                  \ (nodes plus relations from/to): relation-network-icon-badge,\n\
-                  \  relation-circle-icon-badge, relation-dagre-flow-tb-capsule\n\
-                  \  (flowcharts)\n- compare (compares): compare-binary-horizontal-simple-vs,\n\
-                  \  compare-swot\n- quadrant (lists): quadrant-quarter-circular (2x2\
-                  \ grids)\nNEVER write \"Title:\", \"Layout:\", \"Step 1 —\", bullets,\
-                  \ or any English\ndescription of the design — only the syntax. Choose\
-                  \ the closest\ntemplate to the user's intent and put their content\
-                  \ into the data\nfields."
+                description: "Render an infographic from declarative AntV Infographic syntax.\nReturns {id, url, usage} — the url opens the rendered infographic in a browser.\n\nCRITICAL: `description` must be actual Infographic SYNTAX, NOT a prose design\nbrief. The engine cannot render prose — write the template call and data\ndirectly. Complete working example:\n\ninfographic list-row-simple-horizontal-arrow\ndata\n  lists\n    - label Step 1\n      desc Prepare accounts\n    - label Step 2\n      desc Team introduction\n    - label Step 3\n      desc Tool setup\n    - label Step 4\n      desc First sprint\n\nStructure: first line = \"infographic <template-name>\", then an indented\n\"data\" block whose list key depends on the template family. Items are\n\"- label X / desc Y\" lines (\"value N\" for charts). ~276 built-in\npresets across 8 families — VARY the choice to match the user's\nintent. Verified template names per family (data key in parentheses):\n- chart (values): chart-column-simple,\
+                  \ chart-bar-plain-text,\n  chart-pie-compact-card, chart-line-plain-text, chart-wordcloud\n- sequence (sequences): sequence-steps, sequence-timeline-done-list,\n  sequence-snake-steps, sequence-roadmap-vertical-pill-badge,\n  sequence-pyramid-simple (TRUE triangle pyramid — use when the user\n  asks for a pyramid), sequence-funnel-simple,\n  sequence-ascending-stairs-3d-simple (3D ascending steps)\n- sequence-interaction (UML message flows, template\n  sequence-interaction-default-compact-card): participants = top-level\n  items of \"sequences\" (lanes); each child message needs \"id X\" and\n  \"step N\" (row order across all lanes); \"relations\" reference those\n  MESSAGE ids: \"- from m1 / to m2 / label call\" — arrows only draw\n  between messages that have ids\n- list (lists): list-row, list-grid, list-zigzag-up,\n  list-sector-plain-text, list-pyramid-badge-card (stacked badge\n  rows, NOT a triangle — prefer sequence-pyramid-simple for pyramids)\n- hierarchy (root\
+                  \ with nested children): hierarchy-mindmap,\n  hierarchy-structure, hierarchy-tree-tech-style-capsule-item\n  (org charts)\n- relation (nodes plus relations from/to): relation-network-icon-badge,\n  relation-circle-icon-badge, relation-dagre-flow-tb-capsule\n  (flowcharts)\n- compare (compares): compare-binary-horizontal-simple-vs,\n  compare-swot\n- quadrant (lists): quadrant-quarter-circular (2x2 grids)\nNEVER write \"Title:\", \"Layout:\", \"Step 1 —\", bullets, or any English\ndescription of the design — only the syntax. Choose the closest\ntemplate to the user's intent and put their content into the data\nfields."
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: "Render an infographic from declarative AntV Infographic\
-                \ syntax.\nReturns {id, url, usage} — the url opens the rendered infographic\
-                \ in a browser.\n\nCRITICAL: `description` must be actual Infographic\
-                \ SYNTAX, NOT a prose design\nbrief. The engine cannot render prose\
-                \ — write the template call and data\ndirectly. Complete working example:\n\
-                \ninfographic list-row-simple-horizontal-arrow\ndata\n  lists\n  \
-                \  - label Step 1\n      desc Prepare accounts\n    - label Step 2\n\
-                \      desc Team introduction\n    - label Step 3\n      desc Tool\
-                \ setup\n    - label Step 4\n      desc First sprint\n\nStructure:\
-                \ first line = \"infographic <template-name>\", then an indented\n\
-                \"data\" block whose list key depends on the template family. Items\
-                \ are\n\"- label X / desc Y\" lines (\"value N\" for charts). ~276\
-                \ built-in\npresets across 8 families — VARY the choice to match the\
-                \ user's\nintent. Verified template names per family (data key in\
-                \ parentheses):\n- chart (values): chart-column-simple, chart-bar-plain-text,\n\
-                \  chart-pie-compact-card, chart-line-plain-text, chart-wordcloud\n\
-                - sequence (sequences): sequence-steps, sequence-timeline-done-list,\n\
-                \  sequence-snake-steps, sequence-roadmap-vertical-pill-badge,\n \
-                \ sequence-pyramid-simple (TRUE triangle pyramid — use when the user\n\
-                \  asks for a pyramid), sequence-funnel-simple,\n  sequence-ascending-stairs-3d-simple\
-                \ (3D ascending steps)\n- sequence-interaction (UML message flows,\
-                \ template\n  sequence-interaction-default-compact-card): participants\
-                \ = top-level\n  items of \"sequences\" (lanes); each child message\
-                \ needs \"id X\" and\n  \"step N\" (row order across all lanes); \"\
-                relations\" reference those\n  MESSAGE ids: \"- from m1 / to m2 /\
-                \ label call\" — arrows only draw\n  between messages that have ids\n\
-                - list (lists): list-row, list-grid, list-zigzag-up,\n  list-sector-plain-text,\
-                \ list-pyramid-badge-card (stacked badge\n  rows, NOT a triangle —\
-                \ prefer sequence-pyramid-simple for pyramids)\n- hierarchy (root\
-                \ with nested children): hierarchy-mindmap,\n  hierarchy-structure,\
-                \ hierarchy-tree-tech-style-capsule-item\n  (org charts)\n- relation\
-                \ (nodes plus relations from/to): relation-network-icon-badge,\n \
-                \ relation-circle-icon-badge, relation-dagre-flow-tb-capsule\n  (flowcharts)\n\
-                - compare (compares): compare-binary-horizontal-simple-vs,\n  compare-swot\n\
-                - quadrant (lists): quadrant-quarter-circular (2x2 grids)\nNEVER write\
-                \ \"Title:\", \"Layout:\", \"Step 1 —\", bullets, or any English\n\
-                description of the design — only the syntax. Choose the closest\n\
-                template to the user's intent and put their content into the data\n\
-                fields."
+              tool_description: "Render an infographic from declarative AntV Infographic syntax.\nReturns {id, url, usage} — the url opens the rendered infographic in a browser.\n\nCRITICAL: `description` must be actual Infographic SYNTAX, NOT a prose design\nbrief. The engine cannot render prose — write the template call and data\ndirectly. Complete working example:\n\ninfographic list-row-simple-horizontal-arrow\ndata\n  lists\n    - label Step 1\n      desc Prepare accounts\n    - label Step 2\n      desc Team introduction\n    - label Step 3\n      desc Tool setup\n    - label Step 4\n      desc First sprint\n\nStructure: first line = \"infographic <template-name>\", then an indented\n\"data\" block whose list key depends on the template family. Items are\n\"- label X / desc Y\" lines (\"value N\" for charts). ~276 built-in\npresets across 8 families — VARY the choice to match the user's\nintent. Verified template names per family (data key in parentheses):\n- chart (values): chart-column-simple,\
+                \ chart-bar-plain-text,\n  chart-pie-compact-card, chart-line-plain-text, chart-wordcloud\n- sequence (sequences): sequence-steps, sequence-timeline-done-list,\n  sequence-snake-steps, sequence-roadmap-vertical-pill-badge,\n  sequence-pyramid-simple (TRUE triangle pyramid — use when the user\n  asks for a pyramid), sequence-funnel-simple,\n  sequence-ascending-stairs-3d-simple (3D ascending steps)\n- sequence-interaction (UML message flows, template\n  sequence-interaction-default-compact-card): participants = top-level\n  items of \"sequences\" (lanes); each child message needs \"id X\" and\n  \"step N\" (row order across all lanes); \"relations\" reference those\n  MESSAGE ids: \"- from m1 / to m2 / label call\" — arrows only draw\n  between messages that have ids\n- list (lists): list-row, list-grid, list-zigzag-up,\n  list-sector-plain-text, list-pyramid-badge-card (stacked badge\n  rows, NOT a triangle — prefer sequence-pyramid-simple for pyramids)\n- hierarchy (root\
+                \ with nested children): hierarchy-mindmap,\n  hierarchy-structure, hierarchy-tree-tech-style-capsule-item\n  (org charts)\n- relation (nodes plus relations from/to): relation-network-icon-badge,\n  relation-circle-icon-badge, relation-dagre-flow-tb-capsule\n  (flowcharts)\n- compare (compares): compare-binary-horizontal-simple-vs,\n  compare-swot\n- quadrant (lists): quadrant-quarter-circular (2x2 grids)\nNEVER write \"Title:\", \"Layout:\", \"Step 1 —\", bullets, or any English\ndescription of the design — only the syntax. Choose the closest\ntemplate to the user's intent and put their content into the data\nfields."
               tool_label: antv_infographic
               tool_name: antv_infographic
               type: mcp
         agent_strategy_label: FunctionCalling
         agent_strategy_name: function_calling
         agent_strategy_provider_name: langgenius/agent/agent
-        desc: Agentic strategy node wired to all 18 AgenticRAG MCP tools (16 core
-          + 2 antv).
+        desc: Agentic strategy node wired to all 18 AgenticRAG MCP tools (16 core + 2 antv).
         isInIteration: false
         isInLoop: false
         memory:
@@ -801,55 +556,24 @@ workflow:
         - id: ppt_request
           label: ''
           name: PPT request
-          topic: The user asks to generate, create, or make a PowerPoint presentation,
-            deck, or slides (e.g. 'help to generate a powerpoint about Dify software',
-            'make a 3-page deck on X', 'turn this into slides')
+          topic: The user asks to generate, create, or make a PowerPoint presentation, deck, or slides (e.g. 'help to generate a powerpoint about Dify software', 'make a 3-page deck on X', 'turn this into slides')
         - id: general
           label: ''
           name: General
-          topic: 'Everything else: questions, research, chat, knowledge-base queries,
-            and any request that is not about generating a PowerPoint/deck'
+          topic: 'Everything else: questions, research, chat, knowledge-base queries, and any request that is not about generating a PowerPoint/deck'
         - id: hermes_file
           label: ''
           name: Hermes local task
-          topic: The user asks to create, write, read, or list files or folders on
-            their Windows computer / local disk, OR to launch, open, start, or run
-            a program or application on their Windows computer (e.g. 'create a folder
-            hello_test in C:\\temp and write hello.txt inside it', 'list the files
-            in C:\\temp', 'read C:\\temp\\notes.txt', 'launch Outlook', 'open Excel',
-            'run C:\\tools\\mytool.exe'), OR to control Microsoft Office applications
-            — open/edit/write Word, Excel, PowerPoint, or Outlook documents, cells,
-            slides, or emails — including structure edits such as inserting rows or
-            columns, adding or renaming headers, and changing slide backgrounds or
-            themes (e.g. 'open Excel and put 12345 in cell A1', 'insert a row at the
-            top and add the header Height in A1', 'add a column B', 'change the PowerPoint
-            background to dark', 'write an email to a@b.com saying hi') — NOT deck
-            generation, NOT general questions.
-        desc: Route deck-generation requests to PPT-Master; everything else to the
-          AgenticRAG agent.
-        instruction: Classify the user's request. Choose 'PPT request' ONLY when the
-          user wants a NEW PowerPoint/deck/slides GENERATED from a topic. Choose 'Hermes
-          local task' when the user wants files or folders created, written, read,
-          or listed on their local Windows computer or disk (paths like C:\\...),
-          or wants a program/application launched, started, opened, or run on their
-          Windows computer — by name ('launch Outlook', 'open Excel', 'start notepad')
-          or by full path ('run C:\\tools\\mytool.exe'), or wants Office applications
-          CONTROLLED — writing cells ('put 12345 in cell A1'), editing/creating Word/Excel/PowerPoint
-          documents — including structure edits such as inserting or deleting rows
-          or columns, adding or renaming headers, and changing slide backgrounds or
-          themes ('insert a row at the top', 'add the header Height in A1', 'add a
-          column B', 'change the PowerPoint background to dark'), adding slides to
-          an existing presentation, composing emails ('write an email to a@b.com saying
-          hi'). Requests to open/launch/start/run programs and requests to control
-          Office apps — including inserting rows, adding headers, adding columns,
-          or changing backgrounds/themes — are 'Hermes local task', NOT 'General'.
-          Otherwise choose 'General'.
+          topic: The user asks to create, write, read, or list files or folders on their Windows computer / local disk, OR to launch, open, start, or run a program or application on their Windows computer (e.g. 'create a folder hello_test in C:\\temp and write hello.txt inside it', 'list the files in C:\\temp', 'read C:\\temp\\notes.txt', 'launch Outlook', 'open Excel', 'run C:\\tools\\mytool.exe'), OR to control Microsoft Office applications — open/edit/write Word, Excel, PowerPoint, or Outlook documents, cells, slides, or emails — including structure edits such as inserting rows or columns, adding or renaming headers, and changing slide backgrounds or themes (e.g. 'open Excel and put 12345 in cell A1', 'insert a row at the top and add the header Height in A1', 'add a column B', 'change the PowerPoint background to dark', 'write an email to a@b.com saying hi') — NOT deck generation, NOT general questions.
+        desc: Route deck-generation requests to PPT-Master; everything else to the AgenticRAG agent.
+        instruction: Classify the user's request. Choose 'PPT request' ONLY when the user wants a NEW PowerPoint/deck/slides GENERATED from a topic. Choose 'Hermes local task' when the user wants files or folders created, written, read, or listed on their local Windows computer or disk (paths like C:\\...), or wants a program/application launched, started, opened, or run on their Windows computer — by name ('launch Outlook', 'open Excel', 'start notepad') or by full path ('run C:\\tools\\mytool.exe'), or wants Office applications CONTROLLED — writing cells ('put 12345 in cell A1'), editing/creating Word/Excel/PowerPoint documents — including structure edits such as inserting or deleting rows or columns, adding or renaming headers, and changing slide backgrounds or themes ('insert a row at the top', 'add the header Height in A1', 'add a column B', 'change the PowerPoint background to dark'), adding slides to an existing presentation, composing emails ('write an email to a@b.com saying hi').
+          Requests to open/launch/start/run programs and requests to control Office apps — including inserting rows, adding headers, adding columns, or changing backgrounds/themes — are 'Hermes local task', NOT 'General'. Otherwise choose 'General'.
         model:
           completion_params: {}
           mode: chat
-          model: moonshotai/kimi-k3
+          model: deepseek/deepseek-v4.1-flash
           model_type: llm
-          name: moonshotai/kimi-k3
+          name: deepseek/deepseek-v4.1-flash
           provider: langgenius/openrouter/openrouter
           type: model-selector
         query_variable_selector:
@@ -901,42 +625,24 @@ workflow:
             value: '# PPT-Master Agent Rulebook (quick-generate, v1)
 
 
-              You generate native editable PowerPoint decks from a topic or pasted
-              content, using five MCP tools. You author pages as SVG; the toolchain
-              converts them to real PPTX slides. Work only through the tools — never
-              invent file paths or fake links.
+              You generate native editable PowerPoint decks from a topic or pasted content, using five MCP tools. You author pages as SVG; the toolchain converts them to real PPTX slides. Work only through the tools — never invent file paths or fake links.
 
 
               ## Tool protocol (exact order)
 
 
-              1. `ppt_project_init(name)` → returns `{project_id, workspace, max_pages}`.
-              Use a short url-safe name derived from the topic (e.g. `dify_intro`).
-              ALL later calls take `project_id`.
+              1. `ppt_project_init(name)` → returns `{project_id, workspace, max_pages}`. Use a short url-safe name derived from the topic (e.g. `dify_intro`). ALL later calls take `project_id`.
 
-              2. `ppt_icon_sync(project_id, icons)` → sync the icons your pages will
-              use (e.g. `["tabler-outline/star", "simple-icons/dify"]`). If it returns
-              `PPT_MISSING_ICON`, re-pick each missing icon from the named library
-              and retry with only the valid ones — never substitute silently.
+              2. `ppt_icon_sync(project_id, icons)` → sync the icons your pages will use (e.g. `["tabler-outline/star", "simple-icons/dify"]`). If it returns `PPT_MISSING_ICON`, re-pick each missing icon from the named library and retry with only the valid ones — never substitute silently.
 
-              3. For each page 1..N: `ppt_write_page(project_id, page_number, name,
-              svg)` — author the complete page as a single SVG document (contract
-              below). `N ≤ max_pages` (5 by default).
+              3. For each page 1..N: `ppt_write_page(project_id, page_number, name, svg)` — author the complete page as a single SVG document (contract below). `N ≤ max_pages` (5 by default).
 
-              4. `ppt_check(project_id)` → if `passing: false`, fix every `[ERROR]`
-              detail by rewriting that page (`ppt_write_page` again), then re-check.
-              Repeat until `passing: true` (max ~3 repair rounds per page).
+              4. `ppt_check(project_id)` → if `passing: false`, fix every `[ERROR]` detail by rewriting that page (`ppt_write_page` again), then re-check. Repeat until `passing: true` (max ~3 repair rounds per page).
 
-              5. `ppt_export(project_id)` → returns `{file, url, page_url}`. Give
-              the user **`page_url`** as the markdown link in your final answer: `[Preview
-              & download the deck](<page_url>)` — the page previews every slide and
-              carries the download button. If `PPT_EXPORT_BLOCKED`, fix the listed
-              pages first — never deliver a broken file.
+              5. `ppt_export(project_id)` → returns `{file, url, page_url}`. Give the user **`page_url`** as the markdown link in your final answer: `[Preview & download the deck](<page_url>)` — the page previews every slide and carries the download button. If `PPT_EXPORT_BLOCKED`, fix the listed pages first — never deliver a broken file.
 
 
-              Revisions in the same conversation: rewrite the page (`ppt_write_page`
-              with the same page_number), re-check, re-export. A NEW export file is
-              created each time; old links keep working.
+              Revisions in the same conversation: rewrite the page (`ppt_write_page` with the same page_number), re-check, re-export. A NEW export file is created each time; old links keep working.
 
 
               ## Page authoring contract (SVG)
@@ -945,106 +651,57 @@ workflow:
               Each page is ONE complete `<svg>` document:
 
 
-              - Root: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">`
-              — exactly this viewBox.
+              - Root: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">` — exactly this viewBox.
 
-              - Content lives in grouped zones: `<g id="zone-name" data-pptx-bounds="x
-              y w h">` with non-overlapping rectangles inside the 64px margins (usable
-              area 64,64 → 1216,656).
+              - Content lives in grouped zones: `<g id="zone-name" data-pptx-bounds="x y w h">` with non-overlapping rectangles inside the 64px margins (usable area 64,64 → 1216,656).
 
-              - Text: `<text>` elements with `x`, `y` (baseline), `font-size` (body
-              24, title 44, subtitle 30, annotation 18, footnote 16), `fill` hex.
-              Multi-line text = the first line plus `<tspan x="same" dy="27">` per
-              additional line. Keep lines short enough to stay inside the zone bounds
-              (~5% headroom).
+              - Text: `<text>` elements with `x`, `y` (baseline), `font-size` (body 24, title 44, subtitle 30, annotation 18, footnote 16), `fill` hex. Multi-line text = the first line plus `<tspan x="same" dy="27">` per additional line. Keep lines short enough to stay inside the zone bounds (~5% headroom).
 
-              - Colors (theme): background #FAFAFA, panel #EDF2F8, primary #1565C0,
-              accent #0D47A1, secondary accent #7EA6E0, text #212121, muted #5F6B7A,
-              divider #D5DCE5.
+              - Colors (theme): background #FAFAFA, panel #EDF2F8, primary #1565C0, accent #0D47A1, secondary accent #7EA6E0, text #212121, muted #5F6B7A, divider #D5DCE5.
 
               - Fonts: `Segoe UI, sans-serif` (set `font-family` on the root svg).
 
-              - Full-page background: `<rect id="page-background" data-pptx-role="background"
-              x="0" y="0" width="1280" height="720" fill="#FAFAFA"/>`.
+              - Full-page background: `<rect id="page-background" data-pptx-role="background" x="0" y="0" width="1280" height="720" fill="#FAFAFA"/>`.
 
-              - Icons: reference synced icons with `<use data-icon="library/name"
-              x y width height fill="#1565C0"/>` (tabler-outline stroke icons take
-              `stroke-width="2"`).
+              - Icons: reference synced icons with `<use data-icon="library/name" x y width height fill="#1565C0"/>` (tabler-outline stroke icons take `stroke-width="2"`).
 
-              - FORBIDDEN (write_page rejects these): `<script>`, event attributes
-              (`onclick=` etc.), `<foreignObject>`, `<style>`, `class=`, non-https
-              external `href`, any viewBox other than `0 0 1280 720`.
+              - FORBIDDEN (write_page rejects these): `<script>`, event attributes (`onclick=` etc.), `<foreignObject>`, `<style>`, `class=`, non-https external `href`, any viewBox other than `0 0 1280 720`.
 
 
-              Design guidance: one message per page (a title, 2–4 supporting zones),
-              Swiss-clean layout, real content from your research or the user''s pasted
-              material — never invented statistics.
+              Design guidance: one message per page (a title, 2–4 supporting zones), Swiss-clean layout, real content from your research or the user''s pasted material — never invented statistics.
 
 
-              **Sources rule (mandatory):** when any page carries facts that came
-              from web research (web_search / web_research), the LAST page of the
-              deck (or a footnote zone on each content page if the deck is one page)
-              MUST list the sources as a footnote zone — one small line per source:
-              `Source: <site/domain>` at footnote size (16, muted #5F6B7A) above the
-              page bottom margin. A deck built purely from the user''s pasted text
-              needs no sources zone. Never state a number, name, or date you did not
-              get from research, the user''s material, or an earlier tool response
-              in this conversation.
+              **Sources rule (mandatory):** when any page carries facts that came from web research (web_search / web_research), the LAST page of the deck (or a footnote zone on each content page if the deck is one page) MUST list the sources as a footnote zone — one small line per source: `Source: <site/domain>` at footnote size (16, muted #5F6B7A) above the page bottom margin. A deck built purely from the user''s pasted text needs no sources zone. Never state a number, name, or date you did not get from research, the user''s material, or an earlier tool response in this conversation.
 
 
               ## Charts in decks
 
 
-              When a page presents comparisons, trends, proportions, or rankings,
-              generate a chart instead of tables of numbers: call `antv_chart(chart_type,
-              data, title)` — it returns `image_url`; embed it as `<image href="..."
-              x y width height/>` inside a properly grouped `<g>` zone (not top-level).
-              Choose the type by intent: trends → line/area, comparisons → bar/column,
-              proportions → pie/treemap, distributions → histogram/boxplot. Size charts
-              within their zone (a common choice: 640×360 inside a 1280×720 page).
-              The deck pipeline downloads and embeds the image bytes automatically
-              — exported decks are self-contained; if the image fetch fails, fix or
-              remove the image before retrying (the page will be rejected otherwise).
+              When a page presents comparisons, trends, proportions, or rankings, generate a chart instead of tables of numbers: call `antv_chart(chart_type, data, title)` — it returns `image_url`; embed it as `<image href="..." x y width height/>` inside a properly grouped `<g>` zone (not top-level). Choose the type by intent: trends → line/area, comparisons → bar/column, proportions → pie/treemap, distributions → histogram/boxplot. Size charts within their zone (a common choice: 640×360 inside a 1280×720 page). The deck pipeline downloads and embeds the image bytes automatically — exported decks are self-contained; if the image fetch fails, fix or remove the image before retrying (the page will be rejected otherwise).
 
 
               ## Input modes
 
 
-              - Topic ("a deck about X"): research first with `web_search`/`web_research`,
-              then build pages from the sourced facts. Deck language = the user''s
-              prompt language.
+              - Topic ("a deck about X"): research first with `web_search`/`web_research`, then build pages from the sourced facts. Deck language = the user''s prompt language.
 
-              - Pasted content: build the deck from the user''s text — no invented
-              claims, no padding beyond what the material supports.
+              - Pasted content: build the deck from the user''s text — no invented claims, no padding beyond what the material supports.
 
 
               ## Behavior rules
 
 
-              - Narrate progress between tool calls (one short line per step: which
-              page is being authored, that checks are running, that export started).
-              The user is watching a multi-minute run.
+              - Narrate progress between tool calls (one short line per step: which page is being authored, that checks are running, that export started). The user is watching a multi-minute run.
 
-              - Page count: default to the smallest deck that serves the request (1–3
-              pages unless the user asks for more); never exceed `max_pages` in one
-              run — offer a continuation for larger decks.
+              - Page count: default to the smallest deck that serves the request (1–3 pages unless the user asks for more); never exceed `max_pages` in one run — offer a continuation for larger decks.
 
-              - Iteration budget: if you run out of tool-call iterations mid-deck,
-              report exactly which pages are done and offer to continue with a fresh,
-              smaller run.
+              - Iteration budget: if you run out of tool-call iterations mid-deck, report exactly which pages are done and offer to continue with a fresh, smaller run.
 
-              - Honest failure: if a page cannot pass checks after ~3 repair rounds,
-              say which page and why, and deliver nothing rather than a broken file.
-              If asked for something outside these tools (animated video, file-upload
-              parsing in v1), say so plainly and offer what you CAN do (topic or pasted-text
-              decks, ≤ 5 pages).
+              - Honest failure: if a page cannot pass checks after ~3 repair rounds, say which page and why, and deliver nothing rather than a broken file. If asked for something outside these tools (animated video, file-upload parsing in v1), say so plainly and offer what you CAN do (topic or pasted-text decks, ≤ 5 pages).
 
-              - Cross-conversation edits are out of scope: if asked to edit a deck
-              from an earlier conversation, say so and offer to regenerate in this
-              conversation.
+              - Cross-conversation edits are out of scope: if asked to edit a deck from an earlier conversation, say so and offer to regenerate in this conversation.
 
-              - When the user attaches a file, explain that v1 accepts pasted text
-              or researched topics, and offer those alternatives.
+              - When the user attaches a file, explain that v1 accepts pasted text or researched topics, and offer those alternatives.
 
               '
           maximum_iterations:
@@ -1068,25 +725,21 @@ workflow:
             value:
             - enabled: true
               extra:
-                description: Create an isolated PPT generation workspace. Start every
-                  deck here.
+                description: Create an isolated PPT generation workspace. Start every deck here.
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Create an isolated PPT generation workspace. Start
-                every deck here.
+              tool_description: Create an isolated PPT generation workspace. Start every deck here.
               tool_label: ppt_project_init
               tool_name: ppt_project_init
               type: mcp
             - enabled: true
               extra:
-                description: Prepare icons for a PPT project; missing icons reported
-                  honestly.
+                description: Prepare icons for a PPT project; missing icons reported honestly.
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Prepare icons for a PPT project; missing icons reported
-                honestly.
+              tool_description: Prepare icons for a PPT project; missing icons reported honestly.
               tool_label: ppt_icon_sync
               tool_name: ppt_icon_sync
               type: mcp
@@ -1112,89 +765,43 @@ workflow:
               type: mcp
             - enabled: true
               extra:
-                description: Export the deck as a native editable .pptx; returns download
-                  and preview page URLs.
+                description: Export the deck as a native editable .pptx; returns download and preview page URLs.
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Export the deck as a native editable .pptx; returns
-                download and preview page URLs.
+              tool_description: Export the deck as a native editable .pptx; returns download and preview page URLs.
               tool_label: ppt_export
               tool_name: ppt_export
               type: mcp
             - enabled: true
               extra:
-                description: 'Generate a chart image from data. Returns {chart_type,
-                  image_url, usage}. MANDATORY data format: each item is an object
-                  with canonical field names "category" and "value" (use "time" instead
-                  of "category" for line/area): [{"category": "Peter", "value": 180}].
-                  Rename source columns to these exact fields ("Student"->"category",
-                  "Height (cm)->"value"); values must be numbers. Any 2-field record
-                  shape is auto-normalized, but canonical fields are safest.\n        EXCEPT
-                  scatter: each point needs TWO numbers — {"x": <number>, "y": <number>}\n        (e.g.
-                  height/weight, age/salary); numeric {"category","value"} pairs are\n        mapped
-                  to x/y automatically, but "x"/"y" is the reliable shape. axis_x_title
-                  / axis_y_title set human axis labels — ALWAYS pass them when the
-                  user names the columns (e.g. axis_x_title="Students", axis_y_title="Height
-                  (cm)"); without them the axes are labeled with the raw field names
-                  category/value. width/height (px, <= 4000, 0 = default) override
-                  render size. Type guide: trends->line/area; comparisons->bar/column;
-                  proportions->pie/treemap; distributions->histogram/boxplot; relationships->scatter/dual-axes;
-                  hierarchies->treemap/organization; flows->sankey/flow; funnels->funnel;
-                  ranking->sorted bar/column; multi-dimensional->radar. Supported:
-                  line, area, bar, column, pie, radar, scatter, histogram, funnel,
-                  treemap, sankey, dual-axes, word-cloud, boxplot, venn, liquid, flow,
-                  mind-map, fishbone, organization, network.'
+                description: 'Generate a chart image from data. Returns {chart_type, image_url, usage}. MANDATORY data format: each item is an object with canonical field names "category" and "value" (use "time" instead of "category" for line/area): [{"category": "Peter", "value": 180}]. Rename source columns to these exact fields ("Student"->"category", "Height (cm)->"value"); values must be numbers. Any 2-field record shape is auto-normalized, but canonical fields are safest.\n        EXCEPT scatter: each point needs TWO numbers — {"x": <number>, "y": <number>}\n        (e.g. height/weight, age/salary); numeric {"category","value"} pairs are\n        mapped to x/y automatically, but "x"/"y" is the reliable shape. axis_x_title / axis_y_title set human axis labels — ALWAYS pass them when the user names the columns (e.g. axis_x_title="Students", axis_y_title="Height (cm)"); without them the axes are labeled with the raw field names category/value. width/height (px, <= 4000, 0 = default) override
+                  render size. Type guide: trends->line/area; comparisons->bar/column; proportions->pie/treemap; distributions->histogram/boxplot; relationships->scatter/dual-axes; hierarchies->treemap/organization; flows->sankey/flow; funnels->funnel; ranking->sorted bar/column; multi-dimensional->radar. Supported: line, area, bar, column, pie, radar, scatter, histogram, funnel, treemap, sankey, dual-axes, word-cloud, boxplot, venn, liquid, flow, mind-map, fishbone, organization, network.'
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: 'Generate a chart image from data. Returns {chart_type,
-                image_url, usage}. MANDATORY data format: each item is an object with
-                canonical field names "category" and "value" (use "time" instead of
-                "category" for line/area): [{"category": "Peter", "value": 180}].
-                Rename source columns to these exact fields ("Student"->"category",
-                "Height (cm)->"value"); values must be numbers. Any 2-field record
-                shape is auto-normalized, but canonical fields are safest.\n        EXCEPT
-                scatter: each point needs TWO numbers — {"x": <number>, "y": <number>}\n        (e.g.
-                height/weight, age/salary); numeric {"category","value"} pairs are\n        mapped
-                to x/y automatically, but "x"/"y" is the reliable shape. axis_x_title
-                / axis_y_title set human axis labels — ALWAYS pass them when the user
-                names the columns (e.g. axis_x_title="Students", axis_y_title="Height
-                (cm)"); without them the axes are labeled with the raw field names
-                category/value. width/height (px, <= 4000, 0 = default) override render
-                size. Type guide: trends->line/area; comparisons->bar/column; proportions->pie/treemap;
-                distributions->histogram/boxplot; relationships->scatter/dual-axes;
-                hierarchies->treemap/organization; flows->sankey/flow; funnels->funnel;
-                ranking->sorted bar/column; multi-dimensional->radar. Supported: line,
-                area, bar, column, pie, radar, scatter, histogram, funnel, treemap,
-                sankey, dual-axes, word-cloud, boxplot, venn, liquid, flow, mind-map,
-                fishbone, organization, network.'
+              tool_description: 'Generate a chart image from data. Returns {chart_type, image_url, usage}. MANDATORY data format: each item is an object with canonical field names "category" and "value" (use "time" instead of "category" for line/area): [{"category": "Peter", "value": 180}]. Rename source columns to these exact fields ("Student"->"category", "Height (cm)->"value"); values must be numbers. Any 2-field record shape is auto-normalized, but canonical fields are safest.\n        EXCEPT scatter: each point needs TWO numbers — {"x": <number>, "y": <number>}\n        (e.g. height/weight, age/salary); numeric {"category","value"} pairs are\n        mapped to x/y automatically, but "x"/"y" is the reliable shape. axis_x_title / axis_y_title set human axis labels — ALWAYS pass them when the user names the columns (e.g. axis_x_title="Students", axis_y_title="Height (cm)"); without them the axes are labeled with the raw field names category/value. width/height (px, <= 4000, 0 = default)
+                override render size. Type guide: trends->line/area; comparisons->bar/column; proportions->pie/treemap; distributions->histogram/boxplot; relationships->scatter/dual-axes; hierarchies->treemap/organization; flows->sankey/flow; funnels->funnel; ranking->sorted bar/column; multi-dimensional->radar. Supported: line, area, bar, column, pie, radar, scatter, histogram, funnel, treemap, sankey, dual-axes, word-cloud, boxplot, venn, liquid, flow, mind-map, fishbone, organization, network.'
               tool_label: antv_chart
               tool_name: antv_chart
               type: mcp
             - enabled: true
               extra:
-                description: Live web search via configured providers (SearXNG first;
-                  falls back to Tavily/Exa).
+                description: Live web search via configured providers (SearXNG first; falls back to Tavily/Exa).
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Live web search via configured providers (SearXNG
-                first; falls back to Tavily/Exa).
+              tool_description: Live web search via configured providers (SearXNG first; falls back to Tavily/Exa).
               tool_label: web_search
               tool_name: web_search
               type: mcp
             - enabled: true
               extra:
-                description: Deep web research; grouped outline-preserving page sections,
-                  bounded, with honest fallbacks and a rendered HTML artifact per
-                  page.
+                description: Deep web research; grouped outline-preserving page sections, bounded, with honest fallbacks and a rendered HTML artifact per page.
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Deep web research; grouped outline-preserving page
-                sections, bounded, with honest fallbacks and a rendered HTML artifact
-                per page.
+              tool_description: Deep web research; grouped outline-preserving page sections, bounded, with honest fallbacks and a rendered HTML artifact per page.
               tool_label: web_research
               tool_name: web_research
               type: mcp
@@ -1268,18 +875,13 @@ workflow:
         - id: ppt_request
           label: ''
           name: PPT request
-          topic: The user asks to generate, create, or make a PowerPoint presentation,
-            deck, or slides (e.g. 'help to generate a powerpoint about Dify software',
-            'make a 3-page deck on X', 'turn this into slides')
+          topic: The user asks to generate, create, or make a PowerPoint presentation, deck, or slides (e.g. 'help to generate a powerpoint about Dify software', 'make a 3-page deck on X', 'turn this into slides')
         - id: general
           label: ''
           name: General
-          topic: 'Everything else: questions, research, chat, knowledge-base queries,
-            and any request that is not about generating a PowerPoint/deck'
-        desc: Route deck-generation requests to PPT-Master; everything else to the
-          AgenticRAG agent.
-        instruction: Classify the user's request. Choose 'PPT request' ONLY when the
-          user wants a PowerPoint/deck/slides generated.
+          topic: 'Everything else: questions, research, chat, knowledge-base queries, and any request that is not about generating a PowerPoint/deck'
+        desc: Route deck-generation requests to PPT-Master; everything else to the AgenticRAG agent.
+        instruction: Classify the user's request. Choose 'PPT request' ONLY when the user wants a PowerPoint/deck/slides generated.
         model:
           completion_params:
             think: false
@@ -1314,111 +916,14 @@ workflow:
         agent_parameters:
           instruction:
             type: constant
-            value: "You are a test assistant for the AgenticRAG MCP server. You have\
-              \ 18 tools\nfrom the \"Agentic RAG\" (provider id: agentic-rag) MCP\
-              \ provider:\n\n- ask: full agentic Q&A over the knowledge base; returns\
-              \ answer + citations\n  (optional args: mode \"auto|fast|deep\", max_iterations)\n\
-              - search: raw vector search (args: query, limit)\n- ID/identifier lookups\
-              \ (invoice numbers, asset tags, serial numbers, hostnames):\n  call\
-              \ search with the raw identifier FIRST — it pinpoints exact rows; use\
-              \ ask\n  for open-ended questions. Only turn to web_search/web_research\
-              \ when ask, search,\n  and specialty_search all return no match; if\
-              \ so, say that honestly.\n- web_search: LIVE web search via SearXNG\
-              \ (args: query, limit).\n  Use it for current events, live data (time,\
-              \ weather, news),\n  or anything the knowledge base can't contain. Note:\
-              \ search\n  snippets are CACHED — never trust them for exact time/date.\n\
-              \              - web_research: DEEP web research (args: query, limit).\
-              \ Multi-engine\n                search then scrapes each page into grouped\
-              \ sections (text +\n                belonging images in document order),\
-              \ bounded, with honest\n                fallbacks, plus a rendered HTML\
-              \ artifact per page. Prefer it\n                over web_search when\
-              \ you need real page content (guides,\n                how-tos, documentation\
-              \ steps), not just snippets.\n- fetch_url: fetch a live web page (args:\
-              \ url, max_chars).\n  For current time/date questions: call fetch_url\
-              \ on any URL\n  and use the returned `date_utc` header as the live UTC\
-              \ clock,\n  then convert to the target timezone (e.g. Hong Kong = UTC+8,\n\
-              \  no DST). This is accurate; search snippets are not.\n- status: server\
-              \ health, decision layer, source health, index counters\n- sources_list:\
-              \ list registered sources with health\n- sources_add: register a source\
-              \ (type \"local_folder\" needs config.path;\n  type \"sqlite\" needs\
-              \ config.db_path/table/template; type \"onedrive\" needs\n  config.client_id\
-              \ — registering NEVER ingests anything)\n- sources_sync: manual incremental\
-              \ sync for local sources (optional source_id);\n  onedrive sources are\
-              \ on-demand and are never synced by it\n- sources_remove: remove a source\
-              \ by id (destructive — ask the user to\n  confirm, and call sources_list\
-              \ first to get the source_id)\n- sources_auth: complete Microsoft sign-in\
-              \ for a onedrive source (device\n  code flow); relay the sign-in URL\
-              \ and user code to the user verbatim\n- graph_query: optional graph\
-              \ search layer; if it returns FeatureDisabled,\n  say so honestly instead\
-              \ of guessing\n- antv_chart: statistical charts (bar/column/line/pie/radar/sankey/word-cloud/...)\
-              \ from data; returns an embeddable image URL\n- antv_infographic: declarative\
-              \ infographics (276 templates, 8 families - chart/sequence/list/hierarchy/relation/compare/quadrant);\
-              \ returns a page URL that renders in the browser\n\nONEDRIVE (ON-DEMAND\
-              \ — never embed the whole drive):\n- To add a file from OneDrive: sources_add\
-              \ (if not connected), then\n  onedrive_list_files (args: source_id,\
-              \ optional search/folder/limit) to\n  browse file names, SHOW the matches,\
-              \ and ask the user to confirm which\n  files to embed. Only then call\
-              \ onedrive_embed_files (args: source_id,\n  files: list of paths/ids)\
-              \ for EXACTLY the confirmed files.\n- NEVER embed more files than the\
-              \ user confirmed. NEVER list-and-embed\n  everything. Connection and\
-              \ sign-in ingest ZERO files automatically.\n- onedrive_embed_files returns\
-              \ per-file outcomes; report skipped/failed\n  files with their reasons\
-              \ honestly.\n- When an answer carries a staleness warning (freshness_warnings,\
-              \ also\n  appended to the answer text), relay the reminder verbatim\
-              \ and offer the\n  one-command update: re-embed that file via onedrive_embed_files\
-              \ using the\n  path or item id from the warning. The system never re-downloads\
-              \ on its own.\n\nPick the tool that matches the request, call it, then\
-              \ summarize the result\nfor the user. When a tool returns citations,\
-              \ list them. Never invent facts.\n\nANSWER FORMAT — IMAGES (default\
-              \ action):\n- DEFAULT: always try to include images. When answering\
-              \ from web research,\n  prefer web_research (its page scrapes return\
-              \ image URLs in document order)\n  and INLINE the relevant images in\
-              \ your answer as markdown — ![what it shows](URL)\n  — grouped with\
-              \ the text they belong to, in document order.\n- To collect images for\
-              \ a how-to, call fetch_url on the guide/tutorial page FIRST\n  (it needs\
-              \ no search engine and returns an images list with every image on the\n\
-              \  page as absolute URLs). If you only know the topic's main article,\
-              \ fetch it,\n  then follow its tutorial links with fetch_url. Overview\
-              \ articles often carry\n  only icons; the tutorial pages carry the step\
-              \ screenshots — INLINE those.\n- Fetch as many as are useful: include\
-              \ every scraped image that illustrates the\n  steps or facts in your\
-              \ answer, not just one or two. Skip only logos, avatars,\n  trackers,\
-              \ and decorative banners.\n- Reused research keeps its images: when\
-              \ the user repeats a question and you\n  answer from earlier-turn research\
-              \ instead of fresh calls, still INLINE the\n  images those sources provided\
-              \ (they are stable URLs) — never drop them.\n- Dify renders image markdown\
-              \ in the chat.\n- Generated visuals — pick the tool by output type:\
-              \ antv_chart returns image_url\n  (a rendered PNG) — ALWAYS INLINE it\
-              \ in the answer as ![title](image_url).\n  antv_infographic returns\
-              \ an interactive HTML page — give it as a labeled\n  markdown link ([open\
-              \ the infographic](URL)); it cannot be inlined with ![].\n- Skip images\
-              \ only when the web tools returned none or the topic genuinely has\n\
-              \  no visual content.\n\nANSWER FORMAT — CITATIONS:\n- Whenever your\
-              \ answer uses content from ask/search/web_search/web_research/\n  specialty_search/fetch_url\
-              \ results, cite the source: knowledge base by file\n  name (e.g. hardwareinventory.xlsx),\
-              \ web content by full URL — inline or in a\n  Sources list at the end.\
-              \ Never present tool-sourced facts without a citation.\n\nANSWER FORMAT\
-              \ — VISUALS:\n- For overview/example requests (show me examples, explain\
-              \ X), also create\n  an antv_infographic summary card when the content\
-              \ benefits from a visual.\n\n\nSPECIALTY SEARCH:\n- For domain-specific\
-              \ questions (product docs, security standards, vendor-specific), call\n\
-              \  specialty_profiles() first to see available profiles, then call BOTH\
-              \ specialty_search\n  (with the matching profile) AND web_search in\
-              \ the same turn.\n- Combine results: specialty_search results are the\
-              \ PRIMARY authority (from official docs),\n  web_search results are\
-              \ SUPPLEMENTARY (community, blogs, broader context).\n- If specialty_search\
-              \ returns no results, rely on web_search and tell the user the\n  authoritative\
-              \ source had no match.\n\nHONESTY — TOOL RESULTS (mandatory):\n- You\
-              \ may ONLY report results of tools you actually called in this turn.\
-              \ NEVER fabricate tool results, verdict blocks, or status messages ('Blocked:',\
-              \ 'TASK:', 'ok') — even if similar ones appear earlier in the conversation;\
-              \ verdicts from the local agent's tools are real only when that agent\
-              \ produced them.\n- If the user's request needs a capability you do\
-              \ not have (local files, launching programs, Office control), say plainly\
-              \ that this branch of the chat does not have that tool and ask them\
-              \ to resend it as a local task.\n- Never describe files or applications\
-              \ on the user's computer as if you inspected them — you have not seen\
-              \ them."
+            value: "You are a test assistant for the AgenticRAG MCP server. You have 18 tools\nfrom the \"Agentic RAG\" (provider id: agentic-rag) MCP provider:\n\n- ask: full agentic Q&A over the knowledge base; returns answer + citations\n  (optional args: mode \"auto|fast|deep\", max_iterations)\n- search: raw vector search (args: query, limit)\n- ID/identifier lookups (invoice numbers, asset tags, serial numbers, hostnames):\n  call search with the raw identifier FIRST — it pinpoints exact rows; use ask\n  for open-ended questions. Only turn to web_search/web_research when ask, search,\n  and specialty_search all return no match; if so, say that honestly.\n- web_search: LIVE web search via SearXNG (args: query, limit).\n  Use it for current events, live data (time, weather, news),\n  or anything the knowledge base can't contain. Note: search\n  snippets are CACHED — never trust them for exact time/date.\n              - web_research: DEEP web research (args: query, limit). Multi-engine\n\
+              \                search then scrapes each page into grouped sections (text +\n                belonging images in document order), bounded, with honest\n                fallbacks, plus a rendered HTML artifact per page. Prefer it\n                over web_search when you need real page content (guides,\n                how-tos, documentation steps), not just snippets.\n- fetch_url: fetch a live web page (args: url, max_chars).\n  For current time/date questions: call fetch_url on any URL\n  and use the returned `date_utc` header as the live UTC clock,\n  then convert to the target timezone (e.g. Hong Kong = UTC+8,\n  no DST). This is accurate; search snippets are not.\n- status: server health, decision layer, source health, index counters\n- sources_list: list registered sources with health\n- sources_add: register a source (type \"local_folder\" needs config.path;\n  type \"sqlite\" needs config.db_path/table/template; type \"onedrive\" needs\n  config.client_id — registering\
+              \ NEVER ingests anything)\n- sources_sync: manual incremental sync for local sources (optional source_id);\n  onedrive sources are on-demand and are never synced by it\n- sources_remove: remove a source by id (destructive — ask the user to\n  confirm, and call sources_list first to get the source_id)\n- sources_auth: complete Microsoft sign-in for a onedrive source (device\n  code flow); relay the sign-in URL and user code to the user verbatim\n- graph_query: optional graph search layer; if it returns FeatureDisabled,\n  say so honestly instead of guessing\n- antv_chart: statistical charts (bar/column/line/pie/radar/sankey/word-cloud/...) from data; returns an embeddable image URL\n- antv_infographic: declarative infographics (276 templates, 8 families - chart/sequence/list/hierarchy/relation/compare/quadrant); returns a page URL that renders in the browser\n\nONEDRIVE (ON-DEMAND — never embed the whole drive):\n- To add a file from OneDrive: sources_add (if not connected),\
+              \ then\n  onedrive_list_files (args: source_id, optional search/folder/limit) to\n  browse file names, SHOW the matches, and ask the user to confirm which\n  files to embed. Only then call onedrive_embed_files (args: source_id,\n  files: list of paths/ids) for EXACTLY the confirmed files.\n- NEVER embed more files than the user confirmed. NEVER list-and-embed\n  everything. Connection and sign-in ingest ZERO files automatically.\n- onedrive_embed_files returns per-file outcomes; report skipped/failed\n  files with their reasons honestly.\n- When an answer carries a staleness warning (freshness_warnings, also\n  appended to the answer text), relay the reminder verbatim and offer the\n  one-command update: re-embed that file via onedrive_embed_files using the\n  path or item id from the warning. The system never re-downloads on its own.\n\nPick the tool that matches the request, call it, then summarize the result\nfor the user. When a tool returns citations, list them. Never\
+              \ invent facts.\n\nANSWER FORMAT — IMAGES (default action):\n- DEFAULT: always try to include images. When answering from web research,\n  prefer web_research (its page scrapes return image URLs in document order)\n  and INLINE the relevant images in your answer as markdown — ![what it shows](URL)\n  — grouped with the text they belong to, in document order.\n- To collect images for a how-to, call fetch_url on the guide/tutorial page FIRST\n  (it needs no search engine and returns an images list with every image on the\n  page as absolute URLs). If you only know the topic's main article, fetch it,\n  then follow its tutorial links with fetch_url. Overview articles often carry\n  only icons; the tutorial pages carry the step screenshots — INLINE those.\n- Fetch as many as are useful: include every scraped image that illustrates the\n  steps or facts in your answer, not just one or two. Skip only logos, avatars,\n  trackers, and decorative banners.\n- Reused research keeps its\
+              \ images: when the user repeats a question and you\n  answer from earlier-turn research instead of fresh calls, still INLINE the\n  images those sources provided (they are stable URLs) — never drop them.\n- Dify renders image markdown in the chat.\n- Generated visuals — pick the tool by output type: antv_chart returns image_url\n  (a rendered PNG) — ALWAYS INLINE it in the answer as ![title](image_url).\n  antv_infographic returns an interactive HTML page — give it as a labeled\n  markdown link ([open the infographic](URL)); it cannot be inlined with ![].\n- Skip images only when the web tools returned none or the topic genuinely has\n  no visual content.\n\nANSWER FORMAT — CITATIONS:\n- Whenever your answer uses content from ask/search/web_search/web_research/\n  specialty_search/fetch_url results, cite the source: knowledge base by file\n  name (e.g. hardwareinventory.xlsx), web content by full URL — inline or in a\n  Sources list at the end. Never present tool-sourced facts\
+              \ without a citation.\n\nANSWER FORMAT — VISUALS:\n- For overview/example requests (show me examples, explain X), also create\n  an antv_infographic summary card when the content benefits from a visual.\n\n\nSPECIALTY SEARCH:\n- For domain-specific questions (product docs, security standards, vendor-specific), call\n  specialty_profiles() first to see available profiles, then call BOTH specialty_search\n  (with the matching profile) AND web_search in the same turn.\n- Combine results: specialty_search results are the PRIMARY authority (from official docs),\n  web_search results are SUPPLEMENTARY (community, blogs, broader context).\n- If specialty_search returns no results, rely on web_search and tell the user the\n  authoritative source had no match.\n\nHONESTY — TOOL RESULTS (mandatory):\n- You may ONLY report results of tools you actually called in this turn. NEVER fabricate tool results, verdict blocks, or status messages ('Blocked:', 'TASK:', 'ok') — even if similar ones\
+              \ appear earlier in the conversation; verdicts from the local agent's tools are real only when that agent produced them.\n- If the user's request needs a capability you do not have (local files, launching programs, Office control), say plainly that this branch of the chat does not have that tool and ask them to resend it as a local task.\n- Never describe files or applications on the user's computer as if you inspected them — you have not seen them."
           maximum_iterations:
             type: constant
             value: 10
@@ -1441,13 +946,11 @@ workflow:
             value:
             - enabled: true
               extra:
-                description: Answer a question with agentic retrieval and per-source
-                  citations.
+                description: Answer a question with agentic retrieval and per-source citations.
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Answer a question with agentic retrieval and per-source
-                citations.
+              tool_description: Answer a question with agentic retrieval and per-source citations.
               tool_label: ask
               tool_name: ask
               type: mcp
@@ -1483,13 +986,11 @@ workflow:
               type: mcp
             - enabled: true
               extra:
-                description: Remove a source; drops documents whose last origin was
-                  this source.
+                description: Remove a source; drops documents whose last origin was this source.
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Remove a source; drops documents whose last origin
-                was this source.
+              tool_description: Remove a source; drops documents whose last origin was this source.
               tool_label: sources_remove
               tool_name: sources_remove
               type: mcp
@@ -1509,269 +1010,130 @@ workflow:
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Optional graph search (Graphify layer); disabled by
-                default.
+              tool_description: Optional graph search (Graphify layer); disabled by default.
               tool_label: graph_query
               tool_name: graph_query
               type: mcp
             - enabled: true
               extra:
-                description: 'Server health: decision layer, per-source health, index
-                  counters.'
+                description: 'Server health: decision layer, per-source health, index counters.'
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: 'Server health: decision layer, per-source health,
-                index counters.'
+              tool_description: 'Server health: decision layer, per-source health, index counters.'
               tool_label: status
               tool_name: status
               type: mcp
             - enabled: true
               extra:
-                description: 'Domain-scoped web search: results only from the profile
-                  configured authoritative sites (site: hard filter + post-filter).'
+                description: 'Domain-scoped web search: results only from the profile configured authoritative sites (site: hard filter + post-filter).'
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: 'Domain-scoped web search: results only from the profile
-                configured authoritative sites (site: hard filter + post-filter).'
+              tool_description: 'Domain-scoped web search: results only from the profile configured authoritative sites (site: hard filter + post-filter).'
               tool_label: specialty_search
               tool_name: specialty_search
               type: mcp
             - enabled: true
               extra:
-                description: List available specialty search profiles with their sites
-                  and descriptions. Call this first to discover which profiles exist.
+                description: List available specialty search profiles with their sites and descriptions. Call this first to discover which profiles exist.
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: List available specialty search profiles with their
-                sites and descriptions. Call this first to discover which profiles
-                exist.
+              tool_description: List available specialty search profiles with their sites and descriptions. Call this first to discover which profiles exist.
               tool_label: specialty_profiles
               tool_name: specialty_profiles
               type: mcp
             - enabled: true
               extra:
-                description: Complete Microsoft sign-in for OneDrive sources (device
-                  code flow). Returns the sign-in URL and user code; relay both to
-                  the user.
+                description: Complete Microsoft sign-in for OneDrive sources (device code flow). Returns the sign-in URL and user code; relay both to the user.
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Complete Microsoft sign-in for OneDrive sources (device
-                code flow). Returns the sign-in URL and user code; relay both to the
-                user.
+              tool_description: Complete Microsoft sign-in for OneDrive sources (device code flow). Returns the sign-in URL and user code; relay both to the user.
               tool_label: sources_auth
               tool_name: sources_auth
               type: mcp
             - enabled: true
               extra:
-                description: Browse OneDrive file metadata (path, name, size, modified)
-                  without downloading content. Optional name filter. Embed chosen
-                  files with onedrive_embed_files.
+                description: Browse OneDrive file metadata (path, name, size, modified) without downloading content. Optional name filter. Embed chosen files with onedrive_embed_files.
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Browse OneDrive file metadata (path, name, size, modified)
-                without downloading content. Optional name filter. Embed chosen files
-                with onedrive_embed_files.
+              tool_description: Browse OneDrive file metadata (path, name, size, modified) without downloading content. Optional name filter. Embed chosen files with onedrive_embed_files.
               tool_label: onedrive_list_files
               tool_name: onedrive_list_files
               type: mcp
             - enabled: true
               extra:
-                description: Embed ONLY the named OneDrive files (paths and/or item
-                  ids), one-time. Per-file honest outcomes; never syncs the whole
-                  drive.
+                description: Embed ONLY the named OneDrive files (paths and/or item ids), one-time. Per-file honest outcomes; never syncs the whole drive.
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Embed ONLY the named OneDrive files (paths and/or
-                item ids), one-time. Per-file honest outcomes; never syncs the whole
-                drive.
+              tool_description: Embed ONLY the named OneDrive files (paths and/or item ids), one-time. Per-file honest outcomes; never syncs the whole drive.
               tool_label: onedrive_embed_files
               tool_name: onedrive_embed_files
               type: mcp
             - enabled: true
               extra:
-                description: Live web search via configured providers (SearXNG first;
-                  falls back to Tavily/Exa).
+                description: Live web search via configured providers (SearXNG first; falls back to Tavily/Exa).
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Live web search via configured providers (SearXNG
-                first; falls back to Tavily/Exa).
+              tool_description: Live web search via configured providers (SearXNG first; falls back to Tavily/Exa).
               tool_label: web_search
               tool_name: web_search
               type: mcp
             - enabled: true
               extra:
-                description: Fetch a live web page; response includes date_utc (live
-                  UTC clock) for accurate current time/date.
+                description: Fetch a live web page; response includes date_utc (live UTC clock) for accurate current time/date.
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Fetch a live web page; response includes date_utc
-                (live UTC clock) for accurate current time/date.
+              tool_description: Fetch a live web page; response includes date_utc (live UTC clock) for accurate current time/date.
               tool_label: fetch_url
               tool_name: fetch_url
               type: mcp
             - enabled: true
               extra:
-                description: Deep web research; grouped outline-preserving page sections,
-                  bounded, with honest fallbacks and a rendered HTML artifact per
-                  page.
+                description: Deep web research; grouped outline-preserving page sections, bounded, with honest fallbacks and a rendered HTML artifact per page.
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Deep web research; grouped outline-preserving page
-                sections, bounded, with honest fallbacks and a rendered HTML artifact
-                per page.
+              tool_description: Deep web research; grouped outline-preserving page sections, bounded, with honest fallbacks and a rendered HTML artifact per page.
               tool_label: web_research
               tool_name: web_research
               type: mcp
             - enabled: true
               extra:
-                description: 'Generate a chart image from data. Returns {chart_type,
-                  image_url, usage}. MANDATORY data format: each item is an object
-                  with canonical field names "category" and "value" (use "time" instead
-                  of "category" for line/area): [{"category": "Peter", "value": 180}].
-                  Rename source columns to these exact fields ("Student"->"category",
-                  "Height (cm)->"value"); values must be numbers. Any 2-field record
-                  shape is auto-normalized, but canonical fields are safest.\n        EXCEPT
-                  scatter: each point needs TWO numbers — {"x": <number>, "y": <number>}\n        (e.g.
-                  height/weight, age/salary); numeric {"category","value"} pairs are\n        mapped
-                  to x/y automatically, but "x"/"y" is the reliable shape. axis_x_title
-                  / axis_y_title set human axis labels — ALWAYS pass them when the
-                  user names the columns (e.g. axis_x_title="Students", axis_y_title="Height
-                  (cm)"); without them the axes are labeled with the raw field names
-                  category/value. width/height (px, <= 4000, 0 = default) override
-                  render size. Type guide: trends->line/area; comparisons->bar/column;
-                  proportions->pie/treemap; distributions->histogram/boxplot; relationships->scatter/dual-axes;
-                  hierarchies->treemap/organization; flows->sankey/flow; funnels->funnel;
-                  ranking->sorted bar/column; multi-dimensional->radar. Supported:
-                  line, area, bar, column, pie, radar, scatter, histogram, funnel,
-                  treemap, sankey, dual-axes, word-cloud, boxplot, venn, liquid, flow,
-                  mind-map, fishbone, organization, network.'
+                description: 'Generate a chart image from data. Returns {chart_type, image_url, usage}. MANDATORY data format: each item is an object with canonical field names "category" and "value" (use "time" instead of "category" for line/area): [{"category": "Peter", "value": 180}]. Rename source columns to these exact fields ("Student"->"category", "Height (cm)->"value"); values must be numbers. Any 2-field record shape is auto-normalized, but canonical fields are safest.\n        EXCEPT scatter: each point needs TWO numbers — {"x": <number>, "y": <number>}\n        (e.g. height/weight, age/salary); numeric {"category","value"} pairs are\n        mapped to x/y automatically, but "x"/"y" is the reliable shape. axis_x_title / axis_y_title set human axis labels — ALWAYS pass them when the user names the columns (e.g. axis_x_title="Students", axis_y_title="Height (cm)"); without them the axes are labeled with the raw field names category/value. width/height (px, <= 4000, 0 = default) override
+                  render size. Type guide: trends->line/area; comparisons->bar/column; proportions->pie/treemap; distributions->histogram/boxplot; relationships->scatter/dual-axes; hierarchies->treemap/organization; flows->sankey/flow; funnels->funnel; ranking->sorted bar/column; multi-dimensional->radar. Supported: line, area, bar, column, pie, radar, scatter, histogram, funnel, treemap, sankey, dual-axes, word-cloud, boxplot, venn, liquid, flow, mind-map, fishbone, organization, network.'
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: 'Generate a chart image from data. Returns {chart_type,
-                image_url, usage}. MANDATORY data format: each item is an object with
-                canonical field names "category" and "value" (use "time" instead of
-                "category" for line/area): [{"category": "Peter", "value": 180}].
-                Rename source columns to these exact fields ("Student"->"category",
-                "Height (cm)->"value"); values must be numbers. Any 2-field record
-                shape is auto-normalized, but canonical fields are safest.\n        EXCEPT
-                scatter: each point needs TWO numbers — {"x": <number>, "y": <number>}\n        (e.g.
-                height/weight, age/salary); numeric {"category","value"} pairs are\n        mapped
-                to x/y automatically, but "x"/"y" is the reliable shape. axis_x_title
-                / axis_y_title set human axis labels — ALWAYS pass them when the user
-                names the columns (e.g. axis_x_title="Students", axis_y_title="Height
-                (cm)"); without them the axes are labeled with the raw field names
-                category/value. width/height (px, <= 4000, 0 = default) override render
-                size. Type guide: trends->line/area; comparisons->bar/column; proportions->pie/treemap;
-                distributions->histogram/boxplot; relationships->scatter/dual-axes;
-                hierarchies->treemap/organization; flows->sankey/flow; funnels->funnel;
-                ranking->sorted bar/column; multi-dimensional->radar. Supported: line,
-                area, bar, column, pie, radar, scatter, histogram, funnel, treemap,
-                sankey, dual-axes, word-cloud, boxplot, venn, liquid, flow, mind-map,
-                fishbone, organization, network.'
+              tool_description: 'Generate a chart image from data. Returns {chart_type, image_url, usage}. MANDATORY data format: each item is an object with canonical field names "category" and "value" (use "time" instead of "category" for line/area): [{"category": "Peter", "value": 180}]. Rename source columns to these exact fields ("Student"->"category", "Height (cm)->"value"); values must be numbers. Any 2-field record shape is auto-normalized, but canonical fields are safest.\n        EXCEPT scatter: each point needs TWO numbers — {"x": <number>, "y": <number>}\n        (e.g. height/weight, age/salary); numeric {"category","value"} pairs are\n        mapped to x/y automatically, but "x"/"y" is the reliable shape. axis_x_title / axis_y_title set human axis labels — ALWAYS pass them when the user names the columns (e.g. axis_x_title="Students", axis_y_title="Height (cm)"); without them the axes are labeled with the raw field names category/value. width/height (px, <= 4000, 0 = default)
+                override render size. Type guide: trends->line/area; comparisons->bar/column; proportions->pie/treemap; distributions->histogram/boxplot; relationships->scatter/dual-axes; hierarchies->treemap/organization; flows->sankey/flow; funnels->funnel; ranking->sorted bar/column; multi-dimensional->radar. Supported: line, area, bar, column, pie, radar, scatter, histogram, funnel, treemap, sankey, dual-axes, word-cloud, boxplot, venn, liquid, flow, mind-map, fishbone, organization, network.'
               tool_label: antv_chart
               tool_name: antv_chart
               type: mcp
             - enabled: true
               extra:
-                description: "Render an infographic from declarative AntV Infographic\
-                  \ syntax.\nReturns {id, url, usage} — the url opens the rendered\
-                  \ infographic in a browser.\n\nCRITICAL: `description` must be actual\
-                  \ Infographic SYNTAX, NOT a prose design\nbrief. The engine cannot\
-                  \ render prose — write the template call and data\ndirectly. Complete\
-                  \ working example:\n\ninfographic list-row-simple-horizontal-arrow\n\
-                  data\n  lists\n    - label Step 1\n      desc Prepare accounts\n\
-                  \    - label Step 2\n      desc Team introduction\n    - label Step\
-                  \ 3\n      desc Tool setup\n    - label Step 4\n      desc First\
-                  \ sprint\n\nStructure: first line = \"infographic <template-name>\"\
-                  , then an indented\n\"data\" block whose list key depends on the\
-                  \ template family. Items are\n\"- label X / desc Y\" lines (\"value\
-                  \ N\" for charts). ~276 built-in\npresets across 8 families — VARY\
-                  \ the choice to match the user's\nintent. Verified template names\
-                  \ per family (data key in parentheses):\n- chart (values): chart-column-simple,\
-                  \ chart-bar-plain-text,\n  chart-pie-compact-card, chart-line-plain-text,\
-                  \ chart-wordcloud\n- sequence (sequences): sequence-steps, sequence-timeline-done-list,\n\
-                  \  sequence-snake-steps, sequence-roadmap-vertical-pill-badge,\n\
-                  \  sequence-pyramid-simple (TRUE triangle pyramid — use when the\
-                  \ user\n  asks for a pyramid), sequence-funnel-simple,\n  sequence-ascending-stairs-3d-simple\
-                  \ (3D ascending steps)\n- sequence-interaction (UML message flows,\
-                  \ template\n  sequence-interaction-default-compact-card): participants\
-                  \ = top-level\n  items of \"sequences\" (lanes); each child message\
-                  \ needs \"id X\" and\n  \"step N\" (row order across all lanes);\
-                  \ \"relations\" reference those\n  MESSAGE ids: \"- from m1 / to\
-                  \ m2 / label call\" — arrows only draw\n  between messages that\
-                  \ have ids\n- list (lists): list-row, list-grid, list-zigzag-up,\n\
-                  \  list-sector-plain-text, list-pyramid-badge-card (stacked badge\n\
-                  \  rows, NOT a triangle — prefer sequence-pyramid-simple for pyramids)\n\
-                  - hierarchy (root with nested children): hierarchy-mindmap,\n  hierarchy-structure,\
-                  \ hierarchy-tree-tech-style-capsule-item\n  (org charts)\n- relation\
-                  \ (nodes plus relations from/to): relation-network-icon-badge,\n\
-                  \  relation-circle-icon-badge, relation-dagre-flow-tb-capsule\n\
-                  \  (flowcharts)\n- compare (compares): compare-binary-horizontal-simple-vs,\n\
-                  \  compare-swot\n- quadrant (lists): quadrant-quarter-circular (2x2\
-                  \ grids)\nNEVER write \"Title:\", \"Layout:\", \"Step 1 —\", bullets,\
-                  \ or any English\ndescription of the design — only the syntax. Choose\
-                  \ the closest\ntemplate to the user's intent and put their content\
-                  \ into the data\nfields."
+                description: "Render an infographic from declarative AntV Infographic syntax.\nReturns {id, url, usage} — the url opens the rendered infographic in a browser.\n\nCRITICAL: `description` must be actual Infographic SYNTAX, NOT a prose design\nbrief. The engine cannot render prose — write the template call and data\ndirectly. Complete working example:\n\ninfographic list-row-simple-horizontal-arrow\ndata\n  lists\n    - label Step 1\n      desc Prepare accounts\n    - label Step 2\n      desc Team introduction\n    - label Step 3\n      desc Tool setup\n    - label Step 4\n      desc First sprint\n\nStructure: first line = \"infographic <template-name>\", then an indented\n\"data\" block whose list key depends on the template family. Items are\n\"- label X / desc Y\" lines (\"value N\" for charts). ~276 built-in\npresets across 8 families — VARY the choice to match the user's\nintent. Verified template names per family (data key in parentheses):\n- chart (values): chart-column-simple,\
+                  \ chart-bar-plain-text,\n  chart-pie-compact-card, chart-line-plain-text, chart-wordcloud\n- sequence (sequences): sequence-steps, sequence-timeline-done-list,\n  sequence-snake-steps, sequence-roadmap-vertical-pill-badge,\n  sequence-pyramid-simple (TRUE triangle pyramid — use when the user\n  asks for a pyramid), sequence-funnel-simple,\n  sequence-ascending-stairs-3d-simple (3D ascending steps)\n- sequence-interaction (UML message flows, template\n  sequence-interaction-default-compact-card): participants = top-level\n  items of \"sequences\" (lanes); each child message needs \"id X\" and\n  \"step N\" (row order across all lanes); \"relations\" reference those\n  MESSAGE ids: \"- from m1 / to m2 / label call\" — arrows only draw\n  between messages that have ids\n- list (lists): list-row, list-grid, list-zigzag-up,\n  list-sector-plain-text, list-pyramid-badge-card (stacked badge\n  rows, NOT a triangle — prefer sequence-pyramid-simple for pyramids)\n- hierarchy (root\
+                  \ with nested children): hierarchy-mindmap,\n  hierarchy-structure, hierarchy-tree-tech-style-capsule-item\n  (org charts)\n- relation (nodes plus relations from/to): relation-network-icon-badge,\n  relation-circle-icon-badge, relation-dagre-flow-tb-capsule\n  (flowcharts)\n- compare (compares): compare-binary-horizontal-simple-vs,\n  compare-swot\n- quadrant (lists): quadrant-quarter-circular (2x2 grids)\nNEVER write \"Title:\", \"Layout:\", \"Step 1 —\", bullets, or any English\ndescription of the design — only the syntax. Choose the closest\ntemplate to the user's intent and put their content into the data\nfields."
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: "Render an infographic from declarative AntV Infographic\
-                \ syntax.\nReturns {id, url, usage} — the url opens the rendered infographic\
-                \ in a browser.\n\nCRITICAL: `description` must be actual Infographic\
-                \ SYNTAX, NOT a prose design\nbrief. The engine cannot render prose\
-                \ — write the template call and data\ndirectly. Complete working example:\n\
-                \ninfographic list-row-simple-horizontal-arrow\ndata\n  lists\n  \
-                \  - label Step 1\n      desc Prepare accounts\n    - label Step 2\n\
-                \      desc Team introduction\n    - label Step 3\n      desc Tool\
-                \ setup\n    - label Step 4\n      desc First sprint\n\nStructure:\
-                \ first line = \"infographic <template-name>\", then an indented\n\
-                \"data\" block whose list key depends on the template family. Items\
-                \ are\n\"- label X / desc Y\" lines (\"value N\" for charts). ~276\
-                \ built-in\npresets across 8 families — VARY the choice to match the\
-                \ user's\nintent. Verified template names per family (data key in\
-                \ parentheses):\n- chart (values): chart-column-simple, chart-bar-plain-text,\n\
-                \  chart-pie-compact-card, chart-line-plain-text, chart-wordcloud\n\
-                - sequence (sequences): sequence-steps, sequence-timeline-done-list,\n\
-                \  sequence-snake-steps, sequence-roadmap-vertical-pill-badge,\n \
-                \ sequence-pyramid-simple (TRUE triangle pyramid — use when the user\n\
-                \  asks for a pyramid), sequence-funnel-simple,\n  sequence-ascending-stairs-3d-simple\
-                \ (3D ascending steps)\n- sequence-interaction (UML message flows,\
-                \ template\n  sequence-interaction-default-compact-card): participants\
-                \ = top-level\n  items of \"sequences\" (lanes); each child message\
-                \ needs \"id X\" and\n  \"step N\" (row order across all lanes); \"\
-                relations\" reference those\n  MESSAGE ids: \"- from m1 / to m2 /\
-                \ label call\" — arrows only draw\n  between messages that have ids\n\
-                - list (lists): list-row, list-grid, list-zigzag-up,\n  list-sector-plain-text,\
-                \ list-pyramid-badge-card (stacked badge\n  rows, NOT a triangle —\
-                \ prefer sequence-pyramid-simple for pyramids)\n- hierarchy (root\
-                \ with nested children): hierarchy-mindmap,\n  hierarchy-structure,\
-                \ hierarchy-tree-tech-style-capsule-item\n  (org charts)\n- relation\
-                \ (nodes plus relations from/to): relation-network-icon-badge,\n \
-                \ relation-circle-icon-badge, relation-dagre-flow-tb-capsule\n  (flowcharts)\n\
-                - compare (compares): compare-binary-horizontal-simple-vs,\n  compare-swot\n\
-                - quadrant (lists): quadrant-quarter-circular (2x2 grids)\nNEVER write\
-                \ \"Title:\", \"Layout:\", \"Step 1 —\", bullets, or any English\n\
-                description of the design — only the syntax. Choose the closest\n\
-                template to the user's intent and put their content into the data\n\
-                fields."
+              tool_description: "Render an infographic from declarative AntV Infographic syntax.\nReturns {id, url, usage} — the url opens the rendered infographic in a browser.\n\nCRITICAL: `description` must be actual Infographic SYNTAX, NOT a prose design\nbrief. The engine cannot render prose — write the template call and data\ndirectly. Complete working example:\n\ninfographic list-row-simple-horizontal-arrow\ndata\n  lists\n    - label Step 1\n      desc Prepare accounts\n    - label Step 2\n      desc Team introduction\n    - label Step 3\n      desc Tool setup\n    - label Step 4\n      desc First sprint\n\nStructure: first line = \"infographic <template-name>\", then an indented\n\"data\" block whose list key depends on the template family. Items are\n\"- label X / desc Y\" lines (\"value N\" for charts). ~276 built-in\npresets across 8 families — VARY the choice to match the user's\nintent. Verified template names per family (data key in parentheses):\n- chart (values): chart-column-simple,\
+                \ chart-bar-plain-text,\n  chart-pie-compact-card, chart-line-plain-text, chart-wordcloud\n- sequence (sequences): sequence-steps, sequence-timeline-done-list,\n  sequence-snake-steps, sequence-roadmap-vertical-pill-badge,\n  sequence-pyramid-simple (TRUE triangle pyramid — use when the user\n  asks for a pyramid), sequence-funnel-simple,\n  sequence-ascending-stairs-3d-simple (3D ascending steps)\n- sequence-interaction (UML message flows, template\n  sequence-interaction-default-compact-card): participants = top-level\n  items of \"sequences\" (lanes); each child message needs \"id X\" and\n  \"step N\" (row order across all lanes); \"relations\" reference those\n  MESSAGE ids: \"- from m1 / to m2 / label call\" — arrows only draw\n  between messages that have ids\n- list (lists): list-row, list-grid, list-zigzag-up,\n  list-sector-plain-text, list-pyramid-badge-card (stacked badge\n  rows, NOT a triangle — prefer sequence-pyramid-simple for pyramids)\n- hierarchy (root\
+                \ with nested children): hierarchy-mindmap,\n  hierarchy-structure, hierarchy-tree-tech-style-capsule-item\n  (org charts)\n- relation (nodes plus relations from/to): relation-network-icon-badge,\n  relation-circle-icon-badge, relation-dagre-flow-tb-capsule\n  (flowcharts)\n- compare (compares): compare-binary-horizontal-simple-vs,\n  compare-swot\n- quadrant (lists): quadrant-quarter-circular (2x2 grids)\nNEVER write \"Title:\", \"Layout:\", \"Step 1 —\", bullets, or any English\ndescription of the design — only the syntax. Choose the closest\ntemplate to the user's intent and put their content into the data\nfields."
               tool_label: antv_infographic
               tool_name: antv_infographic
               type: mcp
         agent_strategy_label: FunctionCalling
         agent_strategy_name: function_calling
         agent_strategy_provider_name: langgenius/agent/agent
-        desc: Agentic strategy node wired to all 18 AgenticRAG MCP tools (16 core
-          + 2 antv).
+        desc: Agentic strategy node wired to all 18 AgenticRAG MCP tools (16 core + 2 antv).
         isInIteration: false
         isInLoop: false
         memory:
@@ -1812,42 +1174,24 @@ workflow:
             value: '# PPT-Master Agent Rulebook (quick-generate, v1)
 
 
-              You generate native editable PowerPoint decks from a topic or pasted
-              content, using five MCP tools. You author pages as SVG; the toolchain
-              converts them to real PPTX slides. Work only through the tools — never
-              invent file paths or fake links.
+              You generate native editable PowerPoint decks from a topic or pasted content, using five MCP tools. You author pages as SVG; the toolchain converts them to real PPTX slides. Work only through the tools — never invent file paths or fake links.
 
 
               ## Tool protocol (exact order)
 
 
-              1. `ppt_project_init(name)` → returns `{project_id, workspace, max_pages}`.
-              Use a short url-safe name derived from the topic (e.g. `dify_intro`).
-              ALL later calls take `project_id`.
+              1. `ppt_project_init(name)` → returns `{project_id, workspace, max_pages}`. Use a short url-safe name derived from the topic (e.g. `dify_intro`). ALL later calls take `project_id`.
 
-              2. `ppt_icon_sync(project_id, icons)` → sync the icons your pages will
-              use (e.g. `["tabler-outline/star", "simple-icons/dify"]`). If it returns
-              `PPT_MISSING_ICON`, re-pick each missing icon from the named library
-              and retry with only the valid ones — never substitute silently.
+              2. `ppt_icon_sync(project_id, icons)` → sync the icons your pages will use (e.g. `["tabler-outline/star", "simple-icons/dify"]`). If it returns `PPT_MISSING_ICON`, re-pick each missing icon from the named library and retry with only the valid ones — never substitute silently.
 
-              3. For each page 1..N: `ppt_write_page(project_id, page_number, name,
-              svg)` — author the complete page as a single SVG document (contract
-              below). `N ≤ max_pages` (5 by default).
+              3. For each page 1..N: `ppt_write_page(project_id, page_number, name, svg)` — author the complete page as a single SVG document (contract below). `N ≤ max_pages` (5 by default).
 
-              4. `ppt_check(project_id)` → if `passing: false`, fix every `[ERROR]`
-              detail by rewriting that page (`ppt_write_page` again), then re-check.
-              Repeat until `passing: true` (max ~3 repair rounds per page).
+              4. `ppt_check(project_id)` → if `passing: false`, fix every `[ERROR]` detail by rewriting that page (`ppt_write_page` again), then re-check. Repeat until `passing: true` (max ~3 repair rounds per page).
 
-              5. `ppt_export(project_id)` → returns `{file, url, page_url}`. Give
-              the user **`page_url`** as the markdown link in your final answer: `[Preview
-              & download the deck](<page_url>)` — the page previews every slide and
-              carries the download button. If `PPT_EXPORT_BLOCKED`, fix the listed
-              pages first — never deliver a broken file.
+              5. `ppt_export(project_id)` → returns `{file, url, page_url}`. Give the user **`page_url`** as the markdown link in your final answer: `[Preview & download the deck](<page_url>)` — the page previews every slide and carries the download button. If `PPT_EXPORT_BLOCKED`, fix the listed pages first — never deliver a broken file.
 
 
-              Revisions in the same conversation: rewrite the page (`ppt_write_page`
-              with the same page_number), re-check, re-export. A NEW export file is
-              created each time; old links keep working.
+              Revisions in the same conversation: rewrite the page (`ppt_write_page` with the same page_number), re-check, re-export. A NEW export file is created each time; old links keep working.
 
 
               ## Page authoring contract (SVG)
@@ -1856,106 +1200,57 @@ workflow:
               Each page is ONE complete `<svg>` document:
 
 
-              - Root: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">`
-              — exactly this viewBox.
+              - Root: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">` — exactly this viewBox.
 
-              - Content lives in grouped zones: `<g id="zone-name" data-pptx-bounds="x
-              y w h">` with non-overlapping rectangles inside the 64px margins (usable
-              area 64,64 → 1216,656).
+              - Content lives in grouped zones: `<g id="zone-name" data-pptx-bounds="x y w h">` with non-overlapping rectangles inside the 64px margins (usable area 64,64 → 1216,656).
 
-              - Text: `<text>` elements with `x`, `y` (baseline), `font-size` (body
-              24, title 44, subtitle 30, annotation 18, footnote 16), `fill` hex.
-              Multi-line text = the first line plus `<tspan x="same" dy="27">` per
-              additional line. Keep lines short enough to stay inside the zone bounds
-              (~5% headroom).
+              - Text: `<text>` elements with `x`, `y` (baseline), `font-size` (body 24, title 44, subtitle 30, annotation 18, footnote 16), `fill` hex. Multi-line text = the first line plus `<tspan x="same" dy="27">` per additional line. Keep lines short enough to stay inside the zone bounds (~5% headroom).
 
-              - Colors (theme): background #FAFAFA, panel #EDF2F8, primary #1565C0,
-              accent #0D47A1, secondary accent #7EA6E0, text #212121, muted #5F6B7A,
-              divider #D5DCE5.
+              - Colors (theme): background #FAFAFA, panel #EDF2F8, primary #1565C0, accent #0D47A1, secondary accent #7EA6E0, text #212121, muted #5F6B7A, divider #D5DCE5.
 
               - Fonts: `Segoe UI, sans-serif` (set `font-family` on the root svg).
 
-              - Full-page background: `<rect id="page-background" data-pptx-role="background"
-              x="0" y="0" width="1280" height="720" fill="#FAFAFA"/>`.
+              - Full-page background: `<rect id="page-background" data-pptx-role="background" x="0" y="0" width="1280" height="720" fill="#FAFAFA"/>`.
 
-              - Icons: reference synced icons with `<use data-icon="library/name"
-              x y width height fill="#1565C0"/>` (tabler-outline stroke icons take
-              `stroke-width="2"`).
+              - Icons: reference synced icons with `<use data-icon="library/name" x y width height fill="#1565C0"/>` (tabler-outline stroke icons take `stroke-width="2"`).
 
-              - FORBIDDEN (write_page rejects these): `<script>`, event attributes
-              (`onclick=` etc.), `<foreignObject>`, `<style>`, `class=`, non-https
-              external `href`, any viewBox other than `0 0 1280 720`.
+              - FORBIDDEN (write_page rejects these): `<script>`, event attributes (`onclick=` etc.), `<foreignObject>`, `<style>`, `class=`, non-https external `href`, any viewBox other than `0 0 1280 720`.
 
 
-              Design guidance: one message per page (a title, 2–4 supporting zones),
-              Swiss-clean layout, real content from your research or the user''s pasted
-              material — never invented statistics.
+              Design guidance: one message per page (a title, 2–4 supporting zones), Swiss-clean layout, real content from your research or the user''s pasted material — never invented statistics.
 
 
-              **Sources rule (mandatory):** when any page carries facts that came
-              from web research (web_search / web_research), the LAST page of the
-              deck (or a footnote zone on each content page if the deck is one page)
-              MUST list the sources as a footnote zone — one small line per source:
-              `Source: <site/domain>` at footnote size (16, muted #5F6B7A) above the
-              page bottom margin. A deck built purely from the user''s pasted text
-              needs no sources zone. Never state a number, name, or date you did not
-              get from research, the user''s material, or an earlier tool response
-              in this conversation.
+              **Sources rule (mandatory):** when any page carries facts that came from web research (web_search / web_research), the LAST page of the deck (or a footnote zone on each content page if the deck is one page) MUST list the sources as a footnote zone — one small line per source: `Source: <site/domain>` at footnote size (16, muted #5F6B7A) above the page bottom margin. A deck built purely from the user''s pasted text needs no sources zone. Never state a number, name, or date you did not get from research, the user''s material, or an earlier tool response in this conversation.
 
 
               ## Charts in decks
 
 
-              When a page presents comparisons, trends, proportions, or rankings,
-              generate a chart instead of tables of numbers: call `antv_chart(chart_type,
-              data, title)` — it returns `image_url`; embed it as `<image href="..."
-              x y width height/>` inside a properly grouped `<g>` zone (not top-level).
-              Choose the type by intent: trends → line/area, comparisons → bar/column,
-              proportions → pie/treemap, distributions → histogram/boxplot. Size charts
-              within their zone (a common choice: 640×360 inside a 1280×720 page).
-              The deck pipeline downloads and embeds the image bytes automatically
-              — exported decks are self-contained; if the image fetch fails, fix or
-              remove the image before retrying (the page will be rejected otherwise).
+              When a page presents comparisons, trends, proportions, or rankings, generate a chart instead of tables of numbers: call `antv_chart(chart_type, data, title)` — it returns `image_url`; embed it as `<image href="..." x y width height/>` inside a properly grouped `<g>` zone (not top-level). Choose the type by intent: trends → line/area, comparisons → bar/column, proportions → pie/treemap, distributions → histogram/boxplot. Size charts within their zone (a common choice: 640×360 inside a 1280×720 page). The deck pipeline downloads and embeds the image bytes automatically — exported decks are self-contained; if the image fetch fails, fix or remove the image before retrying (the page will be rejected otherwise).
 
 
               ## Input modes
 
 
-              - Topic ("a deck about X"): research first with `web_search`/`web_research`,
-              then build pages from the sourced facts. Deck language = the user''s
-              prompt language.
+              - Topic ("a deck about X"): research first with `web_search`/`web_research`, then build pages from the sourced facts. Deck language = the user''s prompt language.
 
-              - Pasted content: build the deck from the user''s text — no invented
-              claims, no padding beyond what the material supports.
+              - Pasted content: build the deck from the user''s text — no invented claims, no padding beyond what the material supports.
 
 
               ## Behavior rules
 
 
-              - Narrate progress between tool calls (one short line per step: which
-              page is being authored, that checks are running, that export started).
-              The user is watching a multi-minute run.
+              - Narrate progress between tool calls (one short line per step: which page is being authored, that checks are running, that export started). The user is watching a multi-minute run.
 
-              - Page count: default to the smallest deck that serves the request (1–3
-              pages unless the user asks for more); never exceed `max_pages` in one
-              run — offer a continuation for larger decks.
+              - Page count: default to the smallest deck that serves the request (1–3 pages unless the user asks for more); never exceed `max_pages` in one run — offer a continuation for larger decks.
 
-              - Iteration budget: if you run out of tool-call iterations mid-deck,
-              report exactly which pages are done and offer to continue with a fresh,
-              smaller run.
+              - Iteration budget: if you run out of tool-call iterations mid-deck, report exactly which pages are done and offer to continue with a fresh, smaller run.
 
-              - Honest failure: if a page cannot pass checks after ~3 repair rounds,
-              say which page and why, and deliver nothing rather than a broken file.
-              If asked for something outside these tools (animated video, file-upload
-              parsing in v1), say so plainly and offer what you CAN do (topic or pasted-text
-              decks, ≤ 5 pages).
+              - Honest failure: if a page cannot pass checks after ~3 repair rounds, say which page and why, and deliver nothing rather than a broken file. If asked for something outside these tools (animated video, file-upload parsing in v1), say so plainly and offer what you CAN do (topic or pasted-text decks, ≤ 5 pages).
 
-              - Cross-conversation edits are out of scope: if asked to edit a deck
-              from an earlier conversation, say so and offer to regenerate in this
-              conversation.
+              - Cross-conversation edits are out of scope: if asked to edit a deck from an earlier conversation, say so and offer to regenerate in this conversation.
 
-              - When the user attaches a file, explain that v1 accepts pasted text
-              or researched topics, and offer those alternatives.
+              - When the user attaches a file, explain that v1 accepts pasted text or researched topics, and offer those alternatives.
 
               '
           maximum_iterations:
@@ -1980,25 +1275,21 @@ workflow:
             value:
             - enabled: true
               extra:
-                description: Create an isolated PPT generation workspace. Start every
-                  deck here.
+                description: Create an isolated PPT generation workspace. Start every deck here.
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Create an isolated PPT generation workspace. Start
-                every deck here.
+              tool_description: Create an isolated PPT generation workspace. Start every deck here.
               tool_label: ppt_project_init
               tool_name: ppt_project_init
               type: mcp
             - enabled: true
               extra:
-                description: Prepare icons for a PPT project; missing icons reported
-                  honestly.
+                description: Prepare icons for a PPT project; missing icons reported honestly.
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Prepare icons for a PPT project; missing icons reported
-                honestly.
+              tool_description: Prepare icons for a PPT project; missing icons reported honestly.
               tool_label: ppt_icon_sync
               tool_name: ppt_icon_sync
               type: mcp
@@ -2024,89 +1315,43 @@ workflow:
               type: mcp
             - enabled: true
               extra:
-                description: Export the deck as a native editable .pptx; returns download
-                  and preview page URLs.
+                description: Export the deck as a native editable .pptx; returns download and preview page URLs.
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Export the deck as a native editable .pptx; returns
-                download and preview page URLs.
+              tool_description: Export the deck as a native editable .pptx; returns download and preview page URLs.
               tool_label: ppt_export
               tool_name: ppt_export
               type: mcp
             - enabled: true
               extra:
-                description: 'Generate a chart image from data. Returns {chart_type,
-                  image_url, usage}. MANDATORY data format: each item is an object
-                  with canonical field names "category" and "value" (use "time" instead
-                  of "category" for line/area): [{"category": "Peter", "value": 180}].
-                  Rename source columns to these exact fields ("Student"->"category",
-                  "Height (cm)->"value"); values must be numbers. Any 2-field record
-                  shape is auto-normalized, but canonical fields are safest.\n        EXCEPT
-                  scatter: each point needs TWO numbers — {"x": <number>, "y": <number>}\n        (e.g.
-                  height/weight, age/salary); numeric {"category","value"} pairs are\n        mapped
-                  to x/y automatically, but "x"/"y" is the reliable shape. axis_x_title
-                  / axis_y_title set human axis labels — ALWAYS pass them when the
-                  user names the columns (e.g. axis_x_title="Students", axis_y_title="Height
-                  (cm)"); without them the axes are labeled with the raw field names
-                  category/value. width/height (px, <= 4000, 0 = default) override
-                  render size. Type guide: trends->line/area; comparisons->bar/column;
-                  proportions->pie/treemap; distributions->histogram/boxplot; relationships->scatter/dual-axes;
-                  hierarchies->treemap/organization; flows->sankey/flow; funnels->funnel;
-                  ranking->sorted bar/column; multi-dimensional->radar. Supported:
-                  line, area, bar, column, pie, radar, scatter, histogram, funnel,
-                  treemap, sankey, dual-axes, word-cloud, boxplot, venn, liquid, flow,
-                  mind-map, fishbone, organization, network.'
+                description: 'Generate a chart image from data. Returns {chart_type, image_url, usage}. MANDATORY data format: each item is an object with canonical field names "category" and "value" (use "time" instead of "category" for line/area): [{"category": "Peter", "value": 180}]. Rename source columns to these exact fields ("Student"->"category", "Height (cm)->"value"); values must be numbers. Any 2-field record shape is auto-normalized, but canonical fields are safest.\n        EXCEPT scatter: each point needs TWO numbers — {"x": <number>, "y": <number>}\n        (e.g. height/weight, age/salary); numeric {"category","value"} pairs are\n        mapped to x/y automatically, but "x"/"y" is the reliable shape. axis_x_title / axis_y_title set human axis labels — ALWAYS pass them when the user names the columns (e.g. axis_x_title="Students", axis_y_title="Height (cm)"); without them the axes are labeled with the raw field names category/value. width/height (px, <= 4000, 0 = default) override
+                  render size. Type guide: trends->line/area; comparisons->bar/column; proportions->pie/treemap; distributions->histogram/boxplot; relationships->scatter/dual-axes; hierarchies->treemap/organization; flows->sankey/flow; funnels->funnel; ranking->sorted bar/column; multi-dimensional->radar. Supported: line, area, bar, column, pie, radar, scatter, histogram, funnel, treemap, sankey, dual-axes, word-cloud, boxplot, venn, liquid, flow, mind-map, fishbone, organization, network.'
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: 'Generate a chart image from data. Returns {chart_type,
-                image_url, usage}. MANDATORY data format: each item is an object with
-                canonical field names "category" and "value" (use "time" instead of
-                "category" for line/area): [{"category": "Peter", "value": 180}].
-                Rename source columns to these exact fields ("Student"->"category",
-                "Height (cm)->"value"); values must be numbers. Any 2-field record
-                shape is auto-normalized, but canonical fields are safest.\n        EXCEPT
-                scatter: each point needs TWO numbers — {"x": <number>, "y": <number>}\n        (e.g.
-                height/weight, age/salary); numeric {"category","value"} pairs are\n        mapped
-                to x/y automatically, but "x"/"y" is the reliable shape. axis_x_title
-                / axis_y_title set human axis labels — ALWAYS pass them when the user
-                names the columns (e.g. axis_x_title="Students", axis_y_title="Height
-                (cm)"); without them the axes are labeled with the raw field names
-                category/value. width/height (px, <= 4000, 0 = default) override render
-                size. Type guide: trends->line/area; comparisons->bar/column; proportions->pie/treemap;
-                distributions->histogram/boxplot; relationships->scatter/dual-axes;
-                hierarchies->treemap/organization; flows->sankey/flow; funnels->funnel;
-                ranking->sorted bar/column; multi-dimensional->radar. Supported: line,
-                area, bar, column, pie, radar, scatter, histogram, funnel, treemap,
-                sankey, dual-axes, word-cloud, boxplot, venn, liquid, flow, mind-map,
-                fishbone, organization, network.'
+              tool_description: 'Generate a chart image from data. Returns {chart_type, image_url, usage}. MANDATORY data format: each item is an object with canonical field names "category" and "value" (use "time" instead of "category" for line/area): [{"category": "Peter", "value": 180}]. Rename source columns to these exact fields ("Student"->"category", "Height (cm)->"value"); values must be numbers. Any 2-field record shape is auto-normalized, but canonical fields are safest.\n        EXCEPT scatter: each point needs TWO numbers — {"x": <number>, "y": <number>}\n        (e.g. height/weight, age/salary); numeric {"category","value"} pairs are\n        mapped to x/y automatically, but "x"/"y" is the reliable shape. axis_x_title / axis_y_title set human axis labels — ALWAYS pass them when the user names the columns (e.g. axis_x_title="Students", axis_y_title="Height (cm)"); without them the axes are labeled with the raw field names category/value. width/height (px, <= 4000, 0 = default)
+                override render size. Type guide: trends->line/area; comparisons->bar/column; proportions->pie/treemap; distributions->histogram/boxplot; relationships->scatter/dual-axes; hierarchies->treemap/organization; flows->sankey/flow; funnels->funnel; ranking->sorted bar/column; multi-dimensional->radar. Supported: line, area, bar, column, pie, radar, scatter, histogram, funnel, treemap, sankey, dual-axes, word-cloud, boxplot, venn, liquid, flow, mind-map, fishbone, organization, network.'
               tool_label: antv_chart
               tool_name: antv_chart
               type: mcp
             - enabled: true
               extra:
-                description: Live web search via configured providers (SearXNG first;
-                  falls back to Tavily/Exa).
+                description: Live web search via configured providers (SearXNG first; falls back to Tavily/Exa).
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Live web search via configured providers (SearXNG
-                first; falls back to Tavily/Exa).
+              tool_description: Live web search via configured providers (SearXNG first; falls back to Tavily/Exa).
               tool_label: web_search
               tool_name: web_search
               type: mcp
             - enabled: true
               extra:
-                description: Deep web research; grouped outline-preserving page sections,
-                  bounded, with honest fallbacks and a rendered HTML artifact per
-                  page.
+                description: Deep web research; grouped outline-preserving page sections, bounded, with honest fallbacks and a rendered HTML artifact per page.
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Deep web research; grouped outline-preserving page
-                sections, bounded, with honest fallbacks and a rendered HTML artifact
-                per page.
+              tool_description: Deep web research; grouped outline-preserving page sections, bounded, with honest fallbacks and a rendered HTML artifact per page.
               tool_label: web_research
               tool_name: web_research
               type: mcp
@@ -2151,45 +1396,9 @@ workflow:
         agent_parameters:
           instruction:
             type: constant
-            value: "# Hermes Local Agent (specs 028 + 029)\n\nYou route LOCAL WINDOWS\
-              \ TASKS to the Hermes tools — creating folders,\nwriting, reading, and\
-              \ listing files on the user's Windows computer,\nstrictly inside one\
-              \ allowed root (default C:\\temp, reached as /mnt/c/temp),\nand launching\
-              \ programs (any executable by name or full .exe path).\n\nRules:\n-\
-              \ Call hermes_file_task(task, allowed_root) for every file task. Pass\
-              \ the\nuser's task text as task; pass allowed_root only when the user\
-              \ names a\ndifferent root.\n- Call hermes_launch_app(task) for every\
-              \ program-launch request. Pass\nthe user's task text as task.\n- Mixed\
-              \ requests (a file part, a launch part, or an Office part) may call\n\
-              each tool for its own part — pass each tool ONLY its own part of the\n\
-              request as its task text; report all verdicts honestly.\n- The tools\
-              \ are the ONLY way anything touches the disk or starts a\nprogram. Never\
-              \ claim direct disk or desktop access, and never describe\noperations\
-              \ the tools did not return.\n- Relay each verdict honestly:\n  - status\
-              \ ok -> report what the tool returned (windows_path for file\ntasks;\
-              \ what the agent observed for launches — started fresh or already\n\
-              running).\n  - status blocked -> give the user the reason verbatim.\
-              \ On a blocked\nask-back (missing location, or which application to\
-              \ launch), relay that\nquestion to the user — never pick a location\
-              \ or application yourself.\n  - status error -> say the local agent\
-              \ failed and include the recovery hint.\n- Never re-attempt a blocked\
-              \ operation with rephrased paths, alternate\nspellings, or a different\
-              \ target — the refusal stands.\n- Launch scope: any executable by name\
-              \ or full .exe path, never with\narguments, never scripts or shortcuts.\
-              \ The tool enforces this — if the\nuser asks for launch arguments, PowerShell/shell\
-              \ commands, or GUI\nautomation, relay the refusal verbatim; do not try\
-              \ to work around it.\n- File scope: create/write/read/list inside the\
-              \ active root only — the\ntool enforces it the same way.\n- Office tasks:\
-              \ call hermes_office_task(task, conversation_id) to control\nWord, Excel,\
-              \ PowerPoint, or Outlook — write cells, edit documents, create\nslides,\
-              \ compose emails. ALWAYS pass conversation_id exactly as\n'{{#sys.conversation_id#}}'.\
-              \ The tool gates and audits every task; relay\nits verdict verbatim,\
-              \ including step reports and the active file. Email\ndrafts are shown\
-              \ verbatim and are NEVER sent until the user confirms in\nchat — a later\
-              \ 'send it' or 'cancel that email' goes through the same\ntool; silence\
-              \ is never consent. Blocked refusals are final; never\nre-attempt with\
-              \ rephrased content.\n- If a request is not a local task at all, answer\
-              \ it normally.\n"
+            value: "# Hermes Local Agent (specs 028 + 029)\n\nYou route LOCAL WINDOWS TASKS to the Hermes tools — creating folders,\nwriting, reading, and listing files on the user's Windows computer,\nstrictly inside one allowed root (default C:\\temp, reached as /mnt/c/temp),\nand launching programs (any executable by name or full .exe path).\n\nRules:\n- Call hermes_file_task(task, allowed_root) for every file task. Pass the\nuser's task text as task; pass allowed_root only when the user names a\ndifferent root.\n- Call hermes_launch_app(task) for every program-launch request. Pass\nthe user's task text as task.\n- Mixed requests (a file part, a launch part, or an Office part) may call\neach tool for its own part — pass each tool ONLY its own part of the\nrequest as its task text; report all verdicts honestly.\n- The tools are the ONLY way anything touches the disk or starts a\nprogram. Never claim direct disk or desktop access, and never describe\noperations the tools did not return.\n\
+              - Relay each verdict honestly:\n  - status ok -> report what the tool returned (windows_path for file\ntasks; what the agent observed for launches — started fresh or already\nrunning).\n  - status blocked -> give the user the reason verbatim. On a blocked\nask-back (missing location, or which application to launch), relay that\nquestion to the user — never pick a location or application yourself.\n  - status error -> say the local agent failed and include the recovery hint.\n- Never re-attempt a blocked operation with rephrased paths, alternate\nspellings, or a different target — the refusal stands.\n- Launch scope: any executable by name or full .exe path, never with\narguments, never scripts or shortcuts. The tool enforces this — if the\nuser asks for launch arguments, PowerShell/shell commands, or GUI\nautomation, relay the refusal verbatim; do not try to work around it.\n- File scope: create/write/read/list inside the active root only — the\ntool enforces it the same way.\n\
+              - Office tasks: call hermes_office_task(task, conversation_id) to control\nWord, Excel, PowerPoint, or Outlook — write cells, edit documents, create\nslides, compose emails. ALWAYS pass conversation_id exactly as\n'{{#sys.conversation_id#}}'. The tool gates and audits every task; relay\nits verdict verbatim, including step reports and the active file. Email\ndrafts are shown verbatim and are NEVER sent until the user confirms in\nchat — a later 'send it' or 'cancel that email' goes through the same\ntool; silence is never consent. Blocked refusals are final; never\nre-attempt with rephrased content.\n- If a request is not a local task at all, answer it normally.\n"
           maximum_iterations:
             type: constant
             value: 15
@@ -2211,90 +1420,40 @@ workflow:
             value:
             - enabled: true
               extra:
-                description: 'Perform a LOCAL FILE TASK on the user''s Windows computer
-                  via the Hermes agent (create folders, write files, read files, '
+                description: 'Perform a LOCAL FILE TASK on the user''s Windows computer via the Hermes agent (create folders, write files, read files, '
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: 'Perform a LOCAL FILE TASK on the user''s Windows
-                computer via the Hermes agent (create folders, write files, read files,
-                list folders) — strictly inside one allowed root (default C:\temp
-                via /mnt/c/temp; pass allowed_root to use another root, Windows or
-                host style). EVERY task is security-gated BEFORE execution: paths
-                naming anything outside the active root (other drives, C:\Windows,
-                /etc, ''..'' traversal) are BLOCKED with a reason and never executed;
-                delete / rename / move / bulk-clear requests are BLOCKED everywhere
-                (v1 scope: create/write/read/list only); a task naming NO location
-                is BLOCKED with an ask-back — relay that question to the user verbatim
-                instead of guessing. Windows-style and host-style paths are both accepted.
-                Returns {status: ok|blocked|error, result?, reason?, windows_path?}
-                — relay the verdict honestly: on ''ok'' report the result and windows_path;
-                on ''blocked'' tell the user the reason; on ''error'' say the local
-                agent failed and include the recovery hint. Never claim an operation
-                ran when the status is not ok.'
+              tool_description: 'Perform a LOCAL FILE TASK on the user''s Windows computer via the Hermes agent (create folders, write files, read files, list folders) — strictly inside one allowed root (default C:\temp via /mnt/c/temp; pass allowed_root to use another root, Windows or host style). EVERY task is security-gated BEFORE execution: paths naming anything outside the active root (other drives, C:\Windows, /etc, ''..'' traversal) are BLOCKED with a reason and never executed; delete / rename / move / bulk-clear requests are BLOCKED everywhere (v1 scope: create/write/read/list only); a task naming NO location is BLOCKED with an ask-back — relay that question to the user verbatim instead of guessing. Windows-style and host-style paths are both accepted. Returns {status: ok|blocked|error, result?, reason?, windows_path?} — relay the verdict honestly: on ''ok'' report the result and windows_path; on ''blocked'' tell the user the reason; on ''error'' say the local agent failed and include
+                the recovery hint. Never claim an operation ran when the status is not ok.'
               tool_label: hermes_file_task
               tool_name: hermes_file_task
               type: mcp
             - enabled: true
               extra:
-                description: 'Launch a DESKTOP APPLICATION on the user''s Windows
-                  computer via the Hermes agent (e.g. open Outlook/Excel/Notepad,
-                  or run C:\tools\mytool.exe). '
+                description: 'Launch a DESKTOP APPLICATION on the user''s Windows computer via the Hermes agent (e.g. open Outlook/Excel/Notepad, or run C:\tools\mytool.exe). '
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: 'Launch a DESKTOP APPLICATION on the user''s Windows
-                computer via the Hermes agent (e.g. open Outlook/Excel/Notepad, or
-                run C:\tools\mytool.exe). ANY executable by name or full .exe path
-                — there is no allowlist. EVERY task is security-gated BEFORE execution:
-                launch arguments, command lines, and shell/PowerShell phrasing are
-                BLOCKED with a reason and never executed; script (.bat/.cmd/.ps1)
-                and shortcut (.lnk) targets are BLOCKED (executables only); a task
-                naming NO application is BLOCKED with an ask-back — relay that question
-                to the user verbatim; two applications in one prompt is an ask-back
-                too (one launch per request). Returns {status: ok|blocked|error, result?,
-                reason?, target?} — relay the verdict honestly: on ''ok'' report what
-                the agent observed (started fresh / already running); on ''blocked''
-                tell the user the reason; on ''error'' say the local agent failed
-                and include the recovery hint. Never claim a launch happened when
-                the status is not ok.'
+              tool_description: 'Launch a DESKTOP APPLICATION on the user''s Windows computer via the Hermes agent (e.g. open Outlook/Excel/Notepad, or run C:\tools\mytool.exe). ANY executable by name or full .exe path — there is no allowlist. EVERY task is security-gated BEFORE execution: launch arguments, command lines, and shell/PowerShell phrasing are BLOCKED with a reason and never executed; script (.bat/.cmd/.ps1) and shortcut (.lnk) targets are BLOCKED (executables only); a task naming NO application is BLOCKED with an ask-back — relay that question to the user verbatim; two applications in one prompt is an ask-back too (one launch per request). Returns {status: ok|blocked|error, result?, reason?, target?} — relay the verdict honestly: on ''ok'' report what the agent observed (started fresh / already running); on ''blocked'' tell the user the reason; on ''error'' say the local agent failed and include the recovery hint. Never claim a launch happened when the status is not ok.'
               tool_label: hermes_launch_app
               tool_name: hermes_launch_app
               type: mcp
             - enabled: true
               extra:
-                description: 'Execute a Microsoft Office task on the user''s Windows
-                  computer via the Hermes agent and the Office automation service
-                  (Word/Excel/PowerPoint/Outlook). '
+                description: 'Execute a Microsoft Office task on the user''s Windows computer via the Hermes agent and the Office automation service (Word/Excel/PowerPoint/Outlook). '
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: 'Execute a Microsoft Office task on the user''s Windows
-                computer via the Hermes agent and the Office automation service —
-                Word, Excel, PowerPoint, Outlook (e.g. "open Excel and put 12345 in
-                cell A1", "create a Word doc with ...", "write an email to a@b.com
-                saying ..."). EVERY task is security-gated BEFORE execution: save
-                or read at any location the user names — any drive, any folder; unnamed
-                saves use the default work folder (C:\OfficeMCP); macro/script/DDE
-                or executable cell content is BLOCKED; email is COMPOSED first and
-                shown verbatim — it is sent ONLY after the user confirms in chat (the
-                draft shown is the draft sent, unchanged); recipients come only from
-                the user, never from contacts. Follow-ups continue on the conversation''s
-                active document (named in every answer). Multi-step tasks report each
-                step honestly; failures stop at the failing step with the partial
-                state. Returns {status, decision?, result?, reason?, active_file?,
-                draft_pending?} — relay honestly: on "ok" report the steps; on "blocked"
-                give the reason verbatim (ask-backs go to the user verbatim); on "error"
-                include the recovery hint. Never claim a step that did not run.'
+              tool_description: 'Execute a Microsoft Office task on the user''s Windows computer via the Hermes agent and the Office automation service — Word, Excel, PowerPoint, Outlook (e.g. "open Excel and put 12345 in cell A1", "create a Word doc with ...", "write an email to a@b.com saying ..."). EVERY task is security-gated BEFORE execution: save or read at any location the user names — any drive, any folder; unnamed saves use the default work folder (C:\OfficeMCP); macro/script/DDE or executable cell content is BLOCKED; email is COMPOSED first and shown verbatim — it is sent ONLY after the user confirms in chat (the draft shown is the draft sent, unchanged); recipients come only from the user, never from contacts. Follow-ups continue on the conversation''s active document (named in every answer). Multi-step tasks report each step honestly; failures stop at the failing step with the partial state. Returns {status, decision?, result?, reason?, active_file?, draft_pending?} — relay honestly:
+                on "ok" report the steps; on "blocked" give the reason verbatim (ask-backs go to the user verbatim); on "error" include the recovery hint. Never claim a step that did not run.'
               tool_label: hermes_office_task
               tool_name: hermes_office_task
               type: mcp
         agent_strategy_label: FunctionCalling
         agent_strategy_name: function_calling
         agent_strategy_provider_name: langgenius/agent/agent
-        desc: 'Windows local-task agent wired to the hermes_file_task + hermes_launch_app
-          MCP tools (specs 028/029): gated file ops inside the allowed root; gated
-          program launches — name or full .exe path, never arguments.'
+        desc: 'Windows local-task agent wired to the hermes_file_task + hermes_launch_app MCP tools (specs 028/029): gated file ops inside the allowed root; gated program launches — name or full .exe path, never arguments.'
         isInIteration: false
         isInLoop: false
         memory:
