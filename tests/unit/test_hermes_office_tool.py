@@ -416,14 +416,16 @@ def test_office_instructions_contain_attach_failure_protocol():
     # the pre-existing legs stay (Nov-4 fix + session-degradation rule)
     assert "try Dispatch/GetComObject" in OFFICE_INSTRUCTIONS
     assert "SESSION-DEGRADATION RULE" in OFFICE_INSTRUCTIONS
-    # the-tool-call-failed (2026-11-05): the strip window is TIME-based — the
-    # rule must teach WAITING (never a reset, which re-arms the window), cap
-    # canaries at 3, and probe outlook.exe before any Launch
-    assert "TIME-based" in OFFICE_INSTRUCTIONS or "time-window aware" in OFFICE_INSTRUCTIONS
-    assert "up to 3 tiny canaries" in OFFICE_INSTRUCTIONS
-    assert "WAIT about 15 minutes" in OFFICE_INSTRUCTIONS
+    # say-the-local-agent-failed (2026-11-05): the strip FLIPS — healing tracks
+    # canary BURSTS (~5-15 calls), never time (71-min falsification); the cap is
+    # 15 and the falsified wait guidance must stay out
+    assert "up to 15" in OFFICE_INSTRUCTIONS
+    assert "15 consecutive" in OFFICE_INSTRUCTIONS
+    assert "WAIT about 15 minutes" not in OFFICE_INSTRUCTIONS
+    assert "flips" in OFFICE_INSTRUCTIONS or "FLIPS" in OFFICE_INSTRUCTIONS
+    assert "71 idle minutes" in OFFICE_INSTRUCTIONS
     assert "re-arms" in OFFICE_INSTRUCTIONS
-    assert "hermes mcp remove" not in OFFICE_INSTRUCTIONS  # reset hint removed
+    assert "hermes mcp remove" not in OFFICE_INSTRUCTIONS  # reset hint stays out
     assert "OUTLOOK LAUNCH GUARD" in OFFICE_INSTRUCTIONS
     assert "process-probe outlook.exe" in OFFICE_INSTRUCTIONS
     # local-agent-failed (2026-11-05): attach attempts are bounded so turns

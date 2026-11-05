@@ -41,3 +41,5 @@ agent turn server-side, the gateway **exited uncleanly with no log trace**
 (no traceback in errors.log, no OOM in dmesg) — the only evidence is the
 successor start's `gateway.previous_unclean_exit` ledger line. Bounded turn
 lengths appear to matter for gateway survival, not just client budgets.
+
+Additional data point (2026-11-05, final): the strip state **flips** — healing correlates with bursts of argument-carrying calls (breakthroughs observed after ~5–15 canaries), never with time alone (one stripped episode persisted through 71 idle minutes, then a burst flipped it back). `hermes mcp test` (fresh discovery) does not affect the state. Re-registration/gateway restart can re-arm the stripped state.

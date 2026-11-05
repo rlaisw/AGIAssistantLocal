@@ -45,3 +45,6 @@ pytest tests/unit → 332 passed
 ## Recommendation
 
 **Hold as partial** — everything this fix changed is verified live (time-window model, no-re-arm, launch guard, tests, lint), and the bug's original failure modes did not reproduce. Two honest gaps remain outside this fix's scope: the 600 s attach-marathon timeout (needs a bounded-attach tweak in the sibling lifecycle) and the end-to-end compose (needs the owner's Outlook decision). Re-run the compose verification after the owner resolves Outlook; if the draft lands in Drafts, close this bug.
+
+---
+**Annotation (2026-11-05, 09:15 UTC)**: the "time-window" model verified above was falsified hours later — the channel stayed stripped for 71 idle minutes (08:20→09:04) while canary bursts of ~5–15 calls demonstrably flipped it back. The superseding model, cap, and guidance live in `say-the-local-agent-failed-and-include-the-recovery-hint` (assessment + fix).

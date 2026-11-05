@@ -43,3 +43,6 @@ pytest tests/unit → 332 passed
 ## Recommendation
 
 **Close this bug — verified in scope.** The bounded attach is behaviorally proven (seconds, not minutes), the reproduction's symptom did not recur, and all suites pass. Route the two new findings where they belong: the DCOM-launched-Outlook ROT loss to the `only-one-version-of-outlook` lifecycle, the failed-compose `draft_pending` gap to a small future fix, and the direct-SSE fallback promotion to the recommended re-assessment of the strip model.
+
+---
+**Annotation (2026-11-05, 09:15 UTC)**: this report credited the compose to an agent-narrated "direct-SSE fallback (office_rpc.py)" — no such machinery exists on the Windows side (searched `C:\OfficeMCP`, `C:\temp`); those delivered calls were canary-burst breakthroughs on the gateway channel. The superseding flip/burst model and 15-canary cap live in `say-the-local-agent-failed-and-include-the-recovery-hint`.
