@@ -55,3 +55,39 @@ if w0.get("status") == "error":
 - **File the upstream bug** against hermes-agent when ready — the reproduction is clean: direct MCP calls always deliver args; the gateway's don't after a period; cleared by remove/add + restart. The evidence chain from 2026-11-03's three occurrences is in this assessment.
 - Fold this fix into the held T016 commit (same uncommitted working tree).
 - The next time the defect recurs, the user experience changes from "no response" to an immediate "OfficeMCP session stale — recovery: …" message — the W0 pre-flight also catches it on every battery run.
+
+---
+
+# Addendum (2026-11-05, post-recurrence): root cause mechanism found — the cold window; lane now warms through it
+
+Today the defect recurred worse (instant on fresh sessions, recovery no longer cleared it). An
+**args-capture patch** on the Windows OfficeMCP package (a one-line log of every RunPython
+invocation's received `code`/`data` to `C:\temp\officemcp_calls.log`, kept in place) produced the
+mechanism:
+
+- After an OfficeMCP process restart, roughly the **first 5 argument-carrying RunPython calls have
+  their arguments stripped in transit** (the schema defaults execute and echo `OfficeMCP`);
+  **call six onward delivers correctly**. Evidence: 5 default-echo entries followed by a delivered
+  canary (`canary-args-probe-20261105`) and the real document-write code, in one live Word task that
+  then completed.
+- The old 2-echo SESSION-DEGRADATION RULE made every agent give up **inside** that cold window —
+  which is why `remove/add` + gateway restart "recovery" never helped (it re-created the cold
+  state), and why tasks that persisted past the window (2026-11-05 05:18–05:22 Word/Excel/PPT)
+  worked while email turns died at their W0 canary.
+- Intermittency within one session (broken 05:45 → working 05:54) is the window opening/closing
+  around OfficeMCP restarts, not random.
+
+**Lane fix applied**: `OFFICE_INSTRUCTIONS` now carries a cold-window-aware rule — retry with a
+tiny canary (`'output = data'`) until one delivers, up to 8 attempts; only 8 consecutive echoes
+declare staleness. Instruction-guard test extended; sidecar rebuilt + redeployed (26 tools).
+Verified live (06:43): an email task ran with **0 stripped calls** and reached the Outlook
+attach-failure protocol ask-back cleanly.
+
+**Upstream narrowed**: calls **without** arguments always work; calls **with** arguments are
+stripped during the cold window — the defect is in the hermes-agent MCP client's argument
+serialization on a young session, not the transport. The args-capture log gives a byte-level
+reproduction for hermes-agent issue #148459.
+
+**OfficeMCP local patch inventory** (Windows, `uv` tool install): (1) existing local transport
+patch notes, (2) the args-capture line in `RunPython` (OfficeMCP.py) writing to
+`C:\temp\officemcp_calls.log` — keep for future evidence, remove when the upstream fix lands.
