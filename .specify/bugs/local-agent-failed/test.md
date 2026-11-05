@@ -46,3 +46,6 @@ pytest tests/unit → 332 passed
 
 ---
 **Annotation (2026-11-05, 09:15 UTC)**: this report credited the compose to an agent-narrated "direct-SSE fallback (office_rpc.py)" — no such machinery exists on the Windows side (searched `C:\OfficeMCP`, `C:\temp`); those delivered calls were canary-burst breakthroughs on the gateway channel. The superseding flip/burst model and 15-canary cap live in `say-the-local-agent-failed-and-include-the-recovery-hint`.
+
+---
+**Correction (2026-11-05, 09:40 UTC)**: the annotation below called the direct-SSE fallback embellishment — partially wrong. The fallback is real: on 09:30:54 the args-capture log shows canaries labeled `canary-direct-sse-browser-20261105-01` / `canary-sse-77` delivered with full arguments through the agent's **browser tool** speaking MCP-SSE directly to `http://127.0.0.1:8888/sse` (no `office_rpc.py` file was ever involved). Some earlier deliveries were canary-burst luck; this one was the browser channel. The channel is now codified in the lane instructions (`the-local-agent-hit-a-transient-channel-error`).

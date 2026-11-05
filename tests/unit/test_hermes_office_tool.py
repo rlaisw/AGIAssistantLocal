@@ -416,16 +416,21 @@ def test_office_instructions_contain_attach_failure_protocol():
     # the pre-existing legs stay (Nov-4 fix + session-degradation rule)
     assert "try Dispatch/GetComObject" in OFFICE_INSTRUCTIONS
     assert "SESSION-DEGRADATION RULE" in OFFICE_INSTRUCTIONS
-    # say-the-local-agent-failed (2026-11-05): the strip FLIPS — healing tracks
-    # canary BURSTS (~5-15 calls), never time (71-min falsification); the cap is
-    # 15 and the falsified wait guidance must stay out
-    assert "up to 15" in OFFICE_INSTRUCTIONS
-    assert "15 consecutive" in OFFICE_INSTRUCTIONS
+    # the-local-agent-hit-a-transient-channel-error (2026-11-05): canaries are
+    # the DETECTOR (2 echoes), and the DIRECT browser MCP channel is the
+    # sanctioned recovery — the falsified burst/wait models must stay out
+    assert "2 consecutive canaries" in OFFICE_INSTRUCTIONS
+    assert "DIRECT OFFICEMCP CHANNEL" in OFFICE_INSTRUCTIONS
+    assert "http://127.0.0.1:8888/sse" in OFFICE_INSTRUCTIONS
+    assert "via direct channel" in OFFICE_INSTRUCTIONS
+    assert "do NOT keep canary-retrying" in OFFICE_INSTRUCTIONS
+    assert "up to 15" not in OFFICE_INSTRUCTIONS
     assert "WAIT about 15 minutes" not in OFFICE_INSTRUCTIONS
-    assert "flips" in OFFICE_INSTRUCTIONS or "FLIPS" in OFFICE_INSTRUCTIONS
-    assert "71 idle minutes" in OFFICE_INSTRUCTIONS
-    assert "re-arms" in OFFICE_INSTRUCTIONS
+    assert "71 idle minutes" in OFFICE_INSTRUCTIONS  # oscillation evidence stays
+    assert "re-arm" in OFFICE_INSTRUCTIONS
     assert "hermes mcp remove" not in OFFICE_INSTRUCTIONS  # reset hint stays out
+    # window-dedup: repeated Display steps must not pile up Outlook windows
+    assert "do NOT open another folder window" in OFFICE_INSTRUCTIONS
     assert "OUTLOOK LAUNCH GUARD" in OFFICE_INSTRUCTIONS
     assert "process-probe outlook.exe" in OFFICE_INSTRUCTIONS
     # local-agent-failed (2026-11-05): attach attempts are bounded so turns

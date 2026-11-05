@@ -43,3 +43,12 @@ successor start's `gateway.previous_unclean_exit` ledger line. Bounded turn
 lengths appear to matter for gateway survival, not just client budgets.
 
 Additional data point (2026-11-05, final): the strip state **flips** — healing correlates with bursts of argument-carrying calls (breakthroughs observed after ~5–15 canaries), never with time alone (one stripped episode persisted through 71 idle minutes, then a burst flipped it back). `hermes mcp test` (fresh discovery) does not affect the state. Re-registration/gateway restart can re-arm the stripped state.
+
+Additional data point (2026-11-05, conclusive isolation): while the gateway's
+MCP client stripped arguments, the same agent's **browser/fetch tool speaking
+MCP-SSE directly to the server** (`http://127.0.0.1:8888/sse` → POST
+`/messages/?session_id=…`) delivered full arguments on the first try — an
+ordinary HTTP client on the same host works perfectly against the same server
+during the stripped phase. The defect is isolated beyond doubt to the
+gateway's own MCP client argument serialization, not the transport, the
+server, or the network.
