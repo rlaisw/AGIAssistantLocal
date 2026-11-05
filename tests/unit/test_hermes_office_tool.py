@@ -426,3 +426,7 @@ def test_office_instructions_contain_attach_failure_protocol():
     assert "hermes mcp remove" not in OFFICE_INSTRUCTIONS  # reset hint removed
     assert "OUTLOOK LAUNCH GUARD" in OFFICE_INSTRUCTIONS
     assert "process-probe outlook.exe" in OFFICE_INSTRUCTIONS
+    # local-agent-failed (2026-11-05): attach attempts are bounded so turns
+    # stay inside the 600s client budget (the marathon killed the gateway)
+    assert "AT MOST ONE fast GetActiveObject" in OFFICE_INSTRUCTIONS
+    assert "AT MOST ONE Dispatch attempt" in OFFICE_INSTRUCTIONS

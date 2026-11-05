@@ -35,3 +35,9 @@ Observation that may help localize: in every occurrence, calls **without**
 arguments succeed and calls **with** arguments behave as if the arguments were
 absent — which points at the argument serialization in the client session, not
 the transport connection itself.
+
+Additional data point (2026-11-05, later): after completing one such >600 s
+agent turn server-side, the gateway **exited uncleanly with no log trace**
+(no traceback in errors.log, no OOM in dmesg) — the only evidence is the
+successor start's `gateway.previous_unclean_exit` ledger line. Bounded turn
+lengths appear to matter for gateway survival, not just client budgets.
