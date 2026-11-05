@@ -44,7 +44,7 @@ Live evidence (2026-11-05):
 
 ## Proposed Remediation
 
-**Preferred**: pin the office lane. (1) Remove `hermes_agent` from `MAIN_NODE_IDS` in `model_apply.py` so user model selection never touches it, and (b) patch the DSL's `hermes_agent` node back to `moonshotai/kimi-k3` (the tuned model) and publish via the existing apply cycle. This restores the verified pairing and makes the regression structurally impossible through the UI dropdown.
+**Preferred** (updated per owner decision 2026-11-05 — Option B): pin **all four** lane nodes to `moonshotai/kimi-k3`. (1) Patch `dify/AGIAssistant/AGI_Assistant.yml` so `intent_router`, `agentic_strategy`, `ppt_master`, and `hermes_agent` all run `moonshotai/kimi-k3`, and publish via the existing apply cycle; (2) shrink or retire `MAIN_NODE_IDS` in `model_apply.py` so the UI dropdown can no longer swap any of them (spec-026 contract change accepted by owner); (c) add the anti-fabrication battery guard below. This restores the Nov-2 verified pairing across the whole chain and makes the model-swap regression class structurally impossible.
 
 **Alternatives**:
 - Keep deepseek but strengthen the prompt's anti-fabrication rule — rejected: the rule exists today and was ignored; prompt-level fixes for this class already failed once (`ppt-fail-change-background`)
@@ -68,5 +68,5 @@ Live evidence (2026-11-05):
 
 ## Open Questions
 
-- [NEEDS CLARIFICATION: should `intent_router`/`agentic_strategy`/`ppt_master` also stay pinned to kimi-k3 (owner's Nov-2 position), or does the user want the dropdown to keep controlling them?]
+- ~~[NEEDS CLARIFICATION: should `intent_router`/`agentic_strategy`/`ppt_master` also stay pinned to kimi-k3 (owner's Nov-2 position), or does the user want the dropdown to keep controlling them?]~~ **Resolved by owner 2026-11-05: Option B — pin ALL FOUR nodes to `moonshotai/kimi-k3`.** The model dropdown no longer controls any Hermes-adjacent lane node; `MAIN_NODE_IDS` shrinks to empty (or apply-model is retired for lane nodes entirely), the DSL is patched to kimi-k3 everywhere, and spec 026's dropdown becomes a no-op for these nodes (spec-026 UX contract change accepted by owner). Fabrication-class risk takes priority over dropdown flexibility.
 - The two fabricated answers remain in the conversation history as claims of success; a follow-up correction message to the user in-chat may be warranted
