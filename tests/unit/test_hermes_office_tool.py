@@ -432,6 +432,12 @@ def test_office_instructions_contain_attach_failure_protocol():
     # window-dedup: repeated Display steps must not pile up Outlook windows
     assert "do NOT open another folder window" in OFFICE_INSTRUCTIONS
     assert "OUTLOOK LAUNCH GUARD" in OFFICE_INSTRUCTIONS
+    # a-little-bit-slow-to-create-email (2026-11-05): well-formed tasks batch
+    # into one combined script — one LLM hop instead of 5-7
+    assert "STEP BATCHING" in OFFICE_INSTRUCTIONS
+    assert "ONE combined RunPython script" in OFFICE_INSTRUCTIONS
+    assert "try/except so one failure never hides the others" in OFFICE_INSTRUCTIONS
+    assert "channel-degradation detection (it picks the transport)" in OFFICE_INSTRUCTIONS
     assert "process-probe outlook.exe" in OFFICE_INSTRUCTIONS
     # local-agent-failed (2026-11-05): attach attempts are bounded so turns
     # stay inside the 600s client budget (the marathon killed the gateway)
