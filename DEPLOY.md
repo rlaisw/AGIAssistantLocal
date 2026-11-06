@@ -426,3 +426,10 @@ Two additive MCP tools on the sidecar: `antv_chart(chart_type, data, title)` —
 | Launch prompts get a general answer instead of the Hermes lane | Dify holds TWO "AGI Assistant" apps: `deploy chatflow` publishes to the first name match, but the chat API key can belong to the other app (seen 2026-11-01 — publishes went to the orphan `7863fbe2`, chat ran on `194e1edf`) | Publish to the app that owns the chat key (check `GET /apps/{id}/api-keys`), or delete the orphan duplicate; the DSL is single-source either way |
 | Deck scenarios fail `PPT_SCRIPT_FAILED` / `KeyError: 'project_id'` after `deploy all` | `deploy all` bind-mounts `<repo>/ppt-master` at `/opt/ppt-master`, but the ppt-master clone is gitignored — a fresh workspace has none; docker auto-creates the host dir root-owned and the tools find no `skills/ppt-master` (seen 2026-11-01) | Populate the clone in this workspace: if docker already made root-owned dirs, first `docker run --rm -v <repo>:/w agentic-rag-mcp:latest sh -c "chown -R 1000:1000 /w/ppt-master"`, then `tar -C /kilocode/AGIAssistant/ppt-master --exclude=./projects -cf - . \| tar -C <repo>/ppt-master -xf -` — the bind mount is live, no container restart needed |
 | Chat UI loads from another machine but nothing is interactive | Next dev blocks cross-origin requests without an `allowedDevOrigins` entry (page renders, hydration dead) | Add the access origin to `allowedDevOrigins` in `ai-chat-landing/next.config.ts` and restart `pnpm dev` |
+
+> **Note (close-excel-wait-long-time, 2026-11-06)**: the live Dify DB row
+> `tool_mcp_providers` for `agentic-rag` has `timeout` raised 30 → 300
+> (long office turns need it; `sse_read_timeout` is 300 by default). This row
+> is not in git — **re-apply after any provider re-sync** (`sync-tools` /
+> db-resync may reset it):
+> `docker exec docker-db_postgres-1 psql -U postgres -d dify -c "UPDATE tool_mcp_providers SET timeout = 300 WHERE name = 'agentic-rag';"`

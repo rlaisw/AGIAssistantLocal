@@ -442,6 +442,11 @@ def test_office_instructions_contain_attach_failure_protocol():
     # the document open and active — never an empty app window; display
     # claims must match the verified window state
     assert "VISIBLE-STATE REQUIREMENT" in OFFICE_INSTRUCTIONS
+    # close-excel-wait-long-time (2026-11-06): save/close/quit is ONE script
+    # (4 separate steps took 129s and crossed the caller's tool deadline)
+    assert "CLOSE/SAVE tasks batch unconditionally" in OFFICE_INSTRUCTIONS
+    assert "verify 0 processes" in OFFICE_INSTRUCTIONS
+    assert "129 s" in OFFICE_INSTRUCTIONS
     assert "OPEN and ACTIVE in the application window" in OFFICE_INSTRUCTIONS
     assert "VERIFY the window state" in OFFICE_INSTRUCTIONS
     assert "an empty app window makes the user believe the write never happened" in OFFICE_INSTRUCTIONS

@@ -307,7 +307,7 @@ export default function Page() {
   React.useEffect(() => {
     refreshAvailability()
   }, [refreshAvailability])
-  React.useEffect(() => {
+  const refreshConfiguredModel = React.useCallback(() => {
     void fetch("/api/models/current")
       .then((r) => (r.ok ? r.json() : null))
       .then((body: { model?: string } | null) => {
@@ -315,6 +315,17 @@ export default function Page() {
       })
       .catch(() => {})
   }, [])
+  React.useEffect(() => {
+    refreshConfiguredModel()
+  }, [refreshConfiguredModel])
+  // close-excel-wait-long-time (2026-11-06): a long-lived tab kept the
+  // mount-time model badge forever (it showed Deepseek long after the lane
+  // was pinned to kimi-k3) — re-sync after every completed turn.
+  const prevBusyRef = React.useRef(false)
+  React.useEffect(() => {
+    if (prevBusyRef.current && !busy) refreshConfiguredModel()
+    prevBusyRef.current = busy
+  }, [busy, refreshConfiguredModel])
 
   async function applyCloudModel(id: ModelId) {
     setApplyError(null)
