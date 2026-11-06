@@ -27,6 +27,22 @@ else
     fi
 fi
 
+# WindowsMCP (CursorTouch) — desktop/UI automation on Windows (2026-11-06).
+# Auto-starts at login via the windows-mcp-server Scheduled Task; start the
+# wrapper manually only if it is down (e.g. task disabled or crashed).
+if sse_up http://127.0.0.1:8800/sse; then
+    echo "  WindowsMCP: up on :8800"
+else
+    /mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoProfile -Command \
+        "Start-Process 'C:\Users\RLWC145\.windows-mcp\start-server.cmd' -WindowStyle Hidden" >/dev/null 2>&1
+    sleep 6
+    if sse_up http://127.0.0.1:8800/sse; then
+        echo "  WindowsMCP: up on :8800 (started via wrapper)"
+    else
+        echo "  WindowsMCP: not responding — check C:\\Users\\RLWC145\\.windows-mcp\\server.log"
+    fi
+fi
+
 # the gateway on :8642 authenticates with the [hermes] api_key (not [dify] —
 # a bare `grep api_key | head -1` grabs the wrong section and 401s)
 GATEWAY_KEY=$(sed -n '/^\[hermes\]/,/^\[/p' ~/.config/agentic-rag-mcp/config.toml | grep '^api_key' | cut -d'"' -f2)
@@ -98,6 +114,7 @@ echo "---"
 printf "%-25s" "Docker containers:"; docker ps --format '{{.Names}}' 2>/dev/null | wc -l | awk '{print $1 " running"}'
 printf "%-25s" "Sidecar :28080:"; curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://localhost:28080/ 2>/dev/null | awk '{print ($1 >= 200 && $1 < 500) ? "ok" : "FAIL"}'
 printf "%-25s" "OfficeMCP :8888:"; sse_up http://127.0.0.1:8888/sse && echo "ok" || echo "FAIL"
+printf "%-25s" "WindowsMCP :8800:"; sse_up http://127.0.0.1:8800/sse && echo "ok" || echo "FAIL"
 printf "%-25s" "Dify :80:"; curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://127.0.0.1/ 2>/dev/null | awk '{print ($1 >= 200 && $1 < 500) ? "ok" : "FAIL"}'
 printf "%-25s" "Chat UI :3000:"; curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://localhost:3000/ 2>/dev/null | awk '{print $1 == 200 ? "ok" : "FAIL"}'
 printf "%-25s" "Ollama :11434:"; curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://127.0.0.1:11434/api/tags 2>/dev/null | awk '{print $1 == 200 ? "ok" : "FAIL"}'

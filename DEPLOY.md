@@ -433,3 +433,19 @@ Two additive MCP tools on the sidecar: `antv_chart(chart_type, data, title)` —
 > is not in git — **re-apply after any provider re-sync** (`sync-tools` /
 > db-resync may reset it):
 > `docker exec docker-db_postgres-1 psql -U postgres -d dify -c "UPDATE tool_mcp_providers SET timeout = 300 WHERE name = 'agentic-rag';"`
+
+## WindowsMCP (desktop/UI automation lane) — 2026-11-06
+
+[Windows-MCP](https://github.com/cursortouch/windows-mcp) (CursorTouch) is installed on Windows as
+a `uv tool` (`windows-mcp` v0.8.8) and runs as the per-user Scheduled Task **`windows-mcp-server`**
+— SSE on `127.0.0.1:8800`, auto-starting at every login (wrapper: `~/.windows-mcp/start-server.cmd`,
+logs: `~/.windows-mcp/server.log`). It is registered in Hermes as **`WindowsMCP`**
+(`hermes mcp add WindowsMCP --url http://127.0.0.1:8800/sse`, all 21 tools) — the Hermes agent can
+now drive the Windows desktop/UI (Click/Type/Screenshot/App/Process/FileSystem/Registry/PowerShell).
+
+- `reboot.sh` checks `:8800` and starts the wrapper if it is down (the login task normally owns it)
+- Manual control: `windows-mcp uninstall` removes the task; `hermes mcp remove WindowsMCP` unregisters
+- Security: loopback-bound, no auth key (mirrored-networking reach from WSL, same trust model as
+  OfficeMCP). Tool-level hardening is available via `--exclude-tools "PowerShell,Registry"` (or
+  `[tools] exclude` in `~/.windows-mcp/config.toml`) if the agent should not have raw shell/registry
+  powers — currently all tools are enabled per the owner's request
