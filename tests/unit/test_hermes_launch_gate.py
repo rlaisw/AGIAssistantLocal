@@ -220,3 +220,33 @@ def test_two_real_apps_still_ask_back():
 def test_followup_does_not_bypass_shell_or_chaining_rules():
     assert gate_launch("open chrome and type x; rm -rf /").decision == "blocked"
     assert gate_launch("open chrome and type powershell trick").decision == "blocked"
+
+
+def test_comma_list_splits_at_first_gui_verb():
+    """typing-search bug (2026-11-06): real chat phrasing uses comma lists —
+    'open chrome, open a new tab, type X, type Y' — must split into one
+    launch plus the full desktop followup, not phantom app names."""
+    v = gate_launch("open chrome, open a new tab, type www.google.com, "
+                    "type hong kong hang seng index at search")
+    assert v.decision == "ok"
+    assert v.target == "chrome"
+    assert v.desktop_followup and v.desktop_followup.startswith("open a new tab")
+    assert "www.google.com" in v.desktop_followup
+    assert "hong kong" in v.desktop_followup
+
+
+def test_comma_before_verb_splits():
+    v = gate_launch("open chrome, type www.google.com")
+    assert v.decision == "ok"
+    assert v.target == "chrome"
+    assert v.desktop_followup == "type www.google.com"
+
+
+def test_two_launch_targets_comma_list_still_blocked():
+    v = gate_launch("open chrome, open edge, type x")
+    assert v.decision == "blocked"
+
+
+def test_gui_only_with_no_app_ask_back():
+    v = gate_launch("type hong kong hang seng index at search bar")
+    assert v.decision == "blocked"

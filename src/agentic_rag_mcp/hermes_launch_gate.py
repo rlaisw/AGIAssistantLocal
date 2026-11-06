@@ -29,9 +29,16 @@ _RE_SHELL = re.compile(
 _RE_WITH_ARGS = re.compile(r"\b(with|using|passing)\b", re.IGNORECASE)
 _RE_CHAINING = re.compile(r"[;|&]")
 _RE_QUOTED = re.compile(r"'([^']+)'|\"([^\"]+)\"")
-# the trailing desktop-automation clause: "… and/then type/click/press …"
+# the trailing desktop-automation clause: "… and/then/comma type/click/press …"
+# (typing-search bug, 2026-11-06: comma-separated clause lists must split too)
 _RE_GUI_CLAUSE = re.compile(
-    r"\b(?:and|then)\s+(type|click|press|enter|scroll|type\s+into)\b.*$",
+    r"(?:\b(?:and|then)\s+|,\s*)(type|click|press|enter|scroll|type\s+into)\b.*$",
+    re.IGNORECASE)
+# secondary imperative clauses that are desktop actions, not launch targets
+# ("open a new tab" after the real launch target) — routed to the followup
+_RE_SECONDARY_OPEN = re.compile(
+    r",\s*(?:and\s+)?(?:open|launch|start|go\s+to)\s+a?\s*"
+    r"(new\s+tab|new\s+window|incognito\s+tab|private\s+tab)\b",
     re.IGNORECASE)
 
 _FILLERS = {
@@ -114,12 +121,15 @@ def gate_launch(task: str, home: str = "/home/administrator") -> LaunchVerdict:
     task = (task or "").strip()
     if not task:
         return _ask_back(_NO_APP)
-    # GUI-clause split: "… (and|then) (type|click|press|enter|scroll|say) …"
+    # GUI-clause split: "… (and|then|,) (type|click|press|enter|scroll|say) …"
+    # plus secondary desktop imperatives ("open a new tab") → followup
     followup = None
     m = _RE_GUI_CLAUSE.search(task)
-    if m:
-        followup = task[m.start():].strip()
-        task = task[:m.start()].strip(" ,.;")
+    m2 = _RE_SECONDARY_OPEN.search(task)
+    cut = min(x.start() for x in (m, m2) if x) if (m or m2) else None
+    if cut is not None:
+        followup = task[cut:].lstrip(" ,.").strip()
+        task = task[:cut].strip(" ,.;")
     if _RE_SHELL.search(task) or _RE_SHELL.search(followup or ""):
         return _blocked(f"Blocked: shell/PowerShell/command-line requests are "
                         f"refused ({_LAUNCH_SCOPE})")
