@@ -827,8 +827,14 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
             return {"status": "blocked", "decision": "blocked",
                     "reason": verdict.reason}
 
+        # blocked-…-named (2026-11-06): carry the desktop followup clause into
+        # the directive — the agent completes it with its WindowsMCP tools
+        launch_directive = verdict.sanitized_task or task
+        if verdict.desktop_followup:
+            launch_directive = (f"{launch_directive.rstrip('.')} — then, as a "
+                                f"desktop followup: {verdict.desktop_followup}.")
         outcome = await _await_with_keepalive(
-            lambda: _hermes_run_task(cfg, verdict.sanitized_task or task,
+            lambda: _hermes_run_task(cfg, launch_directive,
                                       instructions=_HERMES_LAUNCH_INSTRUCTIONS), ctx)
         if not outcome.get("ok"):
             error = outcome.get("error", "error:unknown Hermes failure")

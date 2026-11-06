@@ -29,6 +29,10 @@ _RE_SHELL = re.compile(
 _RE_WITH_ARGS = re.compile(r"\b(with|using|passing)\b", re.IGNORECASE)
 _RE_CHAINING = re.compile(r"[;|&]")
 _RE_QUOTED = re.compile(r"'([^']+)'|\"([^\"]+)\"")
+# the trailing desktop-automation clause: "… and/then type/click/press …"
+_RE_GUI_CLAUSE = re.compile(
+    r"\b(?:and|then)\s+(type|click|press|enter|scroll|type\s+into)\b.*$",
+    re.IGNORECASE)
 
 _FILLERS = {
     "open", "launch", "start", "run", "begin", "execute", "go", "please",
@@ -67,6 +71,7 @@ class LaunchVerdict:
     target: str | None         # bare name as typed, or canonical host path
     kind: str | None           # "name" | "path"
     sanitized_task: str | None  # "Launch the program …" — the only text sent downstream
+    desktop_followup: str | None = None  # "and type/click …" clause (blocked-…-named, 2026-11-06)
 
 
 def _blocked(reason: str, target: str | None = None,
@@ -98,18 +103,31 @@ def gate_launch(task: str, home: str = "/home/administrator") -> LaunchVerdict:
     5. two targets → ask-back which one; no target → ask-back (FR-011).
     6. a bare name may carry no extension or ``.exe`` — anything else is an
        executables-only refusal.
+
+    blocked-more-than-one-application-named (2026-11-06): a launch-plus-GUI
+    request ("open chrome and type www.google.com") is NOT two applications.
+    Split it at the GUI clause — the launch half runs the full scope checks
+    above, the trailing "type/click/press …" clause rides along as
+    ``desktop_followup`` for the agent's WindowsMCP tools. Shell/argument/
+    chaining rules still apply to BOTH halves.
     """
     task = (task or "").strip()
     if not task:
         return _ask_back(_NO_APP)
-    if _RE_SHELL.search(task):
+    # GUI-clause split: "… (and|then) (type|click|press|enter|scroll|say) …"
+    followup = None
+    m = _RE_GUI_CLAUSE.search(task)
+    if m:
+        followup = task[m.start():].strip()
+        task = task[:m.start()].strip(" ,.;")
+    if _RE_SHELL.search(task) or _RE_SHELL.search(followup or ""):
         return _blocked(f"Blocked: shell/PowerShell/command-line requests are "
                         f"refused ({_LAUNCH_SCOPE})")
     if _RE_WITH_ARGS.search(task):
         return _blocked(f"Blocked: launch arguments and documents are refused — "
                         f"launch one program by name or full .exe path only "
                         f"({_LAUNCH_SCOPE})")
-    if _RE_CHAINING.search(task):
+    if _RE_CHAINING.search(task) or _RE_CHAINING.search(followup or ""):
         return _blocked(f"Blocked: chained commands are refused — one program "
                         f"per request ({_LAUNCH_SCOPE})")
 
@@ -134,18 +152,26 @@ def gate_launch(task: str, home: str = "/home/administrator") -> LaunchVerdict:
     if path_targets:
         target = path_targets[0]
         return LaunchVerdict("ok", None, OP_LAUNCH_APP, target, "path",
-                             f"Launch the program at '{target}' — no arguments.")
+                             f"Launch the program at '{target}' — no arguments.",
+                             desktop_followup=followup)
 
     # ---- bare-name extraction (no path tokens)
     text = _RE_QUOTED.sub(" ", task)
     tokens = [t.strip(".,!?;:()[]{}\"") for t in text.split()]
     names: list[str] = []
-    for tok in tokens:
-        if not tok or tok.lower() in _FILLERS:
-            continue
-        if _is_arg_token(tok):
-            return _blocked(_ARGS)
-        names.append(tok)
+    # "default browser" is one compound target (blocked-…-named, 2026-11-06):
+    # the agent resolves which browser is default rather than the gate guessing
+    if [t.lower() for t in tokens if t] and [t.lower() for t in tokens if t][-2:] == ["default", "browser"]:
+        names = ["default browser"]
+    else:
+        for tok in tokens:
+            if not tok or tok.lower() in _FILLERS:
+                continue
+            if _is_arg_token(tok):
+                return _blocked(_ARGS)
+            names.append(tok)
+        if names and names[0].lower() == "default" and len(names) > 1 and names[1].lower() == "browser":
+            names = ["default browser"]
 
     if quoted:
         target = quoted[0]
@@ -155,7 +181,8 @@ def gate_launch(task: str, home: str = "/home/administrator") -> LaunchVerdict:
         if "." in low and not low.endswith(".exe"):
             return _blocked(_EXE_ONLY, target=target)
         return LaunchVerdict("ok", None, OP_LAUNCH_APP, target, "name",
-                             f"Launch the program '{target}' — no arguments.")
+                            f"Launch the program '{target}' — no arguments.",
+                            desktop_followup=followup)
 
     if not names:
         return _ask_back(_NO_APP)
@@ -168,4 +195,5 @@ def gate_launch(task: str, home: str = "/home/administrator") -> LaunchVerdict:
     if "." in low and not low.endswith(".exe"):
         return _blocked(_EXE_ONLY, target=target)
     return LaunchVerdict("ok", None, OP_LAUNCH_APP, target, "name",
-                         f"Launch the program '{target}' — no arguments.")
+                        f"Launch the program '{target}' — no arguments.",
+                        desktop_followup=followup)

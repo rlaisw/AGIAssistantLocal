@@ -166,7 +166,19 @@ LAUNCH_INSTRUCTIONS = (
     "'LAUNCH: SUCCESS' when the program started or was already running and "
     "is now active, or 'LAUNCH: FAILED: <reason>' when it did not start — "
     "the caller parses that line to decide the verdict, so never emit "
-    "SUCCESS unless the program is really running."
+    "SUCCESS unless the program is really running. "
+    "DESKTOP FOLLOWUP (blocked-…-named, 2026-11-06): when the directive "
+    "carries a trailing 'and type/click/press …' clause, complete it with "
+    "your WindowsMCP desktop tools AFTER the launch succeeds — resolve "
+    "'default browser' to the user's default browser (check the registered "
+    "browsers; if ambiguous ask the user once, never guess), bring the "
+    "launched window to the foreground (App switch), VERIFY FOCUS on the "
+    "intended window (never type into an unfocused or wrong window), then "
+    "type the given text/URL or press the given keys. WindowsMCP's desktop "
+    "control policy applies: it waits for the user to be idle before "
+    "typing, shows an AI indicator, and the user can take over at any "
+    "time. Report the followup step with what was typed and where, and "
+    "still end with the LAUNCH: line reflecting the launch itself."
 )
 
 

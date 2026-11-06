@@ -190,3 +190,33 @@ def test_mixed_prompt_file_part_is_owned_by_the_file_lane():
     v = gate_task("write notes.txt in C:\\temp")
     assert v.decision != "blocked"
     assert "/mnt/c/temp" in (v.normalized_path or "")
+
+
+def test_launch_plus_gui_followup_splits_not_two_apps():
+    """blocked-more-than-one-application-named (2026-11-06): "open chrome and
+    type www.google.com" names ONE application plus a desktop followup — the
+    gate must not refuse it as two apps; the followup rides on the verdict
+    for the agent's WindowsMCP tools, and the launch keeps all scope rules."""
+    v = gate_launch("open chrome and type www.google.com")
+    assert v.decision == "ok"
+    assert v.target == "chrome"
+    assert v.desktop_followup is not None and "www.google.com" in v.desktop_followup
+
+
+def test_default_browser_is_one_compound_target():
+    v = gate_launch("open default browser and type www.google.com")
+    assert v.decision == "ok"
+    assert v.target == "default browser"
+    assert v.desktop_followup and "type" in v.desktop_followup
+
+
+def test_two_real_apps_still_ask_back():
+    v = gate_launch("open chrome and firefox")
+    assert v.decision == "blocked"
+    assert "more than one application" in v.reason
+    assert v.desktop_followup is None
+
+
+def test_followup_does_not_bypass_shell_or_chaining_rules():
+    assert gate_launch("open chrome and type x; rm -rf /").decision == "blocked"
+    assert gate_launch("open chrome and type powershell trick").decision == "blocked"
