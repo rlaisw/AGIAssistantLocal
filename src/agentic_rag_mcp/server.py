@@ -10,7 +10,7 @@ from pathlib import Path
 from urllib.parse import urljoin
 
 import httpx
-from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp import FastMCP, Context
 
 from .agents import synthesis
 from .agents.reflexion import ReflexionAgent
@@ -702,6 +702,36 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
     from .hermes_gate import DEFAULT_ALLOWED_ROOT, gate_task, normalize_path, to_windows
     from .hermes_client import OFFICE_INSTRUCTIONS as _OFFICE_INSTRUCTIONS
     from .hermes_launch_gate import gate_launch
+
+    async def _await_with_keepalive(fn, ctx=None, *, interval: float = 30.0,
+                                    budget: float = 600.0):
+        """Run blocking fn in a thread while emitting MCP progress frames every
+        `interval` seconds. read-tool-response-failed (2026-11-06): the Hermes
+        tools compute silently for minutes; the streamable-HTTP response stream
+        idles past upstream read deadlines (~120 s observed) and gets cut with
+        'peer closed connection … incomplete chunked read' while the work
+        actually completes server-side. Progress frames keep bytes flowing on
+        the response stream (resetting idle read timers) and give the caller
+        real liveness. ctx may be None (tests / transports without injection):
+        the helper then just awaits."""
+        import asyncio
+        import logging as _logging
+        fut: asyncio.Future = asyncio.ensure_future(asyncio.to_thread(fn))
+        elapsed = 0.0
+        while True:
+            try:
+                return await asyncio.wait_for(asyncio.shield(fut), timeout=interval)
+            except asyncio.TimeoutError:
+                elapsed += interval
+                if ctx is not None:
+                    try:
+                        await ctx.report_progress(
+                            elapsed, budget,
+                            message=f"still working ({int(elapsed)}s elapsed)")
+                    except Exception as exc:  # noqa: S110 — liveness pings must never fail a real result
+                        _logging.getLogger("agentic_rag_mcp").warning(
+                            "keepalive progress ping failed: %r (ctx=%r)", exc, type(ctx).__name__)
+                        pass
     from .office_gate import (
         OP_CANCEL, OP_COMPOSE_EMAIL, OP_CONTINUE, OP_SEND_CONFIRMATION,
         gate_office,
@@ -720,7 +750,8 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
                           "--folder C:\\OfficeMCP")
 
     @mcp.tool()
-    def hermes_file_task(task: str, allowed_root: str = "") -> dict:
+    async def hermes_file_task(task: str, allowed_root: str = "",
+                               ctx: Context = None) -> dict:
         """Perform a LOCAL FILE TASK on the user's Windows computer via the Hermes
         agent (create folders, write files, read files, list folders) — strictly
         inside one allowed root (default C:\\temp via /mnt/c/temp; pass
@@ -751,7 +782,8 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
             return {"status": "blocked", "decision": "blocked",
                     "reason": verdict.reason}
 
-        outcome = _hermes_run_task(cfg, task)
+        outcome = await _await_with_keepalive(
+            lambda: _hermes_run_task(cfg, task), ctx)
         if not outcome.get("ok"):
             error = outcome.get("error", "error:unknown Hermes failure")
             audit.write_attempt(decision="error", operation=verdict.operation,
@@ -770,7 +802,7 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
         return result
 
     @mcp.tool()
-    def hermes_launch_app(task: str) -> dict:
+    async def hermes_launch_app(task: str, ctx: Context = None) -> dict:
         """Launch a DESKTOP APPLICATION on the user's Windows computer via the Hermes
         agent (e.g. open Outlook/Excel/Notepad, or run C:\\tools\\mytool.exe). ANY
         executable by name or full .exe path — there is no allowlist. EVERY task is
@@ -795,8 +827,9 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
             return {"status": "blocked", "decision": "blocked",
                     "reason": verdict.reason}
 
-        outcome = _hermes_run_task(cfg, verdict.sanitized_task or task,
-                                   instructions=_HERMES_LAUNCH_INSTRUCTIONS)
+        outcome = await _await_with_keepalive(
+            lambda: _hermes_run_task(cfg, verdict.sanitized_task or task,
+                                      instructions=_HERMES_LAUNCH_INSTRUCTIONS), ctx)
         if not outcome.get("ok"):
             error = outcome.get("error", "error:unknown Hermes failure")
             audit.write_attempt(decision="error", operation=verdict.operation,
@@ -823,7 +856,8 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
                 "result": output, "target": verdict.target}
 
     @mcp.tool()
-    def hermes_office_task(task: str, conversation_id: str) -> dict:
+    async def hermes_office_task(task: str, conversation_id: str,
+                                 ctx: Context = None) -> dict:
         """Execute a Microsoft Office task on the user's Windows computer via the
         Hermes agent and the Office automation service — Word, Excel, PowerPoint,
         Outlook (e.g. "open Excel and put 12345 in cell A1", "create a Word doc
@@ -862,9 +896,10 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
             _audit("error", reason=reason)
             return {"status": "error", "reason": reason}
 
-        def _run_agent(directive: str) -> dict:
-            out = _hermes_run_task(cfg, directive,
-                                   instructions=_OFFICE_INSTRUCTIONS)
+        async def _run_agent(directive: str) -> dict:
+            out = await _await_with_keepalive(
+                lambda: _hermes_run_task(cfg, directive,
+                                         instructions=_OFFICE_INSTRUCTIONS), ctx)
             if not out.get("ok"):
                 return _error_envelope(out.get("error", "error:unknown Hermes failure"))
             output = out["output"]
@@ -951,7 +986,7 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
                           f"recent and say which one was sent.")
             directive = (f"SEND PENDING DRAFT — {locate} Report the send as "
                          f"one step and never modify the draft.")
-            result = _run_agent(directive)
+            result = await _run_agent(directive)
             if result.get("status") == "ok":
                 state.drop_pending_draft(conversation_id)
                 result["draft_pending"] = False
@@ -978,14 +1013,17 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
                          f"attempt stopped with: {it['partial_report']}. "
                          f"Complete the remaining steps now and follow the "
                          f"step-report protocol.")
-            result = _run_agent(directive)
+            result = await _run_agent(directive)
             if result.get("status") == "ok":
                 state.clear_interrupted(conversation_id)
             return result
 
         active = state.active_document(conversation_id)
-        ctx = (f"The conversation's active document is {active} — continue on "
-               f"it unless the task names another file. ") if active else ""
+        # directive_ctx (was `ctx` — shadowed the Context parameter and the
+        # keepalive ping saw this string instead: read-tool-response-failed, 2026-11-06)
+        directive_ctx = (
+            f"The conversation's active document is {active} — continue on "
+            f"it unless the task names another file. ") if active else ""
         if verdict.kind == OP_COMPOSE_EMAIL:
             extra = ("This is a COMPOSE task: create an email draft with the "
                      "dictated recipient(s)/subject/body verbatim in Outlook's "
@@ -996,11 +1034,11 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
                      "folder; create missing parent folders as needed) or, "
                      "if none is named, in the default work folder; write "
                      "literal values only. ")
-        directive = (f"{ctx}Office task ({verdict.kind}, {verdict.app or 'office'}): "
+        directive = (f"{directive_ctx}Office task ({verdict.kind}, {verdict.app or 'office'}): "
                      f"{task}. {extra}Unnamed saves use the default work "
                      f"folder {root}. "
                      f"Follow the step-report protocol.")
-        return _run_agent(directive)
+        return await _run_agent(directive)
 
     return mcp
 

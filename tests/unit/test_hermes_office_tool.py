@@ -432,10 +432,16 @@ def test_office_instructions_contain_attach_failure_protocol():
     # window-dedup: repeated Display steps must not pile up Outlook windows
     assert "do NOT open another folder window" in OFFICE_INSTRUCTIONS
     assert "OUTLOOK LAUNCH GUARD" in OFFICE_INSTRUCTIONS
-    # a-little-bit-slow-to-create-email (2026-11-05): well-formed tasks batch
-    # into one combined script — one LLM hop instead of 5-7
-    assert "STEP BATCHING" in OFFICE_INSTRUCTIONS
-    assert "ONE combined RunPython script" in OFFICE_INSTRUCTIONS
+    # read-tool-response-failed (2026-11-06): env check folds into the script;
+    # strip memory is sticky within a task; interrupted turns verify-then-complete
+    assert "never a separate environment-check pre-step" in OFFICE_INSTRUCTIONS
+    assert "STRIP MEMORY" in OFFICE_INSTRUCTIONS
+    assert "the direct channel is sticky" in OFFICE_INSTRUCTIONS
+    assert "INTERRUPTED-TURN PROTOCOL" in OFFICE_INSTRUCTIONS
+    assert "never duplicating" in OFFICE_INSTRUCTIONS
+    assert "incomplete chunked read" in OFFICE_INSTRUCTIONS
+    assert "Run ONE combined RunPython script" in OFFICE_INSTRUCTIONS
+    assert "ONE STEP block" in OFFICE_INSTRUCTIONS
     assert "try/except so one failure never hides the others" in OFFICE_INSTRUCTIONS
     assert "channel-degradation detection (it picks the transport)" in OFFICE_INSTRUCTIONS
     # do-not-write-data-in-worksheet (2026-11-06): the script must end with
