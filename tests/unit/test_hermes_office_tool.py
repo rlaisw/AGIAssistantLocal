@@ -438,6 +438,14 @@ def test_office_instructions_contain_attach_failure_protocol():
     assert "ONE combined RunPython script" in OFFICE_INSTRUCTIONS
     assert "try/except so one failure never hides the others" in OFFICE_INSTRUCTIONS
     assert "channel-degradation detection (it picks the transport)" in OFFICE_INSTRUCTIONS
+    # do-not-write-data-in-worksheet (2026-11-06): the script must end with
+    # the document open and active — never an empty app window; display
+    # claims must match the verified window state
+    assert "VISIBLE-STATE REQUIREMENT" in OFFICE_INSTRUCTIONS
+    assert "OPEN and ACTIVE in the application window" in OFFICE_INSTRUCTIONS
+    assert "VERIFY the window state" in OFFICE_INSTRUCTIONS
+    assert "an empty app window makes the user believe the write never happened" in OFFICE_INSTRUCTIONS
+    assert "Never close documents you did not open in this task" in OFFICE_INSTRUCTIONS
     assert "process-probe outlook.exe" in OFFICE_INSTRUCTIONS
     # local-agent-failed (2026-11-05): attach attempts are bounded so turns
     # stay inside the 600s client budget (the marathon killed the gateway)

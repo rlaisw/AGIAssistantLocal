@@ -876,9 +876,12 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
             for m in _RE_STEP.finditer(output):
                 line = m.group(0).strip()
                 if m.group(1).upper() == "OK":
-                    _audit("executed", outcome=line[:200])
+                    # 1000 (was 200): STEP BATCHING made single blocks carry all
+                    # sub-operation details — 200 cut them mid-sentence
+                    # (do-not-write-data-in-worksheet, 2026-11-06)
+                    _audit("executed", outcome=line[:1000])
                 else:
-                    _audit("error", reason=line[:200])
+                    _audit("error", reason=line[:1000])
             di = _RE_DRAFT_ID.search(output)
             tm_early = _RE_TASK.search(output)
             if di:
