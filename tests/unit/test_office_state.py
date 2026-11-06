@@ -91,3 +91,21 @@ def test_clear_conversation():
     assert s.active_document("c1") is None
     assert s.pending_draft("c1") is None
     assert s.interrupted("c1") is None
+
+
+def test_gateway_strip_state_is_conversation_scoped_and_clearable():
+    """completed-message-wait-long-time (2026-11-06): once any task in a
+    conversation observes the strip, follow-on tasks get the skip-detection
+    hint; clearing (a healed gateway) removes it."""
+    from agentic_rag_mcp.office_state import OfficeState
+
+    st = OfficeState()
+    assert st.gateway_stripped_at("c1") is None
+    st.mark_gateway_stripped("c1")
+    first = st.gateway_stripped_at("c1")
+    assert first is not None
+    st.mark_gateway_stripped("c1")
+    assert st.gateway_stripped_at("c1") == first  # sticky, not restamped
+    assert st.gateway_stripped_at("c2") is None   # other conversations unaffected
+    st.clear_gateway_stripped("c1")
+    assert st.gateway_stripped_at("c1") is None

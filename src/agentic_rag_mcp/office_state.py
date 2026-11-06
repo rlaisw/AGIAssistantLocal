@@ -23,7 +23,27 @@ class OfficeState:
         return self._convs.setdefault(conversation_id,
                                       {"active_document": None,
                                        "pending_draft": None,
-                                       "interrupted": None})
+                                       "interrupted": None,
+                                       "gateway_stripped_at": None})
+
+    # ---- gateway channel state (completed-message-wait-long-time,
+    #      2026-11-06) — the strip (#148459) persists for days; per-task
+    #      detection re-pays 30-60s every turn. Once any task in a
+    #      conversation observes the strip, follow-on tasks skip detection.
+    def gateway_stripped_at(self, conversation_id: str) -> str | None:
+        with self._lock:
+            return self._conv(conversation_id)["gateway_stripped_at"]
+
+    def mark_gateway_stripped(self, conversation_id: str) -> None:
+        from datetime import datetime, timezone
+        with self._lock:
+            if self._conv(conversation_id)["gateway_stripped_at"] is None:
+                self._conv(conversation_id)["gateway_stripped_at"] = (
+                    datetime.now(timezone.utc).strftime("%H:%M UTC"))
+
+    def clear_gateway_stripped(self, conversation_id: str) -> None:
+        with self._lock:
+            self._conv(conversation_id)["gateway_stripped_at"] = None
 
     # ---- active document (FR-013) ------------------------------------
     def active_document(self, conversation_id: str) -> str | None:

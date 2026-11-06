@@ -903,6 +903,15 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
             if not out.get("ok"):
                 return _error_envelope(out.get("error", "error:unknown Hermes failure"))
             output = out["output"]
+            # completed-message-wait-long-time (2026-11-06): remember the strip
+            # conversation-wide — follow-on tasks skip the detection tax; and
+            # a healed gateway channel clears the flag (self-correcting)
+            if "stripped" in output.lower() or "switched to the direct" in output.lower():
+                state.mark_gateway_stripped(conversation_id)
+            elif _RE_STEP.search(output) and "direct channel" not in output.lower():
+                pass  # steps ran on the gateway channel → it delivered → clear below
+            if "direct channel" not in output.lower() and _RE_STEP.search(output):
+                state.clear_gateway_stripped(conversation_id)
             # parse ALL markers first, THEN audit the steps — so every audit
             # entry carries the actual target from ACTIVE FILE (spec 031 FR-006)
             af = _RE_ACTIVE_FILE.search(output)
@@ -1024,6 +1033,15 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
         directive_ctx = (
             f"The conversation's active document is {active} — continue on "
             f"it unless the task names another file. ") if active else ""
+        stripped_at = state.gateway_stripped_at(conversation_id)
+        if stripped_at:
+            directive_ctx += (
+                "The gateway's RunPython channel is KNOWN STRIPPED in this "
+                f"conversation (observed {stripped_at}) — skip all gateway "
+                "canaries and channel detection and run this task's steps "
+                "directly on the direct OfficeMCP channel "
+                "(http://127.0.0.1:8888/sse) from the start; if the direct "
+                "channel itself fails, re-probe the gateway channel then. ")
         if verdict.kind == OP_COMPOSE_EMAIL:
             extra = ("This is a COMPOSE task: create an email draft with the "
                      "dictated recipient(s)/subject/body verbatim in Outlook's "
