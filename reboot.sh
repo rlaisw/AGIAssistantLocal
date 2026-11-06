@@ -83,11 +83,11 @@ if [ -d "$(dirname "$0")/ai-chat-landing" ]; then
     else
         (cd "$(dirname "$0")/ai-chat-landing" && exec pnpm dev) > /tmp/agi-assistant-chatui.log 2>&1 &
         sleep 8
-    fi
-    if curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://localhost:3000/ 2>/dev/null | grep -q "200"; then
-        echo "  Chat UI: up on :3000"
-    else
-        echo "  Chat UI not responding (still booting?)"
+        if curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://localhost:3000/ 2>/dev/null | grep -q "200"; then
+            echo "  Chat UI: up on :3000"
+        else
+            echo "  Chat UI not responding (still booting?)"
+        fi
     fi
 else
     echo "  ai-chat-landing/ not found — skipping Chat UI"
@@ -109,5 +109,7 @@ echo ""
 echo "=== Done. Stack is ready. ==="
 echo "Chat UI: http://localhost:3000"
 echo ""
-echo "If an Office task fails with 'session stale', run:"
-echo "  yes | hermes mcp remove OfficeMCP; yes | hermes mcp add OfficeMCP --url http://127.0.0.1:8888/sse; hermes gateway restart -y --detach"
+echo "If an Office task fails with 'arguments stripped'/'session stale':"
+echo "  just ask again — retrying flips the channel back (the agent retries"
+echo "  canaries in-turn and falls back to the direct OfficeMCP channel)."
+echo "  Do NOT restart the gateway or re-register OfficeMCP (each re-arms the strip)."
