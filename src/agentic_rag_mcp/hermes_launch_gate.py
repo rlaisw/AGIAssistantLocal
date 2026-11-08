@@ -33,12 +33,25 @@ _RE_QUOTED = re.compile(r"'([^']+)'|\"([^\"]+)\"")
 # (typing-search bug, 2026-11-06: comma-separated clause lists must split too;
 #  blocked-…-named-20261108: search/find/look up are the most common companions,
 #  and a bare-space verb ("open chrome search x") splits when a launch head
-#  precedes it — otherwise "open search" stays a (ask-back) name request)
+#  precedes it — otherwise "open search" stays a (ask-back) name request;
+#  the-launcher-…-at-a-time, 2026-11-08: observe verbs (show me/display/view)
+#  join the comma/and/then form only — no bare-space, to protect app names)
 _RE_GUI_CLAUSE = re.compile(
     r"(?:\b(?:and|then)\s+|,\s*)"
-    r"(type|click|press|enter|scroll|type\s+into|search|find|look\s+up|google)\b.*$"
+    r"(type|click|press|enter|scroll|type\s+into|search|find|look\s+up|google|show|display|view)\b.*$"
     r"|\s+(search|find|look\s+up|google)\b.*$",
     re.IGNORECASE)
+
+# canonical multiword Windows app names -> their launch targets
+# (the-launcher-…-at-a-time, 2026-11-08: "control panel" is ONE app, not two).
+# Matched as consecutive extracted-name pairs; unknown pairs still ask back.
+_COMPOUND_APPS = {
+    "control panel": "control",
+    "file explorer": "explorer",
+    "task manager": "taskmgr",
+    "device manager": "devmgmt",
+    "registry editor": "regedit",
+}
 # secondary imperative clauses that are desktop actions, not launch targets
 # ("open a new tab" after the real launch target) — routed to the followup
 _RE_SECONDARY_OPEN = re.compile(
@@ -206,6 +219,21 @@ def gate_launch(task: str, home: str = "/home/administrator") -> LaunchVerdict:
 
     if not names:
         return _ask_back(_NO_APP)
+    # compound app names (the-launcher-…-at-a-time, 2026-11-08): merge
+    # consecutive-name pairs that match a canonical multiword app ("control
+    # panel" -> "control"); unknown pairs stay two names -> honest MULTI ask-back
+    merged: list[str] = []
+    i = 0
+    while i < len(names):
+        if i + 1 < len(names):
+            mapped = _COMPOUND_APPS.get(f"{names[i].lower()} {names[i+1].lower()}")
+            if mapped:
+                merged.append(mapped)
+                i += 2
+                continue
+        merged.append(names[i])
+        i += 1
+    names = merged
     if len(names) > 1:
         return _ask_back(_MULTI)
     target = names[0]

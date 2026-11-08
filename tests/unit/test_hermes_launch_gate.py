@@ -283,3 +283,40 @@ def test_open_search_alone_is_askback_not_phantom_launch():
 
 def test_search_followup_cannot_bypass_chaining_rule():
     assert gate_launch("open chrome and search x; rm -rf /").decision == "blocked"
+
+
+def test_control_panel_compound_name_launches():
+    """the-launcher-…-at-a-time (2026-11-08): "control panel" is ONE app —
+    multiword names must map to their launch target, not MULTI-block."""
+    v = gate_launch("open control panel")
+    assert v.decision == "ok"
+    assert v.target == "control"
+
+
+def test_compound_app_with_show_me_followup():
+    v = gate_launch("open windows control panel , show me network adapter "
+                    "configuration, e.g. ip address setting")
+    assert v.decision == "ok"
+    assert v.target == "control"
+    assert v.desktop_followup and v.desktop_followup.startswith("show me")
+    assert "ip address setting" in v.desktop_followup
+
+
+def test_canonical_compound_set_maps():
+    for phrase, target in [("file explorer", "explorer"), ("task manager", "taskmgr"),
+                           ("device manager", "devmgmt"), ("registry editor", "regedit")]:
+        v = gate_launch(f"open {phrase}")
+        assert v.decision == "ok" and v.target == target, phrase
+
+
+def test_unknown_pair_still_multi_asks_back():
+    v = gate_launch("open chrome firefox")
+    assert v.decision == "blocked"
+    assert "more than one application" in v.reason
+
+
+def test_show_me_verb_splits_on_comma():
+    v = gate_launch("open control , show me network adapter configuration")
+    assert v.decision == "ok"
+    assert v.target == "control"
+    assert v.desktop_followup == "show me network adapter configuration"
