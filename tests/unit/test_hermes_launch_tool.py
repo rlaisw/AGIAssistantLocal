@@ -167,3 +167,38 @@ def test_empty_agent_output_is_error_never_ok(tmp_path, monkeypatch):
         out = call(srv, "hermes_launch_app", {"task": "open notepad"})
         assert out["status"] == "error"
         assert "empty" in out["reason"].lower()
+
+
+def test_launch_lane_budget_is_under_daemon_kill_timer():
+    """desktop-followup-timeout-600s (2026-11-08): the launch lane's Hermes
+    budget (540 s) must sit 90% of the Dify plugin-daemon's ~600 s tool-kill
+    timer so the sidecar's honest verdict always precedes the silent kill."""
+    import inspect as _inspect
+    import agentic_rag_mcp.server as _srv
+    src = _inspect.getsource(_srv)
+    assert "timeout_s=540.0" in src and "budget=540.0" in src
+
+
+def test_run_task_accepts_timeout_override():
+    """The override reaches the httpx call and the honest error message."""
+    import agentic_rag_mcp.hermes_client as hc
+    import httpx as _hx
+    class _Boom:
+        def __init__(self, *a, **k): raise hc.httpx.TimeoutException("t/o")
+    orig = hc.httpx.post
+    hc.httpx.post = _Boom
+    try:
+        class _Cfg: hermes_api_url = "http://x"; hermes_api_key = "k"; hermes_timeout_s = 600.0
+        out = hc.run_task(_Cfg(), "task", timeout_s=540.0)
+        assert out["ok"] is False and "540" in out["error"], out
+    finally:
+        hc.httpx.post = orig
+
+
+def test_launch_instructions_pin_fastest_path_guidance():
+    """The FASTEST-PATH NAVIGATION rule must survive refactors — it is the
+    behavioral half of the 540 s budget fix."""
+    from agentic_rag_mcp.hermes_client import LAUNCH_INSTRUCTIONS
+    assert "FASTEST-PATH NAVIGATION" in LAUNCH_INSTRUCTIONS
+    assert "~540 s" in LAUNCH_INSTRUCTIONS
+    assert "end the turn honestly instead of grinding toward the timeout" in LAUNCH_INSTRUCTIONS

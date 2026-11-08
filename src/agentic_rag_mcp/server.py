@@ -833,9 +833,15 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
         if verdict.desktop_followup:
             launch_directive = (f"{launch_directive.rstrip('.')} — then, as a "
                                 f"desktop followup: {verdict.desktop_followup}.")
+        # desktop-followup-timeout-600s (2026-11-08): budget the launch lane at
+        # 540 s — 90% of the Dify plugin-daemon's ~600 s tool-kill timer — so
+        # the sidecar's honest, auditable verdict ALWAYS precedes the daemon's
+        # silent mid-flight kill on long desktop-control turns
         outcome = await _await_with_keepalive(
             lambda: _hermes_run_task(cfg, launch_directive,
-                                      instructions=_HERMES_LAUNCH_INSTRUCTIONS), ctx)
+                                      instructions=_HERMES_LAUNCH_INSTRUCTIONS,
+                                      timeout_s=540.0), ctx,
+            budget=540.0)
         if not outcome.get("ok"):
             error = outcome.get("error", "error:unknown Hermes failure")
             audit.write_attempt(decision="error", operation=verdict.operation,

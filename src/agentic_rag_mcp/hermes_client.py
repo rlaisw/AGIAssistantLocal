@@ -178,7 +178,16 @@ LAUNCH_INSTRUCTIONS = (
     "control policy applies: it waits for the user to be idle before "
     "typing, shows an AI indicator, and the user can take over at any "
     "time. Report the followup step with what was typed and where, and "
-    "still end with the LAUNCH: line reflecting the launch itself."
+    "still end with the LAUNCH: line reflecting the launch itself. "
+    "FASTEST-PATH NAVIGATION (desktop-followup-timeout-600s, 2026-11-08): "
+    "your tool budget is ~540 s — navigate by the quickest route, not by "
+    "click-walking every window. When the target page has a known direct "
+    "route (e.g., a consent-gated PowerShell command or a Win+R Shortcut "
+    "that opens the exact settings dialog — a desktop action, not a launch "
+    "argument), use it; clicking through every intermediate Control Panel "
+    "page can exceed the budget. If no fast path is visible within the "
+    "first two snapshots, tell the user which single step to take next and "
+    "end the turn honestly instead of grinding toward the timeout."
 )
 
 
@@ -209,9 +218,17 @@ def _extract_text(body: dict[str, Any]) -> str:
 
 
 def run_task(cfg: Config, task: str,
-             instructions: str = CONTAINMENT_INSTRUCTIONS) -> dict[str, Any]:
+             instructions: str = CONTAINMENT_INSTRUCTIONS,
+             timeout_s: float | None = None) -> dict[str, Any]:
     """Run one gated task. Returns {"ok": True, "output": str} on success or
-    {"ok": False, "error": reason-with-recovery-hint} on any failure."""
+    {"ok": False, "error": reason-with-recovery-hint} on any failure.
+
+    timeout_s overrides cfg.hermes_timeout_s. The launch lane passes a
+    budget below the Dify plugin-daemon's ~600 s tool-kill timer so the
+    sidecar ALWAYS returns its honest verdict first (an auditable error
+    envelope) instead of losing the race to a silent mid-flight kill
+    (desktop-followup-timeout-600s, 2026-11-08)."""
+    budget = timeout_s if timeout_s is not None else cfg.hermes_timeout_s
     try:
         resp = httpx.post(
             f"{cfg.hermes_api_url.rstrip('/')}/v1/responses",
@@ -219,11 +236,11 @@ def run_task(cfg: Config, task: str,
                      "Content-Type": "application/json"},
             json={"input": task, "instructions": instructions,
                   "store": False, "model": "hermes-agent"},
-            timeout=cfg.hermes_timeout_s,
+            timeout=budget,
         )
     except httpx.TimeoutException:
         return {"ok": False, "error": f"error:Hermes did not finish within "
-                f"{cfg.hermes_timeout_s:.0f}s — try a smaller task"}
+                f"{budget:.0f}s — try a smaller task"}
     except httpx.HTTPError as exc:
         return {"ok": False, "error": f"error:Hermes gateway unreachable at "
                 f"{cfg.hermes_api_url} ({exc.__class__.__name__}) — start it with "
