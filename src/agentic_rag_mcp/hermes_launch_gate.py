@@ -30,9 +30,14 @@ _RE_WITH_ARGS = re.compile(r"\b(with|using|passing)\b", re.IGNORECASE)
 _RE_CHAINING = re.compile(r"[;|&]")
 _RE_QUOTED = re.compile(r"'([^']+)'|\"([^\"]+)\"")
 # the trailing desktop-automation clause: "… and/then/comma type/click/press …"
-# (typing-search bug, 2026-11-06: comma-separated clause lists must split too)
+# (typing-search bug, 2026-11-06: comma-separated clause lists must split too;
+#  blocked-…-named-20261108: search/find/look up are the most common companions,
+#  and a bare-space verb ("open chrome search x") splits when a launch head
+#  precedes it — otherwise "open search" stays a (ask-back) name request)
 _RE_GUI_CLAUSE = re.compile(
-    r"(?:\b(?:and|then)\s+|,\s*)(type|click|press|enter|scroll|type\s+into)\b.*$",
+    r"(?:\b(?:and|then)\s+|,\s*)"
+    r"(type|click|press|enter|scroll|type\s+into|search|find|look\s+up|google)\b.*$"
+    r"|\s+(search|find|look\s+up|google)\b.*$",
     re.IGNORECASE)
 # secondary imperative clauses that are desktop actions, not launch targets
 # ("open a new tab" after the real launch target) — routed to the followup
@@ -49,6 +54,11 @@ _FILLERS = {
     "computer", "windows", "pc", "machine", "desktop", "app", "application",
     "program", "just", "really", "some", "there", "here", "want", "need",
     "like", "help", "try", "do", "does", "did",
+    # context nouns around a real app name (blocked-…-named-20261108:
+    # "open a new session chrome browser" parsed session/browser as apps).
+    # "default browser" is matched as a compound BEFORE filler filtering,
+    # so adding "browser" here is safe.
+    "new", "session", "browser",
 }
 
 # objects that are not applications — a launch prompt whose only object is

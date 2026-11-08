@@ -250,3 +250,36 @@ def test_two_launch_targets_comma_list_still_blocked():
 def test_gui_only_with_no_app_ask_back():
     v = gate_launch("type hong kong hang seng index at search bar")
     assert v.decision == "blocked"
+
+
+def test_search_verb_splits_without_conjunction():
+    """blocked-…-named-20261108: 'open chrome search hong kong weather' —
+    search/find/look up are desktop followups, not second applications."""
+    v = gate_launch("open chrome search hong kong weather")
+    assert v.decision == "ok"
+    assert v.target == "chrome"
+    assert v.desktop_followup == "search hong kong weather"
+
+
+def test_search_tail_rides_with_observe_clause():
+    v = gate_launch("open chrome search hong kong weather , "
+                    "show me the temperature today")
+    assert v.decision == "ok"
+    assert v.target == "chrome"
+    assert "show me the temperature today" in v.desktop_followup
+
+
+def test_new_session_browser_context_nouns_are_fillers():
+    v = gate_launch("open a new session chrome browser , search hong kong weather")
+    assert v.decision == "ok"
+    assert v.target == "chrome"
+
+
+def test_open_search_alone_is_askback_not_phantom_launch():
+    v = gate_launch("open search")
+    assert v.decision == "blocked"   # bare verb with no launch head -> ask-back
+    assert "no application" in (v.reason or "") or "more than one" in (v.reason or "")
+
+
+def test_search_followup_cannot_bypass_chaining_rule():
+    assert gate_launch("open chrome and search x; rm -rf /").decision == "blocked"
