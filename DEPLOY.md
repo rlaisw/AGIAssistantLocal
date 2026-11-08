@@ -432,7 +432,15 @@ Two additive MCP tools on the sidecar: `antv_chart(chart_type, data, title)` —
 > (long office turns need it; `sse_read_timeout` is 300 by default). This row
 > is not in git — **re-apply after any provider re-sync** (`sync-tools` /
 > db-resync may reset it):
-> `docker exec docker-db_postgres-1 psql -U postgres -d dify -c "UPDATE tool_mcp_providers SET timeout = 300 WHERE name = 'agentic-rag';"`
+> ```
+docker exec docker-db_postgres-1 psql -U postgres -d dify -c "UPDATE tool_mcp_providers SET timeout = 600, sse_read_timeout = 600 WHERE name = 'agentic-rag';"
+docker restart docker-api-1   # loads the row; brief chat interruption
+```
+
+600 (not 300 — the-local-agent-hit-a-transport-error, 2026-11-08) sits ABOVE the
+sidecar's 540 s honest envelope (desktop-followup-timeout-600s) so chat-side
+turns end in the sidecar's truthful verdict instead of a 300 s client cut
+("peer closed connection without sending complete message body").
 
 ## WindowsMCP (desktop/UI automation lane) — 2026-11-06
 
