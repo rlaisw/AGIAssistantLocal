@@ -8,6 +8,13 @@
 
 **Input**: User description: "help to reduce 'AI is controlling this computer' dialog message box from 10 sec. to 3 sec."
 
+## Clarifications
+
+### Session 2026-11-08
+
+- Q: If the dialog's display duration and the AI's pre-action idle wait share one setting, should the 3 seconds apply only to the visual dialog, or to both? → A: Dialog-only — the AI's idle wait must stay 10 s; if they share one knob, prefer a display-only mechanism.
+- Q: If the installed Windows-side service version offers no configurable setting for this dialog duration, should we upgrade it to a newer version that does? → A: Upgrade only if a config edit cannot achieve it, with full desktop-lane re-verification.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Dialog auto-dismisses in 3 seconds (Priority: P1)
@@ -47,8 +54,8 @@ The dialog duration shrinks, but every existing safety mechanism must keep worki
 ### Functional Requirements
 
 1. **FR-001 — Shortened dialog duration**: The "AI is controlling this computer" control dialog must auto-dismiss within approximately 3 seconds of appearing (previously ~10 seconds).
-2. **FR-002 — Persistent configuration**: The shortened duration must be the default for every subsequent launch of the desktop automation service (configured once, survives service restarts and machine reboots — no per-run flags required in normal operation).
-3. **FR-003 — Take-over unaffected**: The user's physical take-over (substantial mouse movement or the keyboard shortcut) must stop gated AI actions immediately, exactly as before.
+2. **FR-002 — Persistent configuration**: The shortened duration must be the default for every subsequent launch of the desktop automation service (configured once, survives service restarts and machine reboots — no per-run flags required in normal operation). If the installed service version exposes no such setting, upgrading the service to a version that does is acceptable **only** as the fallback path, and the upgrade must include full re-verification of the desktop lane (launch, typing, search, and take-over) before the feature is considered done (owner decision 2026-11-08).
+3. **FR-003 — Take-over and idle wait unaffected**: The user's physical take-over (substantial mouse movement or the keyboard shortcut) must stop gated AI actions immediately, exactly as before — and the AI's pre-action idle wait must remain 10 seconds (owner decision 2026-11-08: the 3-second change is dialog-display only; if the service exposes one shared setting, a display-only mechanism must be preferred).
 4. **FR-004 — Indicator visibility preserved**: The visual AI indicator (edge/cursor glow) must remain present while the AI owns the desktop, independent of the dialog's shorter display.
 5. **FR-005 — Honest failure reporting**: If the duration setting cannot be applied (e.g., the running service rejects it), the chat must report that the dialog duration is unchanged rather than silently keeping the old value.
 
@@ -73,6 +80,7 @@ The setting lives in the Windows-side desktop automation service's control confi
 
 - The dialog the user refers to is the desktop-control notice shown by the Windows-side automation service (WindowsMCP) when the AI begins gated desktop actions; its display/timeout is governed by the service's control configuration, default 10 seconds.
 - "10 sec. to 3 sec." means shortening the existing default, not adding a new dialog.
+- The 3-second change applies to the dialog's display only — the AI's pre-action idle wait stays 10 seconds (owner decision, Clarifications 2026-11-08).
 - The change is a configuration edit on the Windows side plus a service restart; no code changes in the WSL repo are expected (documentation of the change may land in DEPLOY.md per house convention).
 
 ## Out of Scope
