@@ -449,3 +449,17 @@ now drive the Windows desktop/UI (Click/Type/Screenshot/App/Process/FileSystem/R
   OfficeMCP). Tool-level hardening is available via `--exclude-tools "PowerShell,Registry"` (or
   `[tools] exclude` in `~/.windows-mcp/config.toml`) if the agent should not have raw shell/registry
   powers — currently all tools are enabled per the owner's request
+
+> **Patch — spec 032 (2026-11-08), AI-control notice ~3 s**: the control overlay's
+> lease tail in the installed tool is patched —
+> `…/windows_mcp/desktop/control.py` (in `end_call`):
+> `self._lease_until = time.monotonic() + 15.0` → `+ 3.0` (with a trailing
+> comment marking spec 032). The "AI is controlling this computer" notice now
+> clears ~3 s after the AI's last desktop action (was up to ~15 s). The `10.0`
+> constants (user-revert / wait-for-idle window) are deliberately UNTOUCHED
+> (owner decision: safety behavior unchanged). Backup:
+> `control.py.orig-032` next to the patched file.
+> **Re-apply after any windows-mcp upgrade/reinstall** (uv tool reinstall
+> overwrites the file); the observable failure signal is the notice reverting
+> to ~15 s. Verified: AI state clears 3.1 s post-action (generations 2 and 4,
+> i.e., across a restart); wait-for-idle countdown still starts from 10.
