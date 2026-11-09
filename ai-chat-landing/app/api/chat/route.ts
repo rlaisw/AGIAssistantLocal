@@ -70,6 +70,9 @@ export async function POST(req: Request) {
       let buffer = ""
       let difyConversationId: string | undefined
       let taskIdSent = false
+      // true once we've closed our stream ourselves (message_end path) — the
+      // finally must not close the controller twice
+      let finalized = false
 
       try {
         for (;;) {
@@ -137,7 +140,15 @@ export async function POST(req: Request) {
                     .filter((n): n is string => Boolean(n))
                   const sources = [...new Set(names)]
                   if (sources.length) send({ type: "sources", sources })
-                  break
+                  // wait-long-time-show-output-result (2026-11-09): message_end
+                  // is Dify's terminal answer-complete event — finalize the UI
+                  // now instead of waiting for the upstream body to close, which
+                  // can lag indefinitely (plugin-daemon holds, tool-time cuts).
+                  finalized = true
+                  send({ type: "done", conversationId: difyConversationId })
+                  controller.close()
+                  reader.cancel().catch(() => {})
+                  return
                 }
                 case "error":
                   send({
@@ -157,7 +168,7 @@ export async function POST(req: Request) {
             message: error instanceof Error ? error.message : "stream error",
           })
       } finally {
-        controller.close()
+        if (!finalized) controller.close()
       }
     },
     cancel() {
