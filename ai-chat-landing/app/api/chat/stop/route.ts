@@ -13,7 +13,11 @@ async function cancelSidecarTurn(conversationId: string): Promise<void> {
   const post = (payload: unknown) =>
     fetch(SIDECAR_MCP, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      // the streamable MCP server 406s without both Accept types (2026-11-09)
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream",
+      },
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(5_000),
     })

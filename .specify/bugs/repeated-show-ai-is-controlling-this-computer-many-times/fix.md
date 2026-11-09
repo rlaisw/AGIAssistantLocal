@@ -1,54 +1,45 @@
-# Bug Fix: the chat Stop now reaches the agent — the gateway interrupts the desktop turn within seconds instead of running for minutes
+# Bug Fix (cycle 2): the last two wires — Accept header in the stop route, conversation_id in the launch bullet
 
 - **Slug**: `repeated-show-ai-is-controlling-this-computer-many-times`
-- **Fixed**: 2026-11-09T03:45+00:00
+- **Fixed**: 2026-11-09T03:55+00:00 (supersedes the cycle-1 fix.md — its machinery (stream lanes, registry, cancel tool, gateway interrupt) stands; git preserves cycle 1)
 - **Assessment**: ./assessment.md
-- **Status**: applied — live-verified end-to-end at the tool level
+- **Status**: applied — the failed UI-level reproduction now passes end-to-end
 
 ## Summary
 
-The launch and office lanes now run their gateway calls in **stream mode** with the connection registered per conversation, and a new `hermes_cancel_turn` tool closes it — the gateway's SSE branch then **interrupts the running agent** (its own disconnect handler, verified in its code and live). The chat UI's Stop button extends its stop route to call the cancel tool through the sidecar, so pressing Stop now halts the desktop work in seconds instead of the desktop notice flashing for minutes with no response. The blocking-JSON path (measured) ran turns to natural completion despite client disconnect; the SSE path is the platform's cancellable lever.
+The test phase pinned two last-mile breaks; both are fixed and the full UI-level chain is verified: an in-flight launch turn cancelled through the chat's own stop route — `{"result":"ok"}` at +40 s, the tool returned at **+44 s** with the honest cancelled verdict, and both audit entries written. The Accept header was the 406 root cause; the prompt bullet makes the agent pass the cancellable conversation id to every launch call.
 
 ## Changes
 
-| File | Change | Notes |
+| File / surface | Change | Notes |
 |------|--------|-------|
-| `src/agentic_rag_mcp/hermes_client.py` | modified | New: `_INFLIGHT` registry (per-key `httpx.Client`, lock-guarded, owner-checked unregister), `cancel_inflight(key)` (closes the registered client), and `run_task_stream` — a stream-mode `POST /v1/responses` (`"stream": true`) that parses `response.completed`/`response.failed` into the same `{"ok", "output"/"error"}` contract; aborted connections map to an honest `error:the turn was cancelled — the chat stopped it; any partial desktop state was left as-is`; registered in a `finally` |
-| `src/agentic_rag_mcp/server.py` | modified | `_run_hermes` helper: with a conversation key → `run_task_stream` (cancellable); without (battery, probes, file lane) → the unchanged blocking path. Launch and office lanes pass their conversation id; the launch tool gains an optional `conversation_id` param (empty = uncancellable, all old callers byte-identical). New MCP tool **`hermes_cancel_turn(conversation_id)`**: closes the in-flight connection, writes an audit entry, returns `{status: ok|noop, cancelled}` (noop = completion race) |
-| `ai-chat-landing/app/api/chat/stop/route.ts` | modified | Accepts an optional `conversationId`; after the Dify stop, fire-and-forget calls the sidecar's `/mcp` → `hermes_cancel_turn` (3-step stateless streamable-HTTP dance, 5 s timeout, non-fatal) |
-| `ai-chat-landing/app/page.tsx` | modified | The generation record tracks `convDifyId` (set at send time and on the `task` event); the stop POST passes it |
-| `tests/unit/test_hermes_launch_tool.py` | +2 tests | Registry semantics (cancel closes once, idempotent re-close, unknown key = race, owner-checked unregister) and the response-envelope parse; the 540 s budget pin updated to the new call shape |
-| `tests/unit/test_hermes_office_tool.py` | mocks extended | All six run_task monkeypatch sites also patch `run_task_stream` (the office lane is stream-mode now) |
-| Live sidecar | redeployed | `sync-tools 26→27` (the new tool); all lanes served from the new code |
+| `ai-chat-landing/app/api/chat/stop/route.ts` | modified | `cancelSidecarTurn`'s fetches now send `Accept: application/json, text/event-stream` — the streamable MCP server 406s without it (root cause pinned in the test phase) |
+| Live Dify workflow (`hermes_agent` node prompt) | modified | Launch bullet: "Call hermes_launch_app(task, conversation_id)… **ALWAYS pass conversation_id exactly as '{{#sys.conversation_id#}}'** (it lets the Stop button cancel the turn; a turn without it cannot be stopped)" — applied export→patch→publish via the console API; live-graph check `LIKE '%lets the Stop button cancel%'` → **true** (03:48:02); repo artifact synced |
 
 ## Diff Highlights (optional)
 
-```python
-# hermes_client.py — the Stop lever
-def cancel_inflight(key: str) -> bool:
-    with _INFLIGHT_LOCK: client = _INFLIGHT.get(key)
-    if client is None: return False
-    client.close()   # gateway SSE branch: "SSE client disconnected; interrupted agent task"
-    return True
+```ts
+headers: {
+  "Content-Type": "application/json",
+  Accept: "application/json, text/event-stream",  // the 406 root cause
+},
 ```
 
 ## Tests Added or Updated
 
-- `test_cancel_inflight_registry_semantics`, `test_run_task_stream_parses_response_completed` (via `_extract_text` on the completed envelope), plus the six office mocks — **359 passed** (was 357); UI: 143 passed; typecheck clean; ruff clean on the changed files
+- No new unit tests (config-level one-liners; the UI-level reproduction is the behavioral proof); all existing suites stay green
 
 ## Local Verification
 
-- **Decisive disconnect measurements** (drove the design): the blocking-JSON path survived a mid-run client abort to natural completion (+139 s, no `run.cancelled`); the SSE path's disconnect handler interrupts the agent (`_abandon_agent_task` → "SSE client disconnected; interrupted agent task", gateway source 1198-1199) — so the lanes must run stream-mode to be stoppable
-- **Live end-to-end (03:36:31–03:37:21)**: a launch turn with conversation id `cancel-live-verify-2` was in flight; at +45 s `hermes_cancel_turn` returned `{'status': 'ok', 'cancelled': True}`; **the launch tool returned at +50 s** with the honest cancelled verdict — total 50 s instead of the turn's natural 150 s+. The gateway log confirms: *"SSE client disconnected; interrupted agent task resp_f3375926…"*. Both audit entries written (`cancel-turn` at 03:37:16, `launch-app` error at 03:37:21)
-- First live attempt surfaced a parser fact (my test task "open notepad and wait…" hit the honest MULTI ask-back — "wait" is not a recognized followup verb; retried with a well-formed task)
+- `pnpm typecheck` → clean
+- **UI-level reproduction (03:48:56–03:49:40)** — the exact scenario that failed in the test phase: launch turn in flight with conversation_id `ui-stop-verify-2` → `POST /api/chat/stop {taskId: <uuid>, conversationId}` at +40 s → **`{"result":"ok"}`** (Dify no-task tolerated + the cancel reached the sidecar this time) → the launch tool returned at **+44 s** with *"the turn was cancelled — the chat stopped it; any partial desktop state was left as-is"*; audit: `cancel-turn` cancelled at 03:49:36, `launch-app` error at 03:49:40. The turn that previously ran to natural completion (minutes) now stops in ~4 seconds from the UI's own stop button path
 
 ## Deviations from Assessment
 
-- The assessment proposed the control socket or `/v1/runs/{id}/stop` as the lever; the investigation found a **better one**: the gateway's own SSE disconnect handler interrupts the agent (no run-id plumbing needed — the connection itself is the handle). The blocking-JSON disconnect test (natural completion, measured) ruled out the naive abort and justified the stream-mode switch.
-- The file lane stays on the blocking path (its tool signature has no conversation id; its tasks are fast) — documented limitation, stop-scoping is per-conversation for the two desktop-control lanes where the bug lived.
+- None — this cycle applied precisely the two one-liners the failed verification pinned.
 
 ## Follow-ups
 
-- A natural user-driven Stop on a live desktop turn completes the verification at the UI layer (the stop route's sidecar call is fire-and-forget; its failure is logged client-side but never blocks the chat stop)
-- The office lane's cancel scoping uses the same conversation id the chatflow passes — no chatflow change needed; if a future spec adds conversation ids to the file tool, its lane becomes cancellable by deleting its blocking fallback in `_run_hermes`
-- The MCP tool count change (26→27) was synced by the redeploy; future Dify console visibility of `hermes_cancel_turn` is harmless (the agent prompt does not mention it, and calling it cancels only that conversation's own turn)
+- `/speckit.bug.test` re-run should turn green: re-run the UI-level reproduction (above) plus the suites; a natural user Stop press on a live desktop turn is the final field sample
+- The office lane's prompt bullet already passed conversation_id — both desktop lanes are now stoppable through the chat
+- Tool count (27) and the sync were already live from cycle 1; no redeploy needed this cycle (the sidecar code is unchanged)
