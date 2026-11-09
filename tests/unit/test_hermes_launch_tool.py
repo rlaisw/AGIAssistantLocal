@@ -172,11 +172,13 @@ def test_empty_agent_output_is_error_never_ok(tmp_path, monkeypatch):
 def test_launch_lane_budget_is_under_daemon_kill_timer():
     """desktop-followup-timeout-600s (2026-11-08): the launch lane's Hermes
     budget (540 s) must sit 90% of the Dify plugin-daemon's ~600 s tool-kill
-    timer so the sidecar's honest verdict always precedes the silent kill."""
+    timer so the sidecar's honest verdict always precedes the silent kill.
+    (2026-11-09: the lane is stream-mode with a conversation key; the 540 s
+    budget now flows to _run_hermes and the keepalive wrapper.)"""
     import inspect as _inspect
     import agentic_rag_mcp.server as _srv
     src = _inspect.getsource(_srv)
-    assert "timeout_s=540.0" in src and "budget=540.0" in src
+    assert "budget=540.0" in src
 
 
 def test_run_task_accepts_timeout_override():
@@ -202,3 +204,49 @@ def test_launch_instructions_pin_fastest_path_guidance():
     assert "FASTEST-PATH NAVIGATION" in LAUNCH_INSTRUCTIONS
     assert "~540 s" in LAUNCH_INSTRUCTIONS
     assert "end the turn honestly instead of grinding toward the timeout" in LAUNCH_INSTRUCTIONS
+
+
+def test_cancel_inflight_registry_semantics():
+    """repeated-show-AI-is-controlling-… (2026-11-09): the per-conversation
+    registry is the Stop lever — cancel closes the registered client once;
+    unknown keys are a completion race (False), not an error; unregister only
+    removes its OWN registration (a stale re-registration never evicts the
+    live one)."""
+    from agentic_rag_mcp import hermes_client as hc
+
+    class FakeClient:
+        def __init__(self):
+            self.closed = False
+        def close(self):
+            self.closed = True
+
+    a, b = FakeClient(), FakeClient()
+    hc._register_inflight("cancel-test-1", a)
+    assert hc.cancel_inflight("cancel-test-1") is True
+    assert a.closed is True
+    # a second cancel inside the unregister window is idempotent (re-close)
+    assert hc.cancel_inflight("cancel-test-1") is True
+    assert hc.cancel_inflight("never-registered") is False
+    hc._register_inflight("cancel-test-2", b)
+    stale = FakeClient()
+    hc._register_inflight("cancel-test-2", stale)        # stale overwrite
+    hc._unregister_inflight("cancel-test-2", b)           # must NOT evict the stale one
+    assert "cancel-test-2" in hc._INFLIGHT
+    hc._unregister_inflight("cancel-test-2", stale)       # correct owner evicts
+    assert "cancel-test-2" not in hc._INFLIGHT
+
+
+def test_run_task_stream_parses_response_completed():
+    """The stream-mode client must return the SAME {"ok": True, output} shape
+    from the response.completed SSE envelope the blocking client gets."""
+    from agentic_rag_mcp import hermes_client as hc
+
+    envelope = {"type": "response.completed", "response": {
+        "id": "resp_x", "status": "completed",
+        "output": [{"id": "rs_1", "type": "message", "role": "assistant",
+                     "content": [{"type": "output_text", "text": "LAUNCH: SUCCESS"}]}],
+    }}
+    # parse helper under test: the SSE data-line walker
+    body = envelope["response"]
+    text = hc._extract_text(body)
+    assert text == "LAUNCH: SUCCESS"

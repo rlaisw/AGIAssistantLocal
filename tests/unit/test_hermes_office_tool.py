@@ -39,6 +39,8 @@ def _server(tmp_path, monkeypatch, agent_reply=None, calls=None):
         return {"ok": True, "output": agent_reply}
 
     monkeypatch.setattr(hc, "run_task", fake_run_task)
+    monkeypatch.setattr(hc, "run_task_stream",
+                        lambda cfg, task, instructions, budget, key: fake_run_task(cfg, task, instructions))
     from agentic_rag_mcp.office_state import OfficeState
     fresh = OfficeState()
     monkeypatch.setattr(server_mod, "get_office_state", lambda: fresh)
@@ -189,6 +191,8 @@ def test_compose_without_draft_id_line_still_registers_pending(tmp_path, monkeyp
     monkeypatch.setattr(server_mod, "build_providers", lambda cfg: [])
     monkeypatch.setattr(server_mod, "Embedder", lambda m, d: object())
     monkeypatch.setattr(hc, "run_task", fake_run_task)
+    monkeypatch.setattr(hc, "run_task_stream",
+                        lambda cfg, task, instructions, budget, key: fake_run_task(cfg, task, instructions))
     from agentic_rag_mcp.office_state import OfficeState
     fresh = OfficeState()
     monkeypatch.setattr(server_mod, "get_office_state", lambda: fresh)
@@ -226,6 +230,8 @@ def test_confirmation_sends_recorded_entry_id(tmp_path, monkeypatch):
     monkeypatch.setattr(server_mod, "build_providers", lambda cfg: [])
     monkeypatch.setattr(server_mod, "Embedder", lambda m, d: object())
     monkeypatch.setattr(hc, "run_task", fake_run_task)
+    monkeypatch.setattr(hc, "run_task_stream",
+                        lambda cfg, task, instructions, budget, key: fake_run_task(cfg, task, instructions))
     from agentic_rag_mcp.office_state import OfficeState
     fresh = OfficeState()
     monkeypatch.setattr(server_mod, "get_office_state", lambda: fresh)
@@ -288,6 +294,8 @@ def test_partial_stores_interrupted_and_continue_resumes(tmp_path, monkeypatch):
     monkeypatch.setattr(server_mod, "build_providers", lambda cfg: [])
     monkeypatch.setattr(server_mod, "Embedder", lambda m, d: object())
     monkeypatch.setattr(hc, "run_task", fake_run_task)
+    monkeypatch.setattr(hc, "run_task_stream",
+                        lambda cfg, task, instructions, budget, key: fake_run_task(cfg, task, instructions))
     from agentic_rag_mcp.office_state import OfficeState
     fresh = OfficeState()
     monkeypatch.setattr(server_mod, "get_office_state", lambda: fresh)
@@ -358,6 +366,8 @@ def test_named_location_rides_the_directive(tmp_path, monkeypatch):
     monkeypatch.setattr(server_mod, "build_providers", lambda cfg: [])
     monkeypatch.setattr(server_mod, "Embedder", lambda m, d: object())
     monkeypatch.setattr(hc, "run_task", fake_run_task)
+    monkeypatch.setattr(hc, "run_task_stream",
+                        lambda cfg, task, instructions, budget, key: fake_run_task(cfg, task, instructions))
     from agentic_rag_mcp.office_state import OfficeState
     fresh = OfficeState()
     monkeypatch.setattr(server_mod, "get_office_state", lambda: fresh)
@@ -383,6 +393,11 @@ def test_os_permission_error_relayed(tmp_path, monkeypatch):
     monkeypatch.setattr(server_mod, "Embedder", lambda m, d: object())
     monkeypatch.setattr(hc, "run_task",
                         lambda cfg, task, instructions="":
+                        {"ok": True, "output":
+                         "STEP 1: save FAILED — [Errno 13] Permission denied: "
+                         "'C:\\Windows\\system32\\config.sys'\nTASK: FAILED"})
+    monkeypatch.setattr(hc, "run_task_stream",
+                        lambda cfg, task, instructions, budget, key:
                         {"ok": True, "output":
                          "STEP 1: save FAILED — [Errno 13] Permission denied: "
                          "'C:\\Windows\\system32\\config.sys'\nTASK: FAILED"})

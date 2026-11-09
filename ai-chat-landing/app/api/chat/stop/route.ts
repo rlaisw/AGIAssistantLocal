@@ -4,10 +4,50 @@ export const runtime = "nodejs"
 
 const DIFY_USER = "ai-chat-ui-user" // must match the chat proxy's end-user id
 
+const SIDECAR_MCP =
+  (process.env.SIDECAR_MCP_URL ?? "http://localhost:28080") + "/mcp"
+
+// 3-step stateless streamable-HTTP MCP dance (same envelope the battery's
+// probes use): initialize -> initialized -> tools/call hermes_cancel_turn.
+async function cancelSidecarTurn(conversationId: string): Promise<void> {
+  const post = (payload: unknown) =>
+    fetch(SIDECAR_MCP, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(5_000),
+    })
+  await post({
+    jsonrpc: "2.0", id: 1, method: "initialize",
+    params: { protocolVersion: "2024-11-05", capabilities: {},
+             clientInfo: { name: "chat-stop", version: "0" } },
+  })
+  await post({ jsonrpc: "2.0", method: "notifications/initialized" })
+  await post({
+    jsonrpc: "2.0", id: 2, method: "tools/call",
+    params: { name: "hermes_cancel_turn",
+              arguments: { conversation_id: conversationId } },
+  })
+}
+
 export async function POST(req: Request) {
-  const { taskId } = (await req.json().catch(() => ({}))) as { taskId?: unknown }
+  const { taskId, conversationId } = (await req.json().catch(() => ({}))) as {
+    taskId?: unknown
+    conversationId?: unknown
+  }
   if (typeof taskId !== "string" || !taskId.trim() || taskId.length > 128) {
     return Response.json({ error: "taskId is required" }, { status: 400 })
+  }
+
+  // repeated-show-AI-is-controlling-… (2026-11-09): Dify's stop halts the
+  // workflow but the gateway agent keeps running (measured: minutes of
+  // continued desktop control after Stop). If the caller passes the Dify
+  // conversation id, also cancel the sidecar's in-flight gateway call for
+  // that conversation (hermes_cancel_turn) — the gateway's SSE branch then
+  // interrupts the agent. Fire-and-forget with a short timeout: the chat's
+  // own stop must never block on the sidecar.
+  if (typeof conversationId === "string" && conversationId.trim()) {
+    void cancelSidecarTurn(conversationId).catch(() => {})
   }
 
   const apiKey = process.env.DIFY_API_KEY

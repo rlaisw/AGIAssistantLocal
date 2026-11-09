@@ -284,6 +284,7 @@ export default function Page() {
     model: ModelId
     taskId: string | null
     isDemo: boolean
+    convDifyId?: string | null // stop route cancels the sidecar's gateway call (2026-11-09)
   } | null>(null)
   const stopRequestedRef = React.useRef(false)
 
@@ -507,6 +508,7 @@ export default function Page() {
       model: serving,
       taskId: null,
       isDemo: false,
+      convDifyId: conversations.find((c) => c.id === sendConvId)?.difyId ?? null,
     }
 
     const controller = new AbortController()
@@ -606,7 +608,10 @@ export default function Page() {
               // backend halt; the conversation registers NOW (not at done)
               // so it is reachable and stoppable in the sidebar mid-stream,
               // and a stopped first turn still resumes from history (FR-010)
-              if (genRef.current) genRef.current.taskId = msg.taskId ?? null
+              if (genRef.current) {
+                genRef.current.taskId = msg.taskId ?? null
+                if (msg.conversationId) genRef.current.convDifyId = msg.conversationId
+              }
               if (msg.conversationId) {
                 updateConversation(sendConvId, (c) =>
                   c.difyId ? c : { ...c, difyId: msg.conversationId }
@@ -761,7 +766,9 @@ export default function Page() {
       void fetch("/api/chat/stop", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId: gen.taskId }),
+        // conversationId lets the stop route cancel the sidecar's in-flight
+        // gateway call (repeated-show-AI-is-controlling-…, 2026-11-09)
+        body: JSON.stringify({ taskId: gen.taskId, conversationId: gen.convDifyId ?? undefined }),
       }).catch((err) =>
         console.warn("[stop] backend halt failed (client stopped anyway):", err)
       )

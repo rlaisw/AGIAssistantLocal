@@ -9,6 +9,8 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
+import json
+import threading
 
 from .config import Config
 
@@ -258,3 +260,107 @@ def run_task(cfg: Config, task: str,
         return {"ok": False, "error": "error:Hermes returned an empty response — "
                 "the task may not have produced output; retry or simplify"}
     return {"ok": True, "output": text}
+
+
+# ---- in-flight turn registry + cancellation (repeated-show-AI-is-
+# controlling-…, 2026-11-09): the chat Stop must reach the agent. The gateway's
+# /v1/responses SSE branch interrupts the agent on client disconnect, so a
+# stream-mode call whose httpx client we can close gives Stop a real lever —
+# the blocking-JSON branch proved (measured) to run to natural completion.
+
+_INFLIGHT: dict[str, "httpx.Client"] = {}
+_INFLIGHT_LOCK = threading.Lock()
+
+
+def _register_inflight(key: str, client: "httpx.Client") -> None:
+    with _INFLIGHT_LOCK:
+        _INFLIGHT[key] = client
+
+
+def _unregister_inflight(key: str, client: "httpx.Client") -> None:
+    with _INFLIGHT_LOCK:
+        if _INFLIGHT.get(key) is client:
+            _INFLIGHT.pop(key, None)
+
+
+def cancel_inflight(key: str) -> bool:
+    """Close the in-flight gateway connection for *key* (per-conversation).
+    The gateway sees the disconnect on its SSE branch and interrupts the
+    running agent (stops LLM and tool calls — the desktop work stops).
+    Returns False when nothing is in flight (a completion race — not an
+    error)."""
+    with _INFLIGHT_LOCK:
+        client = _INFLIGHT.get(key)
+    if client is None:
+        return False
+    client.close()
+    return True
+
+
+def run_task_stream(cfg: Config, task: str, instructions: str, budget: float,
+                    inflight_key: str) -> dict[str, Any]:
+    """Stream-mode run_task whose httpx client is registered under
+    *inflight_key* — cancel_inflight(key) aborts the call and the gateway
+    interrupts the agent (the blocking-JSON run_task cannot be stopped:
+    measured 2026-11-09, the turn runs to natural completion after a client
+    disconnect). The final response.completed SSE event carries the same
+    response envelope run_task parses, so the output contract is identical."""
+    url = f"{cfg.hermes_api_url.rstrip('/')}/v1/responses"
+    headers = {"Authorization": f"Bearer {cfg.hermes_api_key}",
+               "Content-Type": "application/json"}
+    client = httpx.Client(timeout=budget)
+    _register_inflight(inflight_key, client)
+    try:
+        try:
+            with client.stream(
+                "POST", url, headers=headers,
+                json={"input": task, "instructions": instructions,
+                      "store": False, "model": "hermes-agent", "stream": True},
+            ) as resp:
+                if resp.status_code in (401, 403):
+                    return {"ok": False, "error": "error:Hermes rejected the API key — check "
+                            "hermes.api_key in the sidecar config matches "
+                            "API_SERVER_KEY in ~/.hermes/.env"}
+                if resp.status_code != 200:
+                    resp.read()
+                    return {"ok": False, "error": f"error:Hermes returned HTTP "
+                            f"{resp.status_code}: {resp.text[:200]}"}
+                for line in resp.iter_lines():
+                    if not line.startswith("data:"):
+                        continue
+                    payload = line[5:].strip()
+                    if payload == "[DONE]":
+                        break
+                    try:
+                        event = json.loads(payload)
+                    except json.JSONDecodeError:
+                        continue
+                    etype = event.get("type")
+                    if etype == "response.completed":
+                        body = event.get("response") or {}
+                        text = _extract_text(body)
+                        if not text:
+                            return {"ok": False, "error": "error:Hermes returned an empty "
+                                    "response — the task may not have produced output; "
+                                    "retry or simplify"}
+                        return {"ok": True, "output": text}
+                    if etype == "response.failed":
+                        err = (event.get("response") or {}).get("error") or {}
+                        msg = err.get("message") or "the agent run failed"
+                        return {"ok": False, "error": f"error:Hermes run failed: {msg}"}
+                return {"ok": False, "error": "error:Hermes stream ended without a final "
+                        "response — the turn may have been interrupted or the connection "
+                        "dropped; retry"}
+        except httpx.TimeoutException:
+            return {"ok": False, "error": f"error:Hermes did not finish within "
+                    f"{budget:.0f}s — try a smaller task"}
+        except httpx.HTTPError as exc:
+            name = exc.__class__.__name__
+            if name in ("ReadError", "TransportClosed", "RemoteProtocolError"):
+                return {"ok": False, "error": "error:the turn was cancelled — the chat "
+                        "stopped it; any partial desktop state was left as-is"}
+            return {"ok": False, "error": f"error:Hermes gateway unreachable at "
+                    f"{cfg.hermes_api_url} ({name}) — start it with "
+                    f"'hermes gateway restart -y --detach' and retry"}
+    finally:
+        _unregister_inflight(inflight_key, client)

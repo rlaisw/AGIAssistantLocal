@@ -694,11 +694,38 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
         fields."""
         return _antv(antv_infographic_mod.create_infographic, description)
 
+    from .hermes_client import (
+        run_task_stream as _hermes_run_task_stream,
+        cancel_inflight as _hermes_cancel_inflight,
+    )
+
+    # repeated-show-AI-is-controlling-… (2026-11-09): Stop must reach the
+    # agent. Lanes that know their Dify conversation id run through the
+    # stream-mode client so the per-conversation connection is closable;
+    # hermes_cancel_turn is the admin hook the chat's Stop button calls (the
+    # Next.js stop route, server-side). Without a conversation id (battery,
+    # direct probes) the call is uncancellable — as before.
+    def _run_hermes(cfg, task, instructions, conversation_id, budget=None):
+        key = (conversation_id or "").strip()
+        if not key:
+            if budget is None:
+                return _hermes_run_task_blocking(cfg, task,
+                                                 instructions=instructions)
+            return _hermes_run_task_blocking(cfg, task,
+                                             instructions=instructions,
+                                             timeout_s=budget)
+        if budget is None:
+            return _hermes_run_task_stream(cfg, task, instructions,
+                                            cfg.hermes_timeout_s, key)
+        return _hermes_run_task_stream(cfg, task, instructions, budget, key)
+
     # ---- Hermes Agent lane (spec 028): gated Windows file tasks ----
 
     from .hermes_audit import HermesAudit
     from .hermes_client import LAUNCH_INSTRUCTIONS as _HERMES_LAUNCH_INSTRUCTIONS
-    from .hermes_client import run_task as _hermes_run_task
+    # file lane: no Dify conversation id in its tool signature — it stays on
+    # the blocking JSON path (fast tasks; stop-scoping is per-conversation)
+    from .hermes_client import run_task as _hermes_run_task_blocking
     from .hermes_gate import DEFAULT_ALLOWED_ROOT, gate_task, normalize_path, to_windows
     from .hermes_client import OFFICE_INSTRUCTIONS as _OFFICE_INSTRUCTIONS
     from .hermes_launch_gate import gate_launch
@@ -783,7 +810,7 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
                     "reason": verdict.reason}
 
         outcome = await _await_with_keepalive(
-            lambda: _hermes_run_task(cfg, task), ctx)
+            lambda: _hermes_run_task_blocking(cfg, task), ctx)
         if not outcome.get("ok"):
             error = outcome.get("error", "error:unknown Hermes failure")
             audit.write_attempt(decision="error", operation=verdict.operation,
@@ -802,7 +829,29 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
         return result
 
     @mcp.tool()
-    async def hermes_launch_app(task: str, ctx: Context = None) -> dict:
+    async def hermes_cancel_turn(conversation_id: str,
+                                 ctx: Context = None) -> dict:
+        """Cancel the in-flight local-agent turn for a conversation — the chat
+        Stop button calls this so the gateway interrupts the running agent
+        (stops its LLM and desktop/tool calls) instead of the desktop work
+        continuing for minutes after the user pressed Stop. Returns
+        {status: ok|noop, cancelled} — "noop" means no in-flight turn was
+        found (already completed or never started — a completion race, not an
+        error). Never a destructive act: a cancelled turn leaves any partial
+        desktop state exactly as the agent left it."""
+        cancelled = _hermes_cancel_inflight(conversation_id)
+        HermesAudit(cfg.hermes_audit_path).write_attempt(
+            decision="blocked", operation="cancel-turn",
+            normalized_path="", allowed_root="",
+            reason=("cancelled — the chat stopped this turn; the in-flight gateway call was "
+                    "aborted and the agent interrupted") if cancelled
+            else "noop — no in-flight turn for this conversation (completion race)")
+        return {"status": "ok" if cancelled else "noop",
+                "cancelled": cancelled}
+
+    @mcp.tool()
+    async def hermes_launch_app(task: str, conversation_id: str = "",
+                                 ctx: Context = None) -> dict:
         """Launch a DESKTOP APPLICATION on the user's Windows computer via the Hermes
         agent (e.g. open Outlook/Excel/Notepad, or run C:\\tools\\mytool.exe). ANY
         executable by name or full .exe path — there is no allowlist. EVERY task is
@@ -838,9 +887,9 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
         # the sidecar's honest, auditable verdict ALWAYS precedes the daemon's
         # silent mid-flight kill on long desktop-control turns
         outcome = await _await_with_keepalive(
-            lambda: _hermes_run_task(cfg, launch_directive,
-                                      instructions=_HERMES_LAUNCH_INSTRUCTIONS,
-                                      timeout_s=540.0), ctx,
+            lambda: _run_hermes(cfg, launch_directive,
+                                _HERMES_LAUNCH_INSTRUCTIONS, conversation_id,
+                                budget=540.0), ctx,
             budget=540.0)
         if not outcome.get("ok"):
             error = outcome.get("error", "error:unknown Hermes failure")
@@ -910,8 +959,8 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
 
         async def _run_agent(directive: str) -> dict:
             out = await _await_with_keepalive(
-                lambda: _hermes_run_task(cfg, directive,
-                                         instructions=_OFFICE_INSTRUCTIONS), ctx)
+                lambda: _run_hermes(cfg, directive, _OFFICE_INSTRUCTIONS,
+                                    conversation_id), ctx)
             if not out.get("ok"):
                 return _error_envelope(out.get("error", "error:unknown Hermes failure"))
             output = out["output"]
