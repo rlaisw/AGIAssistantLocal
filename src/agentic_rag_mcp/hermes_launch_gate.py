@@ -38,7 +38,7 @@ _RE_QUOTED = re.compile(r"'([^']+)'|\"([^\"]+)\"")
 #  join the comma/and/then form only — no bare-space, to protect app names)
 _RE_GUI_CLAUSE = re.compile(
     r"(?:\b(?:and|then)\s+|,\s*)"
-    r"(type|click|press|enter|scroll|type\s+into|search|find|look\s+up|google|show|display|view)\b.*$"
+    r"(type|click|press|enter|scroll|type\s+into|search|find|look\s+up|google|show|display|view|check|read|tell\s+me)\b.*$"
     r"|\s+(search|find|look\s+up|google)\b.*$",
     re.IGNORECASE)
 

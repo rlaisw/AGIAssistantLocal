@@ -320,3 +320,25 @@ def test_show_me_verb_splits_on_comma():
     assert v.decision == "ok"
     assert v.target == "control"
     assert v.desktop_followup == "show me network adapter configuration"
+
+
+def test_check_verb_splits_and_rides_followup():
+    """the-local-agent-blocked-… (2026-11-09): "check" is the natural
+    observe companion — "open chrome , check hong kong temperature" must
+    split, not MULTI-block."""
+    v = gate_launch("help to open chrome browser , check hong kong temperature today")
+    assert v.decision == "ok"
+    assert v.target == "chrome"
+    assert v.desktop_followup == "check hong kong temperature today"
+
+
+def test_read_and_tell_me_verbs_split_on_comma():
+    v = gate_launch("open control panel , read me the ip address")
+    assert v.decision == "ok" and v.target == "control"
+    v = gate_launch("open chrome , tell me the weather")
+    assert v.decision == "ok" and v.target == "chrome" and v.desktop_followup
+
+
+def test_check_verb_comma_form_only_unknown_pair_still_multi():
+    assert gate_launch("open chrome firefox").decision == "blocked"
+    assert gate_launch("open search").decision == "blocked"  # bare-verb protection intact
