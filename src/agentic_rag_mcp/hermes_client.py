@@ -11,6 +11,7 @@ from typing import Any
 import httpx
 import json
 import threading
+import time
 
 from .config import Config
 
@@ -192,6 +193,47 @@ LAUNCH_INSTRUCTIONS = (
     "end the turn honestly instead of grinding toward the timeout."
 )
 
+# spec 033 — the run-command lane's agent prompt: the echo-and-attest
+# protocol. The tool stamps ok ONLY when the echoed COMMAND matches the
+# gated directive AND TASK: COMPLETED is present (the 029 FR-007 lesson
+# generalized: an agent's prose is never trusted for the verdict).
+RUN_COMMAND_INSTRUCTIONS = (
+    "You are executing ONE read-only diagnostic command on the user's "
+    "Windows computer. Call your tool named exactly "
+    "'mcp__WindowsMCP__PowerShell' (the Windows-side shell that runs "
+    "Windows PowerShell on the user's Windows host) with the command from "
+    "the directive. NEVER use your 'terminal' or any WSL/Linux shell tool "
+    "for this: Windows commands like ipconfig, tasklist, systeminfo, ping, "
+    "nslookup and tracert exist only on the Windows side, and a Linux "
+    "shell will report 'command not found'. The WindowsMCP control policy "
+    "may answer with a USER_CONTROL error (state 'user' — the user is "
+    "actively using the machine); that is RETRYABLE: wait about 10 seconds "
+    "(or the returned wait_seconds) and call mcp__WindowsMCP__PowerShell "
+    "again with the same command. Keep retrying patiently. If the gateway "
+    "drops or strips the command argument from your "
+    "mcp__WindowsMCP__PowerShell calls, use the same direct-channel "
+    "recovery you know from OfficeMCP: open a direct SSE session to the "
+    "WindowsMCP server at http://127.0.0.1:8800 (browser tool, SSE + POST "
+    "to /messages/?session_id=...) and invoke the PowerShell tool there "
+    "with the same command — the direct channel is the SAME tool, not a "
+    "substitution. Never fall back to a WSL/Linux shell. Only report "
+    "TASK: FAILED if both the gateway channel and the direct channel "
+    "fail, or USER_CONTROL continues for over a "
+    "minute. Run EXACTLY the command stated in the "
+    "task directive — nothing else: no variations, no extra commands, no "
+    "arguments beyond what the directive states, and never modify anything "
+    "on the machine. Then report in EXACTLY this format:\n"
+    "COMMAND: <the exact command you ran>\n"
+    "OUTPUT:\n"
+    "<the complete, verbatim command output — never summarize, trim, or "
+    "invent it>\n"
+    "TASK: COMPLETED\n"
+    "If you could not run the command, report honestly: COMMAND: <the "
+    "command>, then 'TASK: FAILED' with the reason and no output. Never "
+    "claim output you did not observe and never emit COMPLETED unless the "
+    "command really ran this turn."
+)
+
 
 def _extract_text(body: dict[str, Any]) -> str:
     # OpenAI Responses-API shape: output_text, else the output[] content chain
@@ -297,6 +339,43 @@ def cancel_inflight(key: str) -> bool:
     return True
 
 
+# every-steps-hold-long-time (2026-11-09): the turn timing profile. The
+# stream already carries every event across the whole desktop turn; these
+# helpers just stop the loop from discarding the arrival times so "where
+# did the minutes go" is answerable per turn (the chat cannot stream
+# mid-tool progress — opaque Dify tool calls — so the profile rides the
+# verdict instead).
+_GAP_MIN_S = 2.0
+_TOP_GAPS = 3
+
+
+def _event_label(event: dict[str, Any]) -> str:
+    label = str(event.get("type") or "?")
+    delta = event.get("delta")
+    if isinstance(delta, str) and delta.strip():
+        label += f" {delta.strip()[:40]!r}"
+    return label
+
+
+def _timing_profile(t0: float, first_event_s: float | None, event_count: int,
+                    gaps: list[tuple[float, float, str]]) -> dict[str, Any]:
+    """Compact JSON-safe profile of one turn: total, first-event latency,
+    event count, and the top-N longest inter-event gaps — the desktop
+    latency floor made visible (LLM iteration vs gated action vs consent
+    idle-wait)."""
+    profile: dict[str, Any] = {
+        "total_s": round(time.perf_counter() - t0, 1),
+        "first_event_s": None if first_event_s is None else round(first_event_s, 1),
+        "event_count": event_count,
+    }
+    profile["gaps"] = [
+        {"gap_s": round(gap, 1), "at_s": round(at, 1), "event": label}
+        for gap, at, label in
+        sorted(gaps, key=lambda g: g[0], reverse=True)[:_TOP_GAPS]
+    ]
+    return profile
+
+
 def run_task_stream(cfg: Config, task: str, instructions: str, budget: float,
                     inflight_key: str) -> dict[str, Any]:
     """Stream-mode run_task whose httpx client is registered under
@@ -310,6 +389,11 @@ def run_task_stream(cfg: Config, task: str, instructions: str, budget: float,
                "Content-Type": "application/json"}
     client = httpx.Client(timeout=budget)
     _register_inflight(inflight_key, client)
+    t0 = time.perf_counter()
+    last = t0
+    first_event_s: float | None = None
+    event_count = 0
+    gaps: list[tuple[float, float, str]] = []
     try:
         try:
             with client.stream(
@@ -320,11 +404,13 @@ def run_task_stream(cfg: Config, task: str, instructions: str, budget: float,
                 if resp.status_code in (401, 403):
                     return {"ok": False, "error": "error:Hermes rejected the API key — check "
                             "hermes.api_key in the sidecar config matches "
-                            "API_SERVER_KEY in ~/.hermes/.env"}
+                            "API_SERVER_KEY in ~/.hermes/.env",
+                            "timing": _timing_profile(t0, first_event_s, event_count, gaps)}
                 if resp.status_code != 200:
                     resp.read()
                     return {"ok": False, "error": f"error:Hermes returned HTTP "
-                            f"{resp.status_code}: {resp.text[:200]}"}
+                            f"{resp.status_code}: {resp.text[:200]}",
+                            "timing": _timing_profile(t0, first_event_s, event_count, gaps)}
                 for line in resp.iter_lines():
                     if not line.startswith("data:"):
                         continue
@@ -335,6 +421,18 @@ def run_task_stream(cfg: Config, task: str, instructions: str, budget: float,
                         event = json.loads(payload)
                     except json.JSONDecodeError:
                         continue
+                    # passive timing capture (every-steps-hold-long-time):
+                    # never alters consumption — the cancel lever still
+                    # depends on the disconnect semantics below
+                    now = time.perf_counter()
+                    event_count += 1
+                    if first_event_s is None:
+                        first_event_s = now - t0
+                    else:
+                        gap = now - last
+                        if gap >= _GAP_MIN_S:
+                            gaps.append((gap, now - t0, _event_label(event)))
+                    last = now
                     etype = event.get("type")
                     if etype == "response.completed":
                         body = event.get("response") or {}
@@ -342,25 +440,35 @@ def run_task_stream(cfg: Config, task: str, instructions: str, budget: float,
                         if not text:
                             return {"ok": False, "error": "error:Hermes returned an empty "
                                     "response — the task may not have produced output; "
-                                    "retry or simplify"}
-                        return {"ok": True, "output": text}
+                                    "retry or simplify",
+                                    "timing": _timing_profile(t0, first_event_s,
+                                                              event_count, gaps)}
+                        return {"ok": True, "output": text,
+                                "timing": _timing_profile(t0, first_event_s,
+                                                          event_count, gaps)}
                     if etype == "response.failed":
                         err = (event.get("response") or {}).get("error") or {}
                         msg = err.get("message") or "the agent run failed"
-                        return {"ok": False, "error": f"error:Hermes run failed: {msg}"}
+                        return {"ok": False, "error": f"error:Hermes run failed: {msg}",
+                                "timing": _timing_profile(t0, first_event_s,
+                                                          event_count, gaps)}
                 return {"ok": False, "error": "error:Hermes stream ended without a final "
                         "response — the turn may have been interrupted or the connection "
-                        "dropped; retry"}
+                        "dropped; retry",
+                        "timing": _timing_profile(t0, first_event_s, event_count, gaps)}
         except httpx.TimeoutException:
             return {"ok": False, "error": f"error:Hermes did not finish within "
-                    f"{budget:.0f}s — try a smaller task"}
+                    f"{budget:.0f}s — try a smaller task",
+                    "timing": _timing_profile(t0, first_event_s, event_count, gaps)}
         except httpx.HTTPError as exc:
             name = exc.__class__.__name__
             if name in ("ReadError", "TransportClosed", "RemoteProtocolError"):
                 return {"ok": False, "error": "error:the turn was cancelled — the chat "
-                        "stopped it; any partial desktop state was left as-is"}
+                        "stopped it; any partial desktop state was left as-is",
+                        "timing": _timing_profile(t0, first_event_s, event_count, gaps)}
             return {"ok": False, "error": f"error:Hermes gateway unreachable at "
                     f"{cfg.hermes_api_url} ({name}) — start it with "
-                    f"'hermes gateway restart -y --detach' and retry"}
+                    f"'hermes gateway restart -y --detach' and retry",
+                    "timing": _timing_profile(t0, first_event_s, event_count, gaps)}
     finally:
         _unregister_inflight(inflight_key, client)

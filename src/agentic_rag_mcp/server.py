@@ -697,6 +697,7 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
     from .hermes_client import (
         run_task_stream as _hermes_run_task_stream,
         cancel_inflight as _hermes_cancel_inflight,
+        RUN_COMMAND_INSTRUCTIONS as _HERMES_RUN_INSTRUCTIONS,
     )
 
     # repeated-show-AI-is-controlling-… (2026-11-09): Stop must reach the
@@ -729,6 +730,8 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
     from .hermes_gate import DEFAULT_ALLOWED_ROOT, gate_task, normalize_path, to_windows
     from .hermes_client import OFFICE_INSTRUCTIONS as _OFFICE_INSTRUCTIONS
     from .hermes_launch_gate import gate_launch
+    # spec 033 — the run-command lane's allowlist gate (read-only diagnostics)
+    from .hermes_run_gate import gate_run_command
 
     async def _await_with_keepalive(fn, ctx=None, *, interval: float = 30.0,
                                     budget: float = 600.0):
@@ -772,9 +775,27 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
     _RE_DRAFT_ID = _re.compile(r"^DRAFT ID:\s*(\S+)", _re.IGNORECASE | _re.MULTILINE)
     _RE_TASK = _re.compile(r"^TASK:\s*(COMPLETED|PARTIAL|FAILED)",
                            _re.IGNORECASE | _re.MULTILINE)
+    # spec 033 — the echo-and-attest protocol: the agent must echo the exact
+    # gated command; a mismatch or missing marker is an error, never ok
+    _RE_RUN_ECHO = _re.compile(r"^COMMAND:\s*(.+?)\s*$",
+                               _re.IGNORECASE | _re.MULTILINE)
     _OFFICE_START_HINT = (" — if the Office automation service is down, start "
                           "it with: officemcp sse --port 8888 --host 127.0.0.1 "
                           "--folder C:\\OfficeMCP")
+
+    def _timing_line(t: dict | None) -> str:
+        """every-steps-hold-long-time (2026-11-09): render the client's turn
+        profile as one line the relay can quote — Dify tool calls stream
+        nothing mid-turn, so this is the post-hoc benchmark surface."""
+        if not t:
+            return ""
+        bits = [f"total {t.get('total_s', 0):g}s"]
+        if t.get("first_event_s") is not None:
+            bits.append(f"first event +{t['first_event_s']:g}s")
+        bits.append(f"{t.get('event_count', 0)} events")
+        bits.extend(f"gap {g['gap_s']:g}s @+{g['at_s']:g}s before {g['event']}"
+                    for g in t.get("gaps") or [])
+        return "TIMING: " + " | ".join(bits)
 
     @mcp.tool()
     async def hermes_file_task(task: str, allowed_root: str = "",
@@ -891,11 +912,15 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
                                 _HERMES_LAUNCH_INSTRUCTIONS, conversation_id,
                                 budget=540.0), ctx,
             budget=540.0)
+        timing = outcome.get("timing") or {}
+        tline = _timing_line(timing)
         if not outcome.get("ok"):
             error = outcome.get("error", "error:unknown Hermes failure")
             audit.write_attempt(decision="error", operation=verdict.operation,
                                 normalized_path=verdict.target, allowed_root="",
-                                reason=error)
+                                reason=error,
+                                duration_s=timing.get("total_s"),
+                                timing=timing or None)
             return {"status": "error", "reason": error}
 
         output = outcome["output"]
@@ -908,13 +933,76 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
                       f"{output.strip()[-300:]}")
             audit.write_attempt(decision="error", operation=verdict.operation,
                                 normalized_path=verdict.target, allowed_root="",
-                                reason=reason)
+                                reason=reason,
+                                duration_s=timing.get("total_s"),
+                                timing=timing or None)
             return {"status": "error", "reason": reason}
         audit.write_attempt(decision="executed", operation=verdict.operation,
                             normalized_path=verdict.target, allowed_root="",
-                            outcome=output[:200])
+                            outcome=output[:200],
+                            duration_s=timing.get("total_s"),
+                            timing=timing or None)
         return {"status": "ok", "decision": "executed",
-                "result": output, "target": verdict.target}
+                "result": f"{output}\n\n{tline}" if tline else output,
+                "target": verdict.target}
+
+    # ---- Run-command lane (spec 033): allowlisted read-only diagnostics ----
+
+    @mcp.tool()
+    async def hermes_run_command(task: str, conversation_id: str,
+                                  ctx: Context = None) -> dict:
+        """Run a READ-ONLY DIAGNOSTIC COMMAND on the user's Windows computer (spec 033) — one allowlisted command per request: ipconfig, systeminfo, tasklist, whoami, hostname (bare), or ping/nslookup/tracert with exactly one host or IP. EVERY request is security-gated BEFORE execution: any other command, PowerShell cmdlets, flags, pipes, redirection, quoting tricks, or state-changing verbs are BLOCKED with a reason showing the allowlist and never executed; a request naming two commands, an unmapped request, or a network command without a target asks back. Returns {status: ok|blocked|error, command?, result?, reason?} — relay honestly: on 'ok' report the command's real output (name truncation if the result says it was cut); on 'blocked' give the reason verbatim; on 'error' say the local agent failed and include the recovery hint. conversation_id is REQUIRED — it makes the turn cancellable and timed. Never claim a command ran when the status is not ok."""
+        verdict = gate_run_command(task)
+        audit = HermesAudit(cfg.hermes_audit_path)
+        cmd_line = (verdict.command + (f" {verdict.target}" if verdict.target else "")
+                    if verdict.command else (task or "")[:80])
+        if verdict.decision != "ok":
+            audit.write_attempt(decision="blocked", operation="run-command",
+                                normalized_path=cmd_line, allowed_root="",
+                                reason=verdict.reason)
+            return {"status": "blocked", "reason": verdict.reason}
+        directive = f"Run this exact command and nothing else: {cmd_line}"
+        outcome = await _await_with_keepalive(
+            lambda: _run_hermes(cfg, directive, _HERMES_RUN_INSTRUCTIONS,
+                                conversation_id), ctx)
+        timing = outcome.get("timing") or {}
+        if not outcome.get("ok"):
+            error = outcome.get("error", "error:unknown Hermes failure")
+            audit.write_attempt(decision="error", operation="run-command",
+                                normalized_path=cmd_line, allowed_root="",
+                                reason=error,
+                                duration_s=timing.get("total_s"),
+                                timing=timing or None)
+            return {"status": "error", "reason": error}
+        output = outcome["output"]
+        # honest envelope: ok ONLY on echo match + explicit completion marker
+        em = _RE_RUN_ECHO.search(output)
+        tm = _RE_TASK.search(output)
+        echoed = " ".join((em.group(1) if em else "").lower().split())
+        expected = " ".join(cmd_line.lower().split())
+        if (not em or not tm or tm.group(1).upper() != "COMPLETED"
+                or echoed != expected):
+            reason = ("error:the local agent did not run the requested command "
+                      f"as gated ('{cmd_line}') — no result is reported that "
+                      "the agent did not verifiably produce. "
+                      + (output.strip()[-200:] if output else ""))
+            audit.write_attempt(decision="error", operation="run-command",
+                                normalized_path=cmd_line, allowed_root="",
+                                reason=reason,
+                                duration_s=timing.get("total_s"),
+                                timing=timing or None)
+            return {"status": "error", "reason": reason}
+        if len(output) > 4000:
+            output = (output[:4000] + "\n…[truncated — the command output was "
+                      "longer than the chat relay carries]")
+        tline = _timing_line(timing)
+        audit.write_attempt(decision="executed", operation="run-command",
+                            normalized_path=cmd_line, allowed_root="",
+                            outcome=output[:200],
+                            duration_s=timing.get("total_s"),
+                            timing=timing or None)
+        return {"status": "ok", "command": cmd_line,
+                "result": f"{output}\n\n{tline}" if tline else output}
 
     @mcp.tool()
     async def hermes_office_task(task: str, conversation_id: str,
@@ -942,27 +1030,33 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
         state = get_office_state()
 
         def _audit(decision: str, reason: str | None = None,
-                   outcome: str | None = None) -> None:
+                   outcome: str | None = None,
+                   timing: dict | None = None) -> None:
             audit.write_attempt(decision=decision, operation="office-task",
                                 normalized_path=state.active_document(conversation_id),
-                                allowed_root=root, reason=reason, outcome=outcome)
+                                allowed_root=root, reason=reason, outcome=outcome,
+                                duration_s=(timing or {}).get("total_s"),
+                                timing=timing or None)
 
-        def _error_envelope(err: str) -> dict:
+        def _error_envelope(err: str, timing: dict | None = None) -> dict:
             reason = err if "officemcp sse" in err.lower() else err + _OFFICE_START_HINT
             if "did not finish within" in err:
                 # budget exhaustion is resumable — record it for 'continue' (FR-005)
                 state.set_interrupted(conversation_id,
                                       {"original_task": task,
                                        "partial_report": err})
-            _audit("error", reason=reason)
+            _audit("error", reason=reason, timing=timing)
             return {"status": "error", "reason": reason}
 
         async def _run_agent(directive: str) -> dict:
             out = await _await_with_keepalive(
                 lambda: _run_hermes(cfg, directive, _OFFICE_INSTRUCTIONS,
                                     conversation_id), ctx)
+            turn_timing = out.get("timing") or {}
+            tline = _timing_line(turn_timing)
             if not out.get("ok"):
-                return _error_envelope(out.get("error", "error:unknown Hermes failure"))
+                return _error_envelope(out.get("error", "error:unknown Hermes failure"),
+                                       timing=turn_timing or None)
             output = out["output"]
             # completed-message-wait-long-time (2026-11-06): remember the strip
             # conversation-wide — follow-on tasks skip the detection tax; and
@@ -984,9 +1078,10 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
                     # 1000 (was 200): STEP BATCHING made single blocks carry all
                     # sub-operation details — 200 cut them mid-sentence
                     # (do-not-write-data-in-worksheet, 2026-11-06)
-                    _audit("executed", outcome=line[:1000])
+                    _audit("executed", outcome=line[:1000],
+                           timing=turn_timing or None)
                 else:
-                    _audit("error", reason=line[:1000])
+                    _audit("error", reason=line[:1000], timing=turn_timing or None)
             di = _RE_DRAFT_ID.search(output)
             tm_early = _RE_TASK.search(output)
             if di:
@@ -1009,11 +1104,12 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
                           "COMPLETED/PARTIAL/FAILED marker — never claiming "
                           f"success. Report was: {output.strip()[-300:]}"
                           + _OFFICE_START_HINT)
-                _audit("error", reason=reason)
+                _audit("error", reason=reason, timing=turn_timing or None)
                 return {"status": "error", "reason": reason, **envelope}
             if tm.group(1).upper() == "COMPLETED":
                 return {"status": "ok", "decision": "executed",
-                        "result": output, **envelope}
+                        "result": f"{output}\n\n{tline}" if tline else output,
+                        **envelope}
             failed = [m.group(0).strip() for m in _RE_STEP.finditer(output)
                       if m.group(1).upper() == "FAILED"]
             reason = ("error:the Office task did not complete — "
@@ -1021,7 +1117,8 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
                       + (f"; failing steps: {'; '.join(failed)}" if failed else "")
                       + f"; partial report: {output.strip()[-300:]}")
             if not _RE_STEP.search(output):
-                _audit("error", reason=reason[:400])   # nothing else recorded it
+                _audit("error", reason=reason[:400],   # nothing else recorded it
+                       timing=turn_timing or None)
             if tm.group(1).upper() == "PARTIAL":
                 # a partial task is resumable — record it for 'continue' (FR-005)
                 state.set_interrupted(conversation_id,

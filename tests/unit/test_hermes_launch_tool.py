@@ -250,3 +250,125 @@ def test_run_task_stream_parses_response_completed():
     body = envelope["response"]
     text = hc._extract_text(body)
     assert text == "LAUNCH: SUCCESS"
+
+
+# ----------------------------------------------- turn timing (2026-11-09 bug)
+
+class _FakeTime:
+    """Deterministic clock for the stream loop — pops ticks in order, holds
+    the last one when exhausted (later paths never re-read it)."""
+    def __init__(self, ticks):
+        self._ticks = list(ticks)
+        self._last = 0.0
+
+    def perf_counter(self):
+        if self._ticks:
+            self._last = self._ticks.pop(0)
+        return self._last
+
+
+class _StreamCfg:
+    hermes_api_url = HERMES_BASE
+    hermes_api_key = "test-key"
+    hermes_timeout_s = 600.0
+
+
+def test_timing_profile_orders_and_truncates_gaps():
+    """every-steps-hold-long-time: the profile keeps only the top-3 gaps,
+    descending by length — the benchmark must surface the minutes, not every
+    sub-second pause."""
+    from agentic_rag_mcp import hermes_client as hc
+    gaps = [(2.0, 5.0, "b"), (30.0, 40.0, "big"),
+            (3.0, 10.0, "c"), (20.0, 25.0, "mid")]
+    t = hc._timing_profile(0.0, 1.5, 9, gaps)
+    assert [g["gap_s"] for g in t["gaps"]] == [30.0, 20.0, 3.0]
+    assert t["first_event_s"] == 1.5
+    assert t["event_count"] == 9
+
+
+def test_run_task_stream_records_timing_profile(monkeypatch):
+    """every-steps-hold-long-time: the stream loop must stop discarding
+    event arrivals — total, first-event latency, event count and the top
+    gaps come back on the ok envelope. Fake clock makes the profile
+    assertable EXACTLY, not loosely."""
+    from agentic_rag_mcp import hermes_client as hc
+
+    sse = "\n".join([
+        'data: {"type": "response.created"}',
+        'data: {"type": "response.output_text.delta", "delta": "STEP 1: focus OK"}',
+        'data: {"type": "response.output_text.delta", "delta": "STEP 2: type OK"}',
+        'data: {"type": "response.completed", "response": {"output_text": "LAUNCH: SUCCESS"}}',
+        "data: [DONE]",
+    ])
+    # t0, one arrival per event (4), then the profile's total read
+    ticks = [0.0, 0.5, 10.5, 10.6, 30.6, 31.0]
+    monkeypatch.setattr(hc, "time", _FakeTime(ticks))
+    with _hermes_mock() as router:
+        router.post("/v1/responses").respond(200, content=sse.encode())
+        out = hc.run_task_stream(_StreamCfg(), "open chrome", "instr",
+                                 540.0, "bench-1")
+    assert out["ok"] is True and out["output"] == "LAUNCH: SUCCESS"
+    t = out["timing"]
+    assert t["total_s"] == 31.0
+    assert t["first_event_s"] == 0.5
+    assert t["event_count"] == 4
+    assert t["gaps"] == [
+        {"gap_s": 20.0, "at_s": 30.6, "event": "response.completed"},
+        {"gap_s": 10.0, "at_s": 10.5,
+         "event": "response.output_text.delta 'STEP 1: focus OK'"},
+    ]
+
+
+def test_cancelled_turn_still_carries_timing(monkeypatch):
+    """A stopped turn is benchmarked too — the disconnect error envelope must
+    carry the (empty) profile so Stop-path forensics have the same shape."""
+    from agentic_rag_mcp import hermes_client as hc
+
+    monkeypatch.setattr(hc, "time", _FakeTime([0.0, 0.4]))
+    with _hermes_mock() as router:
+        router.post("/v1/responses").mock(side_effect=httpx.ReadError("peer closed"))
+        out = hc.run_task_stream(_StreamCfg(), "open chrome", "instr",
+                                 540.0, "bench-2")
+    assert out["ok"] is False
+    assert "cancelled" in out["error"]
+    assert out["timing"] == {"total_s": 0.4, "first_event_s": None,
+                             "event_count": 0, "gaps": []}
+
+
+def test_ok_launch_appends_timing_line_and_audits_duration(tmp_path, monkeypatch):
+    """The tool surface: the result gains a TIMING line (the relay's only
+    post-hoc view — Dify streams nothing mid-tool) and the audit entry gains
+    duration_s + the timing profile."""
+    sse = "\n".join([
+        'data: {"type": "response.output_text.delta", "delta": "starting"}',
+        'data: {"type": "response.completed", "response": {"output_text": '
+        '"Started notepad.exe — new process observed.\\nLAUNCH: SUCCESS"}}',
+        "data: [DONE]",
+    ])
+    with _hermes_mock() as router:
+        router.post("/v1/responses").respond(200, content=sse.encode())
+        srv = _server(tmp_path, monkeypatch)
+        out = call(srv, "hermes_launch_app",
+                   {"task": "open notepad", "conversation_id": "c-timing"})
+    assert out["status"] == "ok"
+    assert "TIMING: total" in out["result"]
+    assert "events" in out["result"]
+    entry = _last_audit_entry(tmp_path)
+    assert entry["decision"] == "executed"
+    assert entry["duration_s"] >= 0
+    assert entry["timing"]["event_count"] == 2
+
+
+def test_error_turn_audits_duration_too(tmp_path, monkeypatch):
+    """Failed turns are benchmarked as well — an errored audit entry carries
+    duration_s + timing (a zero-event transport failure still has a shape)."""
+    with _hermes_mock() as router:
+        router.post("/v1/responses").mock(side_effect=httpx.ReadTimeout("too slow"))
+        srv = _server(tmp_path, monkeypatch)
+        out = call(srv, "hermes_launch_app",
+                   {"task": "open notepad", "conversation_id": "c-timing"})
+    assert out["status"] == "error"
+    assert "within" in out["reason"].lower()
+    entry = _last_audit_entry(tmp_path)
+    assert entry["decision"] == "error"
+    assert "duration_s" in entry and "timing" in entry

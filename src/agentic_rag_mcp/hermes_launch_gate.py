@@ -154,8 +154,14 @@ def gate_launch(task: str, home: str = "/home/administrator") -> LaunchVerdict:
         followup = task[cut:].lstrip(" ,.").strip()
         task = task[:cut].strip(" ,.;")
     if _RE_SHELL.search(task) or _RE_SHELL.search(followup or ""):
+        # spec 033: the refusal stands (this gate stays shell-free) but now
+        # points users at the run-command lane's read-only diagnostics
         return _blocked(f"Blocked: shell/PowerShell/command-line requests are "
-                        f"refused ({_LAUNCH_SCOPE})")
+                        f"refused ({_LAUNCH_SCOPE}) — for read-only diagnostics "
+                        f"(ipconfig, systeminfo, tasklist, whoami, hostname, "
+                        f"ping/nslookup/tracert with one host or IP), ask for "
+                        f"the command by name and the run-command lane will "
+                        f"run it")
     if _RE_WITH_ARGS.search(task):
         return _blocked(f"Blocked: launch arguments and documents are refused — "
                         f"launch one program by name or full .exe path only "

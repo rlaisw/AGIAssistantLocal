@@ -24,7 +24,7 @@ def call(server, name, args):
     return json.loads(joined) if joined else None
 
 
-def _server(tmp_path, monkeypatch, agent_reply=None, calls=None):
+def _server(tmp_path, monkeypatch, agent_reply=None, calls=None, timing=None):
     import agentic_rag_mcp.server as server_mod
     import agentic_rag_mcp.hermes_client as hc
 
@@ -36,7 +36,10 @@ def _server(tmp_path, monkeypatch, agent_reply=None, calls=None):
             calls.append({"task": task, "instructions": instructions})
         if isinstance(agent_reply, Exception):
             raise agent_reply
-        return {"ok": True, "output": agent_reply}
+        out = {"ok": True, "output": agent_reply}
+        if timing is not None:
+            out["timing"] = timing
+        return out
 
     monkeypatch.setattr(hc, "run_task", fake_run_task)
     monkeypatch.setattr(hc, "run_task_stream",
@@ -88,6 +91,29 @@ def test_compose_without_address_asks_back(tmp_path, monkeypatch):
 
 
 # ------------------------------------------------------------- happy path
+
+def test_turn_timing_line_and_audited_profile(tmp_path, monkeypatch):
+    """every-steps-hold-long-time (2026-11-09): the office lane surfaces the
+    turn profile in the result (the relay's only post-hoc view — Dify tool
+    calls stream nothing mid-turn) and every per-step audit entry carries
+    duration_s + timing, so desktop turns are queryable historically."""
+    reply = ("STEP 1: open OK — Excel is running with a new workbook\n"
+             "TASK: COMPLETED")
+    timing = {"total_s": 84.2, "first_event_s": 5.1, "event_count": 17,
+              "gaps": [{"gap_s": 23.8, "at_s": 40.2,
+                        "event": "response.output_text.delta 'verifying focus'"}]}
+    srv, cfg = _server(tmp_path, monkeypatch, agent_reply=reply, timing=timing)
+    out = call(srv, "hermes_office_task",
+               {"task": "open Excel and put 12345 in cell A1",
+                "conversation_id": "c-timing"})
+    assert out["status"] == "ok"
+    assert "TIMING: total 84.2s" in out["result"]
+    assert "first event +5.1s | 17 events" in out["result"]
+    assert "gap 23.8s @+40.2s" in out["result"]
+    entries = [e for e in _audit(tmp_path) if e["operation"] == "office-task"]
+    assert entries and entries[0]["duration_s"] == 84.2
+    assert entries[0]["timing"]["event_count"] == 17
+
 
 def test_document_write_step_protocol_and_state(tmp_path, monkeypatch):
     calls = []

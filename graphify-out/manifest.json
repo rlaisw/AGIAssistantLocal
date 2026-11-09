@@ -216,9 +216,9 @@
     "semantic_hash": "366689124ca42b54b992cf8129db2ca6"
   },
   "src/agentic_rag_mcp/config.py": {
-    "mtime": 1793493790.317382,
-    "seen": 1793501402.7351608,
-    "ast_hash": "535873684276dd4258cdd8cec909e58b",
+    "mtime": 1793598001.8536196,
+    "seen": 1794214822.481363,
+    "ast_hash": "058e10e5d13d115277d61aa3fadb462f",
     "semantic_hash": ""
   },
   "src/agentic_rag_mcp/errors.py": {
@@ -348,9 +348,9 @@
     "semantic_hash": "0351c98ec054f4bff086a5df3dcf735d"
   },
   "src/agentic_rag_mcp/server.py": {
-    "mtime": 1793497853.1191194,
-    "seen": 1793501402.7351885,
-    "ast_hash": "b445d6bbf551c2f4befd852cd7cd3d38",
+    "mtime": 1794214354.3363667,
+    "seen": 1794214822.4813986,
+    "ast_hash": "0456732eedf393a57eca24118019c76d",
     "semantic_hash": ""
   },
   "src/agentic_rag_mcp/sources/__init__.py": {
@@ -714,9 +714,9 @@
     "semantic_hash": "b8ed482dd2103953e4f871e0ed12d4bd"
   },
   "README.md": {
-    "mtime": 1793499422.474549,
-    "seen": 1793501402.7352526,
-    "ast_hash": "e455edc68dbcb131b082c115a3b8f057",
+    "mtime": 1793689579.6199296,
+    "seen": 1794214822.4815564,
+    "ast_hash": "3caed402827d2c21da9376ac282d3dc7",
     "semantic_hash": ""
   },
   "dify/Chatflow Basic (AgenticRAG Agent).yml": {
@@ -900,9 +900,9 @@
     "semantic_hash": "eba6943b2a2f6407162ae12e0218bdac"
   },
   "DEPLOY.md": {
-    "mtime": 1793499425.5166397,
-    "seen": 1793501402.7352521,
-    "ast_hash": "a3d69c0939fe26eb52e37c6d5274d61a",
+    "mtime": 1794214812.2997937,
+    "seen": 1794214822.4815557,
+    "ast_hash": "3827501bb813bc946e8c9b08dfdea227",
     "semantic_hash": ""
   },
   "docs/NETWORK.md": {
@@ -1122,9 +1122,9 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1793498596.3621652,
-    "seen": 1793501402.735252,
-    "ast_hash": "f0c67b3f5d5eab215e414b4117295053",
+    "mtime": 1793689581.1799324,
+    "seen": 1794214822.4815552,
+    "ast_hash": "cadb541462ecc8b4786d49a7c0f0bc17",
     "semantic_hash": ""
   },
   "specs/003-web-search-scrape/tasks.md": {
@@ -1380,9 +1380,9 @@
     "semantic_hash": ""
   },
   "ai-chat-landing/app/api/chat/route.ts": {
-    "mtime": 1793493790.279551,
-    "seen": 1793501402.7350879,
-    "ast_hash": "295adc44330e790d81575ef69f01d009",
+    "mtime": 1794192962.4948826,
+    "seen": 1794214822.4812644,
+    "ast_hash": "f6454f689f8d801a3f225a14df4a4192",
     "semantic_hash": ""
   },
   "ai-chat-landing/app/layout.tsx": {
@@ -1392,9 +1392,9 @@
     "semantic_hash": ""
   },
   "ai-chat-landing/app/page.tsx": {
-    "mtime": 1793493790.2801435,
-    "seen": 1793501402.7350993,
-    "ast_hash": "7d06c38d6648e9b2ca6b7b9db54dc64f",
+    "mtime": 1794194750.076725,
+    "seen": 1794214822.481291,
+    "ast_hash": "e748eb24b63dc2b0ef59cd1603ab6372",
     "semantic_hash": ""
   },
   "ai-chat-landing/components.json": {
@@ -1872,9 +1872,9 @@
     "semantic_hash": ""
   },
   "ai-chat-landing/vitest.config.ts": {
-    "mtime": 1793493790.2837744,
-    "seen": 1793501402.7351472,
-    "ast_hash": "9d37cdb59e6ba0f4e24d102e350faec5",
+    "mtime": 1794192983.5352135,
+    "seen": 1794214822.4813457,
+    "ast_hash": "7a110717f017d6f553331c9783b72b28",
     "semantic_hash": ""
   },
   "src/agentic_rag_mcp/deploy/__init__.py": {
@@ -1890,9 +1890,9 @@
     "semantic_hash": ""
   },
   "src/agentic_rag_mcp/deploy/battery.py": {
-    "mtime": 1793500727.7449012,
-    "seen": 1793501402.7351627,
-    "ast_hash": "83d5b37a79cb8212013c6066b982424f",
+    "mtime": 1793857056.6784942,
+    "seen": 1794214822.4813652,
+    "ast_hash": "32cb56648af37e0a7fe1dc8b7a0825a8",
     "semantic_hash": ""
   },
   "src/agentic_rag_mcp/deploy/config.py": {
@@ -1956,9 +1956,9 @@
     "semantic_hash": ""
   },
   "tests/contract/test_deploy_cli.py": {
-    "mtime": 1793499200.084701,
-    "seen": 1793501402.7351966,
-    "ast_hash": "423305cd2730247d725111b1c634cdfe",
+    "mtime": 1793610782.021044,
+    "seen": 1794214822.4814095,
+    "ast_hash": "ac725ce43f8311b9946db04a255b78e8",
     "semantic_hash": ""
   },
   "tests/contract/test_ppt_completion_contract.py": {
@@ -1968,9 +1968,9 @@
     "semantic_hash": ""
   },
   "tests/contract/test_ppt_contract.py": {
-    "mtime": 1793499199.593439,
-    "seen": 1793501402.735201,
-    "ast_hash": "6ef93d1579eaef00f217c1a97434d282",
+    "mtime": 1793599895.0544064,
+    "seen": 1794214822.4814143,
+    "ast_hash": "3c7093e102eb53cc057952c01cf2ba37",
     "semantic_hash": ""
   },
   "tests/fixtures/deploy/tools_list.json": {
@@ -2220,9 +2220,9 @@
     "semantic_hash": ""
   },
   "tests/contract/test_antv_contract.py": {
-    "mtime": 1793499198.8904831,
-    "seen": 1793501402.7351956,
-    "ast_hash": "3e93d8ed1fd1637dfe750c0c456af92a",
+    "mtime": 1793599894.3743947,
+    "seen": 1794214822.481408,
+    "ast_hash": "c9dd1e61ae39cedbb8994b0bc9aea54d",
     "semantic_hash": ""
   },
   "tests/fixtures/antv/chart_payload.json": {
@@ -3120,9 +3120,9 @@
     "semantic_hash": ""
   },
   "dify/AGIAssistant/AGI_Assistant.yml": {
-    "mtime": 1793498156.5016465,
-    "seen": 1793501402.7352846,
-    "ast_hash": "adbf838e68e18d98630a009d26f1746b",
+    "mtime": 1794214354.3354495,
+    "seen": 1794214822.4815922,
+    "ast_hash": "cc4d9314273f64681e5b0b0e1dfa7f8c",
     "semantic_hash": ""
   },
   "specs/024-install-difyctl/checklists/requirements.md": {
@@ -3234,15 +3234,15 @@
     "semantic_hash": ""
   },
   "src/agentic_rag_mcp/deploy/model_apply.py": {
-    "mtime": 1793493790.3175733,
-    "seen": 1793501402.7351646,
-    "ast_hash": "f4f9fc2ce495eef115274251f072b4ae",
+    "mtime": 1793857483.3160496,
+    "seen": 1794214822.481368,
+    "ast_hash": "0530622a016025b0abde86f41375db9b",
     "semantic_hash": ""
   },
   "tests/unit/test_deploy_model_apply.py": {
-    "mtime": 1793493790.320565,
-    "seen": 1793501402.7352176,
-    "ast_hash": "7bf35f8882dd5df9ba23d7eee9d987d9",
+    "mtime": 1793857041.7299995,
+    "seen": 1794214822.4814332,
+    "ast_hash": "d35847ec904c73cf76f4945d9d381b0a",
     "semantic_hash": ""
   },
   "specs/026-llm-patch-select/checklists/requirements.md": {
@@ -3312,9 +3312,9 @@
     "semantic_hash": ""
   },
   "ai-chat-landing/app/api/chat/stop/route.ts": {
-    "mtime": 1793493790.2797062,
-    "seen": 1793501402.735089,
-    "ast_hash": "1f61d4e57597175e40143df4d63ede00",
+    "mtime": 1794196071.8826635,
+    "seen": 1794214822.4812655,
+    "ast_hash": "bb4f2715314496f1b911a1e78620ddf3",
     "semantic_hash": ""
   },
   "ai-chat-landing/lib/follow-up.test.ts": {
@@ -3414,9 +3414,9 @@
     "semantic_hash": ""
   },
   ".specify/bugs/ppt-no-response/test.md": {
-    "mtime": 1793493790.273007,
-    "seen": 1793501402.7352445,
-    "ast_hash": "f8676d24a8b472c091a519ea433c557e",
+    "mtime": 1793683790.9956062,
+    "seen": 1794214822.4815137,
+    "ast_hash": "eb673c5cfb6ddf439483875a816eabd7",
     "semantic_hash": ""
   },
   ".specify/extensions.yml": {
@@ -3492,33 +3492,33 @@
     "semantic_hash": ""
   },
   "src/agentic_rag_mcp/hermes_audit.py": {
-    "mtime": 1793493790.3175733,
-    "seen": 1793501402.7351677,
-    "ast_hash": "d44015762c5261e563c035d2153dace7",
+    "mtime": 1794214354.335839,
+    "seen": 1794214822.481372,
+    "ast_hash": "f02b35e8e60a550ea436ab6fb921d016",
     "semantic_hash": ""
   },
   "src/agentic_rag_mcp/hermes_client.py": {
-    "mtime": 1793497848.0809486,
-    "seen": 1793501402.7351682,
-    "ast_hash": "03f79448abd2ba6872edc1d0da4f6c79",
+    "mtime": 1794214354.3359911,
+    "seen": 1794214822.4813726,
+    "ast_hash": "4182e85e4d57cad9e597b3ec226eb8cd",
     "semantic_hash": ""
   },
   "src/agentic_rag_mcp/hermes_gate.py": {
-    "mtime": 1793493790.3175733,
-    "seen": 1793501402.7351692,
-    "ast_hash": "689815ae7f13503d18c58518691bce8b",
+    "mtime": 1793685008.5393791,
+    "seen": 1794214822.4813735,
+    "ast_hash": "caa9c5f3f5e964305a18373a6b644bec",
     "semantic_hash": ""
   },
   "tests/unit/test_hermes_audit.py": {
-    "mtime": 1793493790.320565,
-    "seen": 1793501402.7352207,
-    "ast_hash": "a6a631415968cd48dd9602258d4b80c4",
+    "mtime": 1794214354.3363667,
+    "seen": 1794214822.4814374,
+    "ast_hash": "a8815ce58d6c088c056c63dd480aeaf7",
     "semantic_hash": ""
   },
   "tests/unit/test_hermes_gate.py": {
-    "mtime": 1793493790.320565,
-    "seen": 1793501402.7352211,
-    "ast_hash": "0dafc2224195b0c7283011ddb1a815d1",
+    "mtime": 1793685071.6725297,
+    "seen": 1794214822.481438,
+    "ast_hash": "add3801cf9c04f508943f11080a77d86",
     "semantic_hash": ""
   },
   "specs/028-hermes-mcp-lane/checklists/requirements.md": {
@@ -3570,21 +3570,21 @@
     "semantic_hash": ""
   },
   "src/agentic_rag_mcp/hermes_launch_gate.py": {
-    "mtime": 1793497423.565549,
-    "seen": 1793501402.7351704,
-    "ast_hash": "419042d2e28b56eb4e22c2ab3d991e71",
+    "mtime": 1794214354.3359911,
+    "seen": 1794214822.4813743,
+    "ast_hash": "c9a09a48ba846fe7580866113e161116",
     "semantic_hash": ""
   },
   "tests/unit/test_hermes_launch_gate.py": {
-    "mtime": 1793499437.0266843,
-    "seen": 1793501402.7352219,
-    "ast_hash": "dd246f357f702d13e9bed70a047c4700",
+    "mtime": 1794190331.0506258,
+    "seen": 1794214822.4814386,
+    "ast_hash": "150de2e6c80d4b72356a645c8595a217",
     "semantic_hash": ""
   },
   "tests/unit/test_hermes_launch_tool.py": {
-    "mtime": 1793497855.0575278,
-    "seen": 1793501402.7352226,
-    "ast_hash": "50dc2b7db0ca97ff9980448acd3ed8b4",
+    "mtime": 1794214354.3369286,
+    "seen": 1794214822.4814396,
+    "ast_hash": "9e42292d9212e8a636623d7a955ae5e4",
     "semantic_hash": ""
   },
   "specs/029-hermes-launch-programs/checklists/requirements.md": {
@@ -3594,21 +3594,21 @@
     "semantic_hash": ""
   },
   "specs/029-hermes-launch-programs/contracts/hermes-launch-app.md": {
-    "mtime": 1793498585.855404,
-    "seen": 1793501402.7354097,
-    "ast_hash": "4db0efb04a5be07524f40316a1c43ae8",
+    "mtime": 1793501518.8167317,
+    "seen": 1794214822.4817371,
+    "ast_hash": "6e7979e69bad26d746918e330ce8fdfd",
     "semantic_hash": ""
   },
   "specs/029-hermes-launch-programs/data-model.md": {
-    "mtime": 1793498586.4792514,
-    "seen": 1793501402.7354102,
-    "ast_hash": "3b638e5812018210cb88cf8730c16c25",
+    "mtime": 1793501518.1126583,
+    "seen": 1794214822.4817376,
+    "ast_hash": "87e0f270ccca7dd049bd4047fca0be05",
     "semantic_hash": ""
   },
   "specs/029-hermes-launch-programs/plan.md": {
-    "mtime": 1793496303.6109526,
-    "seen": 1793501402.7354105,
-    "ast_hash": "d5608206b1bf0122ba82fec240c02b3e",
+    "mtime": 1793501519.8544102,
+    "seen": 1794214822.4817383,
+    "ast_hash": "f58043fa99c231c729f10e0abf5ceead",
     "semantic_hash": ""
   },
   "specs/029-hermes-launch-programs/quickstart.md": {
@@ -3624,15 +3624,915 @@
     "semantic_hash": ""
   },
   "specs/029-hermes-launch-programs/spec.md": {
-    "mtime": 1793498584.5157201,
-    "seen": 1793501402.735412,
-    "ast_hash": "8b098f84fc42c6ee8353319fcb0699ad",
+    "mtime": 1793501523.0805497,
+    "seen": 1794214822.48174,
+    "ast_hash": "1145d94b2e83caf12b24ef9aa3ab83e5",
     "semantic_hash": ""
   },
   "specs/029-hermes-launch-programs/tasks.md": {
-    "mtime": 1793501398.4304175,
-    "seen": 1793501402.7354126,
-    "ast_hash": "2510e3f20551f1b3d23a265ebeeacd05",
+    "mtime": 1793501523.527433,
+    "seen": 1794214822.4817405,
+    "ast_hash": "0778853e8d3f063a5ee96e379b5b11e5",
+    "semantic_hash": ""
+  },
+  "ai-chat-landing/app/api/chat/route.test.ts": {
+    "mtime": 1794192991.1313405,
+    "seen": 1794214822.4812627,
+    "ast_hash": "d584b629f3335672ea40893937620946",
+    "semantic_hash": ""
+  },
+  "reboot.sh": {
+    "mtime": 1793957165.0896354,
+    "seen": 1794214822.4813485,
+    "ast_hash": "d0dec85217ad3046a4706c33bf65bd26",
+    "semantic_hash": ""
+  },
+  "src/agentic_rag_mcp/hermes_run_gate.py": {
+    "mtime": 1794213448.8023722,
+    "seen": 1794214822.481375,
+    "ast_hash": "90f9a2c1a3f2f0b7190e9fbd97866f9d",
+    "semantic_hash": ""
+  },
+  "src/agentic_rag_mcp/office_gate.py": {
+    "mtime": 1793686039.1669214,
+    "seen": 1794214822.4813807,
+    "ast_hash": "4d89fc212a6030e573ea899f6f2c3364",
+    "semantic_hash": ""
+  },
+  "src/agentic_rag_mcp/office_state.py": {
+    "mtime": 1793948943.0483894,
+    "seen": 1794214822.4813814,
+    "ast_hash": "e44fcc875506a33422b937e230805b30",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_hermes_office_tool.py": {
+    "mtime": 1794214354.3370593,
+    "seen": 1794214822.48144,
+    "ast_hash": "4b18949fbc8bbd9de8984413c683b22d",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_hermes_run_gate.py": {
+    "mtime": 1794213353.5325344,
+    "seen": 1794214822.4814408,
+    "ast_hash": "f95f0cc92ebfa6c525960bfa0320d95b",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_hermes_run_tool.py": {
+    "mtime": 1794213531.4919918,
+    "seen": 1794214822.4814413,
+    "ast_hash": "649ffd674d6e6f223ffcf923e281cd52",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_office_gate.py": {
+    "mtime": 1793686080.3231988,
+    "seen": 1794214822.4814441,
+    "ast_hash": "2014a8eec3fbab04c3d44525c08cd143",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_office_state.py": {
+    "mtime": 1793948981.1371143,
+    "seen": 1794214822.4814446,
+    "ast_hash": "1a5e7951107de21bba0f01dd4d20cfa8",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/a-little-bit-slow-to-create-email/assessment.md": {
+    "mtime": 1793872598.4868991,
+    "seen": 1794214822.48147,
+    "ast_hash": "6ccabf5dd81b2f523d848e8eefff0182",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/a-little-bit-slow-to-create-email/fix.md": {
+    "mtime": 1793873010.7185414,
+    "seen": 1794214822.481471,
+    "ast_hash": "35cda4d14ffc035dc7391be7cc3908a1",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/a-little-bit-slow-to-create-email/test.md": {
+    "mtime": 1793927383.9108498,
+    "seen": 1794214822.4814715,
+    "ast_hash": "0b0dcd82aac465de6da6eb5033613cf2",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/blocked-more-than-one-application-named-20261108/assessment.md": {
+    "mtime": 1794104151.409189,
+    "seen": 1794214822.4814723,
+    "ast_hash": "6789a37ab1f1ce5f7272c1df5ed15088",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/blocked-more-than-one-application-named-20261108/fix.md": {
+    "mtime": 1794104924.3245895,
+    "seen": 1794214822.4814727,
+    "ast_hash": "0e5cbbc6b429aa94dd513db536b91e7d",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/blocked-more-than-one-application-named-20261108/test.md": {
+    "mtime": 1794122046.4322898,
+    "seen": 1794214822.4814734,
+    "ast_hash": "0f3dfa28eaf6a325ddcac5eccd0c1677",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/blocked-more-than-one-application-named/assessment.md": {
+    "mtime": 1793958006.3388474,
+    "seen": 1794214822.4814742,
+    "ast_hash": "d3463c6904ed922a9aa397196824a7f1",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/blocked-more-than-one-application-named/fix.md": {
+    "mtime": 1793958608.9240468,
+    "seen": 1794214822.4814744,
+    "ast_hash": "e60c1b41a5a7e8ea37ffed780a863707",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/blocked-more-than-one-application-named/test.md": {
+    "mtime": 1793959298.2488482,
+    "seen": 1794214822.4814749,
+    "ast_hash": "8507e8766f2fc49b381cdfe296cbb84b",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/cannot-open-a-new-tab-on-current-chrome-browse/assessment.md": {
+    "mtime": 1794204114.872222,
+    "seen": 1794214822.4814756,
+    "ast_hash": "85fbc87570fde1017abf5ca0202bd495",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/cannot-open-a-new-tab-on-current-chrome-browse/fix.md": {
+    "mtime": 1794211335.2883284,
+    "seen": 1794214822.481476,
+    "ast_hash": "21d3d0a6347d6f9e112fb35f94bdf33a",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/cannot-open-a-new-tab-on-current-chrome-browse/test.md": {
+    "mtime": 1794211683.2543223,
+    "seen": 1794214822.4814768,
+    "ast_hash": "4faafea381e8f869f474a61e7896fe8f",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/cannot-open-two-instances-of-outlook/assessment.md": {
+    "mtime": 1793763337.3039694,
+    "seen": 1794214822.4814777,
+    "ast_hash": "99c01171fd2e60b49d7d1a10952a0562",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/cannot-open-two-instances-of-outlook/fix.md": {
+    "mtime": 1793764153.062707,
+    "seen": 1794214822.481478,
+    "ast_hash": "857fb929bc89b3bc76c0fb5b2667fce4",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/cannot-open-two-instances-of-outlook/test.md": {
+    "mtime": 1793765050.3808322,
+    "seen": 1794214822.4814785,
+    "ast_hash": "a54784a628258e13eb5568ecf2a45d79",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/chat-history-unavailable/assessment.md": {
+    "mtime": 1793850736.7730474,
+    "seen": 1794214822.481479,
+    "ast_hash": "e1f41b626012bbf8f1158657750719e7",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/chat-history-unavailable/fix.md": {
+    "mtime": 1793854188.5178013,
+    "seen": 1794214822.4814794,
+    "ast_hash": "1ed00b2b62bd636d46ba00608d38f520",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/close-excel-wait-long-time/assessment.md": {
+    "mtime": 1793943543.2388206,
+    "seen": 1794214822.4814801,
+    "ast_hash": "d49a7244090be5b285e88d2fc2536a2b",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/close-excel-wait-long-time/fix.md": {
+    "mtime": 1793944260.9999504,
+    "seen": 1794214822.4814806,
+    "ast_hash": "fc32e64564a33ddeeabda4390dc57fc3",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/completed-message-wait-long-time/assessment.md": {
+    "mtime": 1793948914.8357503,
+    "seen": 1794214822.4814813,
+    "ast_hash": "addaf0e198eecfbb8d8df57f54fd3389",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/completed-message-wait-long-time/fix.md": {
+    "mtime": 1793949589.4634907,
+    "seen": 1794214822.481482,
+    "ast_hash": "dd09cdf26d88b5a3f083f51be4e210b8",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/completed-message-wait-long-time/test.md": {
+    "mtime": 1793949818.7307956,
+    "seen": 1794214822.4814825,
+    "ast_hash": "af221c212bd385e5d73a504c7f5a388c",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/create-save-presentation-via-runpython-failed/assessment.md": {
+    "mtime": 1793780356.4569266,
+    "seen": 1794214822.4814832,
+    "ast_hash": "ed2a3b866a382ca5150d001172f452bc",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/desktop-followup-timeout-600s/assessment.md": {
+    "mtime": 1794127079.4636772,
+    "seen": 1794214822.4814837,
+    "ast_hash": "bb8b628c015d57582810825861cf87f2",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/desktop-followup-timeout-600s/fix.md": {
+    "mtime": 1794128227.4356942,
+    "seen": 1794214822.4814847,
+    "ast_hash": "52c5880028c3ff749aa106478435d9f0",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/desktop-followup-timeout-600s/test.md": {
+    "mtime": 1794128348.6888807,
+    "seen": 1794214822.4814854,
+    "ast_hash": "773121783322576c2a912e77153c9ebd",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/do-not-write-data-in-worksheet/assessment.md": {
+    "mtime": 1793942009.909298,
+    "seen": 1794214822.481486,
+    "ast_hash": "1e230106a94fee8cccf878bc614de116",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/do-not-write-data-in-worksheet/fix.md": {
+    "mtime": 1793942508.4999466,
+    "seen": 1794214822.4814868,
+    "ast_hash": "261e6c0a81e327a6f9d0a77375181fb4",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/do-not-write-data-in-worksheet/test.md": {
+    "mtime": 1793942677.5527732,
+    "seen": 1794214822.4814873,
+    "ast_hash": "0b7f5b99db071ff7c14e5998dad39330",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/every-steps-hold-long-time/assessment.md": {
+    "mtime": 1794200463.3715966,
+    "seen": 1794214822.481488,
+    "ast_hash": "b36b5b07deb22a317cc5bab1f961eb67",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/every-steps-hold-long-time/fix.md": {
+    "mtime": 1794201456.1560683,
+    "seen": 1794214822.4814885,
+    "ast_hash": "ac1d57b6f40d1e8b6ef2a31e46dc01cf",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/every-steps-hold-long-time/test.md": {
+    "mtime": 1794201588.6342757,
+    "seen": 1794214822.481489,
+    "ast_hash": "f41f0f5cb18670f068a6019cf4e17030",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/fail-to-save-file/assessment.md": {
+    "mtime": 1793684961.638514,
+    "seen": 1794214822.4814897,
+    "ast_hash": "0dbfbd6962ba06e8b07a6bb8e089fc10",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/fail-to-save-file/fix.md": {
+    "mtime": 1793685193.9945574,
+    "seen": 1794214822.4814901,
+    "ast_hash": "bcfb2696adbe473639837979e7cfc163",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/i-cant-execute-powershell-or-any-command-line-lookup-for-you/assessment.md": {
+    "mtime": 1794212067.1009002,
+    "seen": 1794214822.4814906,
+    "ast_hash": "ee5a2e8e3561ae1ceafbb22569d018e1",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/it-is-a-transport-failure-let-me-try-again-once-since-it-may-be-transient/assessment.md": {
+    "mtime": 1794129404.8889387,
+    "seen": 1794214822.4814916,
+    "ast_hash": "cf3fd37a1949babe10a45d48bbc712b0",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/it-is-a-transport-failure-let-me-try-again-once-since-it-may-be-transient/fix.md": {
+    "mtime": 1794129480.2356572,
+    "seen": 1794214822.481492,
+    "ast_hash": "ec4440ae01cc977745958f3d6affc5ea",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/it-is-a-transport-failure-let-me-try-again-once-since-it-may-be-transient/test.md": {
+    "mtime": 1794129646.6512473,
+    "seen": 1794214822.4814925,
+    "ast_hash": "580752cd73ea21d0a28e50efd8139215",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/local-agent-failed/assessment.md": {
+    "mtime": 1793865699.351124,
+    "seen": 1794214822.481493,
+    "ast_hash": "38deb827becf941f218e3771a71ba081",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/local-agent-failed/fix.md": {
+    "mtime": 1793866585.287713,
+    "seen": 1794214822.4814937,
+    "ast_hash": "1cd1d7a3a0b49e231a3a48375050be36",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/local-agent-failed/test.md": {
+    "mtime": 1793871339.3397481,
+    "seen": 1794214822.4814942,
+    "ast_hash": "ad358818d9a8197d255a897d6f89327c",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/local-model-unavailable/assessment.md": {
+    "mtime": 1793854195.2404716,
+    "seen": 1794214822.4814947,
+    "ast_hash": "565897e689773b5170b372d54e6c20b3",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/local-model-unavailable/fix.md": {
+    "mtime": 1793854204.8140774,
+    "seen": 1794214822.4814954,
+    "ast_hash": "fa59067cfdd7f8034ac4647b92f32199",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/local-model-unavailable/test.md": {
+    "mtime": 1793854209.6741564,
+    "seen": 1794214822.481496,
+    "ast_hash": "b3123584cbe0879489e7d6e3000da4db",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/local-office-agent-failed/assessment.md": {
+    "mtime": 1793768367.156557,
+    "seen": 1794214822.4814966,
+    "ast_hash": "fc2a564fefc6171c9ed3e078fa9f1a66",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/no-powerpoint-tool/assessment.md": {
+    "mtime": 1793682086.0023742,
+    "seen": 1794214822.481497,
+    "ast_hash": "70c09e6ffaf60ac8d1bcadda95444c8e",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/no-powerpoint-tool/fix.md": {
+    "mtime": 1793682774.4952285,
+    "seen": 1794214822.4814973,
+    "ast_hash": "418fe08198df3af246582ee021480f24",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/not-saved-in-outlook-drafts-folder-and-not-send-email/assessment.md": {
+    "mtime": 1793856985.8401437,
+    "seen": 1794214822.4814978,
+    "ast_hash": "56a69663f26efd5f3019650e2ad1fb8e",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/not-saved-in-outlook-drafts-folder-and-not-send-email/fix.md": {
+    "mtime": 1793857389.6373343,
+    "seen": 1794214822.4814985,
+    "ast_hash": "724c7db2d425bbba5cb0a58f91417f20",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/not-saved-in-outlook-drafts-folder-and-not-send-email/test.md": {
+    "mtime": 1793857820.0644827,
+    "seen": 1794214822.481499,
+    "ast_hash": "fe55183c5052b9c358cee9b93f5be1ca",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/office-agent-call-failed/assessment.md": {
+    "mtime": 1793772213.663945,
+    "seen": 1794214822.4814994,
+    "ast_hash": "8ca9748f4f9e7a3034467f3b3ff75986",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/office-routing-flake/assessment.md": {
+    "mtime": 1793610477.7882993,
+    "seen": 1794214822.4815,
+    "ast_hash": "e80e04b9b8516078a673965d6ec9ae4b",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/office-routing-flake/fix.md": {
+    "mtime": 1793611078.1325178,
+    "seen": 1794214822.4815006,
+    "ast_hash": "db5137e924d37addae0e87d2af4009e9",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/office-routing-flake/test.md": {
+    "mtime": 1793611248.1621244,
+    "seen": 1794214822.481501,
+    "ast_hash": "bf9f335bab596426318463e47e263ad9",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/officemcp-connection-error/assessment.md": {
+    "mtime": 1793692901.3455217,
+    "seen": 1794214822.4815016,
+    "ast_hash": "9c63b163f5bbd5e7b6738c919c7ebd01",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/officemcp-connection-error/fix.md": {
+    "mtime": 1793863408.3141675,
+    "seen": 1794214822.4815056,
+    "ast_hash": "2cfaba8c3602b859c812e4b3cc547703",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/officemcp-connection-error/test.md": {
+    "mtime": 1793696885.9312313,
+    "seen": 1794214822.481506,
+    "ast_hash": "842b0d4fd75a67202182bef1cc111553",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/officemcp-connection-error/upstream-report.md": {
+    "mtime": 1793706512.857039,
+    "seen": 1794214822.4815068,
+    "ast_hash": "1d47825ca06666303c0eb2e091b992e2",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/only-one-version-of-outlook-can-run-at-a-time/assessment.md": {
+    "mtime": 1793858686.1536608,
+    "seen": 1794214822.4815073,
+    "ast_hash": "a5732c3be0d8f84da62105d86f081911",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/only-one-version-of-outlook-can-run-at-a-time/fix.md": {
+    "mtime": 1793859146.4077587,
+    "seen": 1794214822.4815078,
+    "ast_hash": "474f8a8941a94fda8795ea045083fb42",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/only-one-version-of-outlook-can-run-at-a-time/test.md": {
+    "mtime": 1793859740.6128743,
+    "seen": 1794214822.4815083,
+    "ast_hash": "b42d48ab892c53d60fc9ac489b66da83",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/only-one-version-of-outlook-can-run-at-a-time/upstream-comment-draft.md": {
+    "mtime": 1793871339.3397481,
+    "seen": 1794214822.481509,
+    "ast_hash": "b1c445cefee5d84c2fa5e13ef63497f3",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/outlook-fail-send-email/assessment.md": {
+    "mtime": 1793709111.2597647,
+    "seen": 1794214822.4815094,
+    "ast_hash": "9e55501b71ba2c0627318cfda5d1783c",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/ppt-fail-change-background/assessment.md": {
+    "mtime": 1793613505.7309053,
+    "seen": 1794214822.48151,
+    "ast_hash": "6496df09cc516fcd6710344a01af26e0",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/ppt-fail-change-background/fix.md": {
+    "mtime": 1793613933.0460975,
+    "seen": 1794214822.4815104,
+    "ast_hash": "4f8b350d205cb052ecd99ff169057c6f",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/ppt-fail-change-background/test.md": {
+    "mtime": 1793629876.4396183,
+    "seen": 1794214822.4815109,
+    "ast_hash": "615338fa500d47ee12958fb3adec2f7d",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/read-tool-response-failed-request-failed-failed-to-invoke-tool/assessment.md": {
+    "mtime": 1793773901.5789769,
+    "seen": 1794214822.4815142,
+    "ast_hash": "89ae90a3a265e25a7bbba0598bd485b2",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/read-tool-response-failed-request-failed/assessment.md": {
+    "mtime": 1793944949.4655635,
+    "seen": 1794214822.4815242,
+    "ast_hash": "105caaf3a7ee4ebd37ceffea29d73e1c",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/read-tool-response-failed-request-failed/fix.md": {
+    "mtime": 1793947255.1322052,
+    "seen": 1794214822.481525,
+    "ast_hash": "db9097f3b88e24cabe737d3eb05fa4fa",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/read-tool-response-failed-request-failed/test.md": {
+    "mtime": 1793947614.3577378,
+    "seen": 1794214822.4815254,
+    "ast_hash": "7cc5b9c4b49c3112692518822ab54dd0",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/repeated-show-ai-is-controlling-this-computer-many-times/assessment.md": {
+    "mtime": 1794193832.465394,
+    "seen": 1794214822.481526,
+    "ast_hash": "f2f2e8b493c3caf7ca5aadf6071875bd",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/repeated-show-ai-is-controlling-this-computer-many-times/fix.md": {
+    "mtime": 1794196201.8248093,
+    "seen": 1794214822.4815269,
+    "ast_hash": "377e5e135bd6bfbef8ba3434836ed742",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/repeated-show-ai-is-controlling-this-computer-many-times/test.md": {
+    "mtime": 1794196342.4791572,
+    "seen": 1794214822.4815273,
+    "ast_hash": "f113fa519380e5cb5385ee0a36c25af2",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/runpython-canary-failed/assessment.md": {
+    "mtime": 1793778273.5073433,
+    "seen": 1794214822.4815278,
+    "ast_hash": "27d1f4fd8e5741ab6716071047eb650a",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/say-the-local-agent-failed-and-include-the-recovery-hint/assessment.md": {
+    "mtime": 1793869732.7668145,
+    "seen": 1794214822.4815283,
+    "ast_hash": "c4cf6f8a9a36bad02cf1fadf79f66b97",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/say-the-local-agent-failed-and-include-the-recovery-hint/fix.md": {
+    "mtime": 1793870208.6706707,
+    "seen": 1794214822.4815288,
+    "ast_hash": "c04293483e35ffca007156191ebbaf4c",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/say-the-local-agent-failed-and-include-the-recovery-hint/test.md": {
+    "mtime": 1793870764.9022171,
+    "seen": 1794214822.4815292,
+    "ast_hash": "9d4a009ab4be43aa1b3a483211236c2e",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/the-launch-request-failed-while-communicating-with-the-local-agent-on-your-pc/assessment.md": {
+    "mtime": 1794196964.2815146,
+    "seen": 1794214822.48153,
+    "ast_hash": "51f13179516dd412f3f239771049184b",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/the-launch-request-failed-while-communicating-with-the-local-agent-on-your-pc/fix.md": {
+    "mtime": 1794197037.8347409,
+    "seen": 1794214822.4815304,
+    "ast_hash": "e2ef33c12b2a415df91f1fb78a745b09",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/the-launch-request-failed-while-communicating-with-the-local-agent-on-your-pc/test.md": {
+    "mtime": 1794197148.5445757,
+    "seen": 1794214822.481531,
+    "ast_hash": "97a3f11b7acb1d61d3f65eedeaaf48ff",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/the-launcher-only-handles-one-program-at-a-time/assessment.md": {
+    "mtime": 1794124587.7361872,
+    "seen": 1794214822.4815314,
+    "ast_hash": "2855e9c536400cef814b5e9c6f029012",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/the-launcher-only-handles-one-program-at-a-time/fix.md": {
+    "mtime": 1794125644.3075469,
+    "seen": 1794214822.4815319,
+    "ast_hash": "6ccf729730c22734047ed562c2423a8f",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/the-launcher-only-handles-one-program-at-a-time/test.md": {
+    "mtime": 1794125734.4944508,
+    "seen": 1794214822.4815323,
+    "ast_hash": "d226e4880babf86bdda066382d8bf2f0",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/the-local-agent-blocked-the-request-blocked-more-than-one-application-named/assessment.md": {
+    "mtime": 1794190288.0498922,
+    "seen": 1794214822.4815328,
+    "ast_hash": "993f5d1d67de23982e891845e77e4bba",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/the-local-agent-blocked-the-request-blocked-more-than-one-application-named/fix.md": {
+    "mtime": 1794191016.858212,
+    "seen": 1794214822.4815335,
+    "ast_hash": "b56dcf24aaf7fc3b063c9426813bf7f5",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/the-local-agent-blocked-the-request-blocked-more-than-one-application-named/test.md": {
+    "mtime": 1794191717.2459943,
+    "seen": 1794214822.481534,
+    "ast_hash": "7d14b833577a1779c4b4b0884273835b",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/the-local-agent-hit-a-transient-channel-error/assessment.md": {
+    "mtime": 1793871248.464494,
+    "seen": 1794214822.4815345,
+    "ast_hash": "3110ffb1ba78910eb32acca8fd59c87f",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/the-local-agent-hit-a-transient-channel-error/fix.md": {
+    "mtime": 1793871774.1275687,
+    "seen": 1794214822.4815347,
+    "ast_hash": "a05cb6399473b491e86be112fd6fdf4b",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/the-local-agent-hit-a-transient-channel-error/test.md": {
+    "mtime": 1793872039.5252683,
+    "seen": 1794214822.4815354,
+    "ast_hash": "da103a3fc06f4f2c7f84bc28763d3b2a",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/the-local-agent-hit-a-transport-error/assessment.md": {
+    "mtime": 1794187276.8183806,
+    "seen": 1794214822.4815357,
+    "ast_hash": "d5b8c38ef0d6f87d347ae0773b6b2429",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/the-local-agent-hit-a-transport-error/fix.md": {
+    "mtime": 1794189331.0496368,
+    "seen": 1794214822.4815366,
+    "ast_hash": "32e5163b1ebe0b5be49b9bdc4430e5a4",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/the-local-agent-hit-a-transport-error/test.md": {
+    "mtime": 1794189519.7208462,
+    "seen": 1794214822.4815369,
+    "ast_hash": "2682e539bf3137eaf85668e0b86d1f54",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/the-local-agent-simply-has-no-shell-powershell-execution-capability/assessment.md": {
+    "mtime": 1794212208.3513184,
+    "seen": 1794214822.4815373,
+    "ast_hash": "510ca93c133741246a26a88ec52216fc",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/the-office-task-failed-at-the-tool-level/assessment.md": {
+    "mtime": 1793773353.521249,
+    "seen": 1794214822.481538,
+    "ast_hash": "f4c914dfb74771ced0b350e73c1136a7",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/the-tool-call-failed-with-an-infrastructure-error/assessment.md": {
+    "mtime": 1793777427.9019208,
+    "seen": 1794214822.4815385,
+    "ast_hash": "dbfaddda4d047cca88e82e17f120ba02",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/the-tool-call-failed/assessment.md": {
+    "mtime": 1793862594.8434181,
+    "seen": 1794214822.481539,
+    "ast_hash": "646217646b33b118997f4a501edf0903",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/the-tool-call-failed/fix.md": {
+    "mtime": 1793863393.8181677,
+    "seen": 1794214822.4815395,
+    "ast_hash": "b9f980b2c0dae42d33c1ff5459be51c0",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/the-tool-call-failed/test.md": {
+    "mtime": 1793869806.655779,
+    "seen": 1794214822.4815402,
+    "ast_hash": "8e910f9ee0a3b61c2b61f60985ab686f",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/the-tool-returned-an-error/assessment.md": {
+    "mtime": 1793780033.949286,
+    "seen": 1794214822.481541,
+    "ast_hash": "cd4293b7c81eba3395d1c83da8a6df7e",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/the-tool-returned-an-invoke-error/assessment.md": {
+    "mtime": 1793779133.5102696,
+    "seen": 1794214822.4815412,
+    "ast_hash": "2a45e8cb74ea56f5110b41cc843c96f8",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/typing-search-is-gui-automation-that-the-local-agent-cant-perform/assessment.md": {
+    "mtime": 1793977052.0793538,
+    "seen": 1794214822.4815416,
+    "ast_hash": "72c41f967a472ee73288c16fc40418d3",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/typing-search-is-gui-automation-that-the-local-agent-cant-perform/fix.md": {
+    "mtime": 1793978957.0850136,
+    "seen": 1794214822.481542,
+    "ast_hash": "4e4111ba8d9bd8be92e807934107cd8b",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/typing-search-is-gui-automation-that-the-local-agent-cant-perform/test.md": {
+    "mtime": 1794103072.2772899,
+    "seen": 1794214822.4815426,
+    "ast_hash": "46d86f582a1dbfbb62f8bb7da6d9e59e",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/verdict-status-error/assessment.md": {
+    "mtime": 1793772541.1556542,
+    "seen": 1794214822.481543,
+    "ast_hash": "2ddea3b63fac00519dcc35f9dc77d359",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/wait-long-time-show-output-result/assessment.md": {
+    "mtime": 1794192745.6272614,
+    "seen": 1794214822.4815438,
+    "ast_hash": "eb6933ff02b35d1ee28187986253590a",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/wait-long-time-show-output-result/fix.md": {
+    "mtime": 1794193026.18393,
+    "seen": 1794214822.4815443,
+    "ast_hash": "fa399aee9a3f3ed6450497c437e22fa5",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/waiting-long-long-time-at-ai-is-controlling-this-computer-stage/assessment.md": {
+    "mtime": 1794198766.700971,
+    "seen": 1794214822.4815447,
+    "ast_hash": "84c2bdd880f7796c959166a4ec8e01e6",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/waiting-long-long-time-at-ai-is-controlling-this-computer-stage/fix.md": {
+    "mtime": 1794198994.9991937,
+    "seen": 1794214822.481545,
+    "ast_hash": "05c5d8ebd3d52d84e004cf19eeac7554",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/waiting-long-long-time-at-ai-is-controlling-this-computer-stage/test.md": {
+    "mtime": 1794199314.8165278,
+    "seen": 1794214822.4815457,
+    "ast_hash": "c79bf1b41822f95f61ebb0d79cc40a85",
+    "semantic_hash": ""
+  },
+  "specs/030-hermes-office-tasks/checklists/requirements.md": {
+    "mtime": 1793596860.458071,
+    "seen": 1794214822.4817414,
+    "ast_hash": "0080018ccc4a30e12dce15c9811f349a",
+    "semantic_hash": ""
+  },
+  "specs/030-hermes-office-tasks/contracts/hermes-office-task.md": {
+    "mtime": 1793607607.9924061,
+    "seen": 1794214822.481742,
+    "ast_hash": "6721e2377bce163615a63404d4397bc8",
+    "semantic_hash": ""
+  },
+  "specs/030-hermes-office-tasks/data-model.md": {
+    "mtime": 1793607607.480403,
+    "seen": 1794214822.4817424,
+    "ast_hash": "5e36cc936e1f9590db496fac44a78dbc",
+    "semantic_hash": ""
+  },
+  "specs/030-hermes-office-tasks/plan.md": {
+    "mtime": 1793597717.3780873,
+    "seen": 1794214822.4817429,
+    "ast_hash": "6c2a1db47419b907fa923ad38421551e",
+    "semantic_hash": ""
+  },
+  "specs/030-hermes-office-tasks/quickstart.md": {
+    "mtime": 1793607629.3645358,
+    "seen": 1794214822.4817433,
+    "ast_hash": "5fcb6eb0b11026247d088bc279a46db7",
+    "semantic_hash": ""
+  },
+  "specs/030-hermes-office-tasks/research.md": {
+    "mtime": 1793597729.6062407,
+    "seen": 1794214822.4817438,
+    "ast_hash": "33ba2b77bb8ec903999db5922e92a5f8",
+    "semantic_hash": ""
+  },
+  "specs/030-hermes-office-tasks/spec.md": {
+    "mtime": 1793607608.2484078,
+    "seen": 1794214822.4817443,
+    "ast_hash": "d5267f185df7067008ab591a1c812629",
+    "semantic_hash": ""
+  },
+  "specs/030-hermes-office-tasks/tasks.md": {
+    "mtime": 1793606160.7909436,
+    "seen": 1794214822.481745,
+    "ast_hash": "78f5f897038d865dec4db95ecbbcbed3",
+    "semantic_hash": ""
+  },
+  "specs/031-office-save-anywhere/checklists/requirements.md": {
+    "mtime": 1793685422.1135602,
+    "seen": 1794214822.4817455,
+    "ast_hash": "737cb9ec3c5b27e599f518260212137e",
+    "semantic_hash": ""
+  },
+  "specs/031-office-save-anywhere/contracts/hermes-office-save-anywhere.md": {
+    "mtime": 1793685891.1544225,
+    "seen": 1794214822.481746,
+    "ast_hash": "b8d1130234b5274fe76641c9d9e3e574",
+    "semantic_hash": ""
+  },
+  "specs/031-office-save-anywhere/data-model.md": {
+    "mtime": 1793685880.8817813,
+    "seen": 1794214822.4817464,
+    "ast_hash": "7a4f28c1309f41a80d3b897a4e810694",
+    "semantic_hash": ""
+  },
+  "specs/031-office-save-anywhere/plan.md": {
+    "mtime": 1793685855.3016014,
+    "seen": 1794214822.481747,
+    "ast_hash": "376317d35bc9b53c8291cdba76e5149e",
+    "semantic_hash": ""
+  },
+  "specs/031-office-save-anywhere/quickstart.md": {
+    "mtime": 1793690168.1889842,
+    "seen": 1794214822.4817474,
+    "ast_hash": "c9b897541561abeb43a60cb769719686",
+    "semantic_hash": ""
+  },
+  "specs/031-office-save-anywhere/research.md": {
+    "mtime": 1793685872.2217202,
+    "seen": 1794214822.4817479,
+    "ast_hash": "0d4970048ce9a1740520f21f2455d357",
+    "semantic_hash": ""
+  },
+  "specs/031-office-save-anywhere/spec.md": {
+    "mtime": 1793690162.2569742,
+    "seen": 1794214822.4817488,
+    "ast_hash": "d7bcef21c29262746394910817b40103",
+    "semantic_hash": ""
+  },
+  "specs/031-office-save-anywhere/tasks.md": {
+    "mtime": 1793689599.5355835,
+    "seen": 1794214822.481749,
+    "ast_hash": "5f754ef9de01c98d3795e6ac242fc26e",
+    "semantic_hash": ""
+  },
+  "specs/032-ai-control-dialog-timeout/checklists/requirements.md": {
+    "mtime": 1794122436.7228043,
+    "seen": 1794214822.4817495,
+    "ast_hash": "f1580cfec35010502c4059bed8d32405",
+    "semantic_hash": ""
+  },
+  "specs/032-ai-control-dialog-timeout/data-model.md": {
+    "mtime": 1794122679.4869797,
+    "seen": 1794214822.48175,
+    "ast_hash": "93ee4a3afd244f9e6d1c74e35a6e7c68",
+    "semantic_hash": ""
+  },
+  "specs/032-ai-control-dialog-timeout/plan.md": {
+    "mtime": 1794122702.1052868,
+    "seen": 1794214822.4817505,
+    "ast_hash": "c7fe2b57fb848d3b11d3065df0ec4f8c",
+    "semantic_hash": ""
+  },
+  "specs/032-ai-control-dialog-timeout/quickstart.md": {
+    "mtime": 1794122688.065614,
+    "seen": 1794214822.481751,
+    "ast_hash": "6533b819c20cf884ce53a890d444a15b",
+    "semantic_hash": ""
+  },
+  "specs/032-ai-control-dialog-timeout/research.md": {
+    "mtime": 1794122671.554923,
+    "seen": 1794214822.4817514,
+    "ast_hash": "72df9206cae88e1b5ea2ed1ce5adcfa2",
+    "semantic_hash": ""
+  },
+  "specs/032-ai-control-dialog-timeout/spec.md": {
+    "mtime": 1794122594.3592026,
+    "seen": 1794214822.4817522,
+    "ast_hash": "694886299820a642ee6d3bd4022a9243",
+    "semantic_hash": ""
+  },
+  "specs/032-ai-control-dialog-timeout/tasks.md": {
+    "mtime": 1794123341.048817,
+    "seen": 1794214822.4817526,
+    "ast_hash": "dd5c88f3923751b37c37dce5133590e6",
+    "semantic_hash": ""
+  },
+  "specs/033-hermes-run-command/checklists/requirements.md": {
+    "mtime": 1794212558.9693084,
+    "seen": 1794214822.4817529,
+    "ast_hash": "55f44540e5b3fda4c7d14ab097a4738d",
+    "semantic_hash": ""
+  },
+  "specs/033-hermes-run-command/contracts/tool-contract.md": {
+    "mtime": 1794212863.9124074,
+    "seen": 1794214822.4817533,
+    "ast_hash": "6505449231df5e293f57ed191236f285",
+    "semantic_hash": ""
+  },
+  "specs/033-hermes-run-command/data-model.md": {
+    "mtime": 1794212855.4946964,
+    "seen": 1794214822.4817538,
+    "ast_hash": "65cf0020adbf0667d2ace0d6fd5012b0",
+    "semantic_hash": ""
+  },
+  "specs/033-hermes-run-command/plan.md": {
+    "mtime": 1794212820.253992,
+    "seen": 1794214822.4817545,
+    "ast_hash": "2326f79aa9fb95db25a24bad4fa2d5f0",
+    "semantic_hash": ""
+  },
+  "specs/033-hermes-run-command/quickstart.md": {
+    "mtime": 1794212871.8230226,
+    "seen": 1794214822.481755,
+    "ast_hash": "180b43723b1ff8fbc8a7a995d56bb91c",
+    "semantic_hash": ""
+  },
+  "specs/033-hermes-run-command/research.md": {
+    "mtime": 1794212846.070509,
+    "seen": 1794214822.4817557,
+    "ast_hash": "e47545396606ddec322b7a25425c7332",
+    "semantic_hash": ""
+  },
+  "specs/033-hermes-run-command/spec.md": {
+    "mtime": 1794212750.6525865,
+    "seen": 1794214822.4817562,
+    "ast_hash": "18ddbeebc06a95211cc333f62591a41e",
+    "semantic_hash": ""
+  },
+  "specs/033-hermes-run-command/tasks.md": {
+    "mtime": 1794214351.866138,
+    "seen": 1794214822.4817567,
+    "ast_hash": "5ce91fb30655c2d2e5b1dd1c31ca7d2b",
     "semantic_hash": ""
   }
 }

@@ -30,7 +30,9 @@ class HermesAudit:
 
     def write_attempt(self, *, decision: str, operation: str,
                       normalized_path: str | None, allowed_root: str,
-                      reason: str | None = None, outcome: str | None = None) -> None:
+                      reason: str | None = None, outcome: str | None = None,
+                      duration_s: float | None = None,
+                      timing: dict | None = None) -> None:
         if decision not in _DECISIONS:
             raise ValueError(f"decision must be one of {_DECISIONS}, got {decision!r}")
         entry = {
@@ -44,6 +46,12 @@ class HermesAudit:
             entry["outcome"] = outcome
         else:
             entry["reason"] = reason
+        # every-steps-hold-long-time (2026-11-09): optional turn benchmark —
+        # absent on legacy entries and on attempts that never ran the agent
+        if duration_s is not None:
+            entry["duration_s"] = round(duration_s, 1)
+        if timing:
+            entry["timing"] = timing
         line = json.dumps(entry, ensure_ascii=False) + "\n"
         with _LOCK:
             with open(self.path, "a", encoding="utf-8") as f:

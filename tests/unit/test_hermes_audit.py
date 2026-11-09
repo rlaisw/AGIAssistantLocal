@@ -100,3 +100,29 @@ def test_concurrent_audit_writers_append_atomically(tmp_path):
     # every line is complete valid JSON (no interleaved partial writes)
     for l in lines:
         assert json.loads(l)["decision"] in ("executed", "blocked", "error")
+
+
+def test_optional_timing_fields_round_trip(tmp_path):
+    """every-steps-hold-long-time (2026-11-09): duration_s + timing are
+    OPTIONAL — entries written without them (the entire existing log) keep
+    their exact legacy shape; new entries round-trip the profile verbatim."""
+    path = tmp_path / "audit.jsonl"
+    audit = HermesAudit(path)
+    audit.write_attempt(decision="executed", operation="launch-app",
+                        normalized_path="chrome", allowed_root="",
+                        outcome="launched")   # legacy call — no timing kwargs
+    profile = {"total_s": 274.3, "first_event_s": 6.2, "event_count": 41,
+               "gaps": [{"gap_s": 23.8, "at_s": 86.0,
+                         "event": "response.completed"}]}
+    audit.write_attempt(decision="executed", operation="launch-app",
+                        normalized_path="chrome", allowed_root="",
+                        outcome="launched again",
+                        duration_s=274.34, timing=profile)
+    e1, e2 = [json.loads(l) for l in path.read_text().strip().splitlines()]
+    assert "duration_s" not in e1 and "timing" not in e1
+    assert e1 == {"ts": e1["ts"], "decision": "executed",
+                  "operation": "launch-app", "normalized_path": "chrome",
+                  "allowed_root": "", "outcome": "launched"}
+    assert e2["duration_s"] == 274.3          # rounded to 0.1 s
+    assert e2["timing"] == profile
+    assert e2["timing"]["gaps"][0]["gap_s"] == 23.8
