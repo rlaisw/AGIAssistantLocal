@@ -471,3 +471,12 @@ now drive the Windows desktop/UI (Click/Type/Screenshot/App/Process/FileSystem/R
 > overwrites the file); the observable failure signal is the notice reverting
 > to ~15 s. Verified: AI state clears 3.1 s post-action (generations 2 and 4,
 > i.e., across a restart); wait-for-idle countdown still starts from 10.
+
+> **Note (the-local-agent-hit-a-transport-error, 2026-11-09)**: the Dify plugin library
+> (`dify_plugin`, inside every plugin's venv) defaults `MAX_REQUEST_TIMEOUT=300` /
+> `MAX_INVOCATION_TIMEOUT=250` — the ~300 s chat-side stream cut ("peer closed
+> connection"). Both are now set to **600** in the `plugin_daemon` service environment
+> (`docker-compose.yaml` + `.env` as `PLUGIN_MAX_REQUEST_TIMEOUT`/`PLUGIN_MAX_INVOCATION_TIMEOUT`),
+> above the sidecar's 540 s honest envelope. A daemon **restart is not enough** — recreate
+> with `docker compose up -d plugin_daemon` (env only loads at container creation).
+> Re-check: `docker exec docker-plugin_daemon-1 env | grep MAX_`.

@@ -1,47 +1,46 @@
-# Bug Fix: Dify MCP provider timeout 300 → 600 — the chat-side ceiling now sits above the sidecar's honest envelope
+# Bug Fix: MAX_REQUEST_TIMEOUT/MAX_INVOCATION_TIMEOUT=600 in the plugin daemon — the ~300 s chat-side stream cut is gone
 
 - **Slug**: `the-local-agent-hit-a-transport-error`
-- **Fixed**: 2026-11-08T10:05+00:00
+- **Fixed**: 2026-11-09T01:45+00:00 (supersedes the 2026-11-08 provider-row fix.md — that change was correct-but-insufficient and stays applied; preserved in git)
 - **Assessment**: ./assessment.md
-- **Status**: applied — live-verified end-to-end on the exact previously-failing request
+- **Status**: applied — live-verified end-to-end
 
 ## Summary
 
-The `tool_mcp_providers` row for `agentic-rag` now carries `timeout = 600` and `sse_read_timeout = 600` (was 300/300 — the exact 300-second ceiling that cut chat-side tool streams with "peer closed connection"), loaded via a healthy `docker-api-1` restart. The client ceiling now sits above the sidecar's 540 s honest envelope, so chat turns end like direct calls: success or the truthful verdict — and the exact request that produced the transport error completed end-to-end on the first post-fix try.
+The `plugin_daemon` service now exports `MAX_REQUEST_TIMEOUT=600` and `MAX_INVOCATION_TIMEOUT=600` (the `dify_plugin` library's pydantic env vars, which default to 300/250 and cut every chat-side tool stream at ~300 s), loaded by recreating the daemon container. The exact request that failed twice in the test phase now completes end-to-end through the chat — delivering the actual adapter configuration (IPv4, gateway, DHCP, DNS) the user originally asked for.
 
 ## Changes
 
 | File / surface | Change | Notes |
 |------|--------|-------|
-| Dify DB `tool_mcp_providers` (live) | `timeout` 300 → 600; `sse_read_timeout` 300 → 600 | The chat-side MCP client's ceilings; both must sit above the sidecar's 540 s envelope |
-| `docker-api-1` | restarted | Loads the row (brief chat interruption); healthy after 39 s |
-| `DEPLOY.md` | updated | The re-apply note now carries the 600/600 value, the `sse_read_timeout` field, the api-restart step, and the rationale (600 > 540 envelope so the sidecar's honest verdict always wins) |
+| `/home/administrator/dify/docker/docker-compose.yaml` (committed to the Dify repo) | modified | `plugin_daemon` environment: `MAX_REQUEST_TIMEOUT: ${PLUGIN_MAX_REQUEST_TIMEOUT:-600}` and `MAX_INVOCATION_TIMEOUT: ${PLUGIN_MAX_INVOCATION_TIMEOUT:-600}` with a why-comment |
+| Live daemon container | recreated | `docker compose up -d plugin_daemon` — env verified: `MAX_REQUEST_TIMEOUT=600`, `MAX_INVOCATION_TIMEOUT=600` present (a plain restart would NOT have loaded them) |
+| `DEPLOY.md` | documented | The new note covers both variables, the recreate-not-restart requirement, and the re-check command |
 
 ## Diff Highlights (optional)
 
-```sql
-UPDATE tool_mcp_providers SET timeout = 600, sse_read_timeout = 600 WHERE name = 'agentic-rag';
--- 600 (not 300): must sit ABOVE the sidecar's 540s honest envelope so chat
--- turns end in a truthful verdict, not a 300s client cut.
+```yaml
+# plugin_daemon environment:
+MAX_REQUEST_TIMEOUT: ${PLUGIN_MAX_REQUEST_TIMEOUT:-600}      # was: library default 300
+MAX_INVOCATION_TIMEOUT: ${PLUGIN_MAX_INVOCATION_TIMEOUT:-600}  # was: library default 250
 ```
 
 ## Tests Added or Updated
 
-- No repo code changed (live config + docs); the suite ran green for confirmation
-- Live-graph checks: row verified `600|600`; api-1 healthy; DEPLOY.md note grep confirms the new command
+- No repo code (config fix); the live behavioral test below is the verification
 
 ## Local Verification
 
-- Row: `SELECT timeout, sse_read_timeout` → `600|600`; `docker-api-1` Up (healthy); Dify root 307 after restart
-- **Live e2e (09:57:09 → 10:00:52)**: the exact request from the bug report — *"open control panel , display wallpaper setting"* — through the **chat** (the path that died at 09:47): turn `status=normal`, **"Launch: SUCCESS"** — Control Panel opened fresh (pid 12172), and the agent used the fastest path (Run box → Settings → Personalization → **Background**, focused and maximized, showing Picture/Solid color/Slideshow/Spotlight), Control Panel open behind it. Full audit entry (10:00:50, executed). **No "peer closed connection"** — the pre-fix turn at this very request died at exactly 300 s with a transport error
-- Honest note: this sample completed in 224 s (the FASTEST-PATH guidance from `desktop-followup-timeout-600s` visibly sped it up versus the earlier attempt) — so the >300 s stream case is config-proven (the row that produced the measured 300.000 s cut is now 600) with the first natural >300 s turn as the behavioral sample to come
+- Daemon env after recreate: both variables present at 600; `hermes mcp test WindowsMCP` reconnects (Connected, 1112 ms)
+- **Live e2e (01:26–01:30)**: the exact request — "open control panel , show me network adapter configuration, e.g. ip address setting" — through the chat: turn **completed `status=normal` at 238 s with NO transport error** and delivered the full adapter config: *"**IPv4 Address** 10.161.92.120 | Subnet 255.255.255.0 | Gateway 10.161.92.3 | DHCP Enabled (server 10.161.121.82) | DNS Servers (6) | DNS suffix tvb-oa.tvb.org.hk | So your IP address is assigned automatically via DHCP"*. The agent used its consent-gated direct route for the dialogs (fastest-path guidance) — the two prior samples died at ~300 s with "peer closed connection"
+- The >300 s crossing itself was not strictly sampled (this turn finished at 238 s thanks to the direct-route speedup) — the env vars are verified present and the mechanism is code-proven (the library defaults were the only ~300 s constants in the eliminated-everything-else chain); the test phase's natural turns will accumulate the >300 s samples
 
 ## Deviations from Assessment
 
-- Also raised `sse_read_timeout` (300 → 600) — a one-line addition beyond the assessment's `timeout`-only change: the assessment measured `timeout` as the operative cut, but `sse_read_timeout` carried the same 300 value and would have become the binding ceiling once `timeout` rose; raising both removes the whole 300 s class from the row.
+- None — the preferred remediation applied exactly (both env vars, recreate, document). The compose change was committed to the Dify repo at `/home/administrator/dify` (where the daemon's compose file lives), not the main repo — the DEPLOY.md note in the main repo documents it.
 
 ## Follow-ups
 
-- The first natural >300 s chat turn (long navigation under consent waits) will provide the behavioral sample for the >300 s stream case; with the envelope at 540 s, its honest worst case is the sidecar's "try a smaller task" verdict
-- The DEPLOY.md re-apply note is the persistence mechanism for both row values — provider re-syncs (`sync-tools`) may reset them; re-apply + api restart per the note
-- Your desktop now has the Settings → Personalization → Background page focused (from the verification turn) — pick a wallpaper or close it
+- `/speckit.bug.test` should capture a >300 s behavioral sample when a naturally slow turn occurs; the honest worst case is now the sidecar's 540 s verdict, never a transport cut
+- The DEPLOY.md note covers re-checks after Dify upgrades (variable renames); `docker exec docker-plugin_daemon-1 env | grep MAX_` is the one-liner
+- The user's desktop has Control Panel + the adapter Status/Details dialogs open from the verification — close at will
