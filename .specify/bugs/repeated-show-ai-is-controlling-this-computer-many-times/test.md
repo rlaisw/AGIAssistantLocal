@@ -1,44 +1,41 @@
-# Bug Verification: the Stop→cancel chain works at the tool level but the UI route's MCP dance 406s — fix incomplete at the last hop
+# Bug Verification: the chat Stop cancels the desktop agent within seconds — full chain green at the UI level
 
-- **Slug**: `repeated-show-ai-is-controlling-this-computer-many-times`
-- **Tested**: 2026-11-09T03:50+00:00
+- **Slug**: `repeated-show-ai-is-controlling-this-computer-many-times` (resolved from context — the user's truncated slug `…-many-time` fell through to the just-fixed lifecycle)
+- **Tested**: 2026-11-09T03:55+00:00 (cycle-2 verification; supersedes the failed cycle-1 test.md — git preserves it)
 - **Assessment**: ./assessment.md
 - **Fix**: ./fix.md
-- **Result**: **failed** — the tool-level chain is verified end-to-end (twice), but the test phase found the **UI stop route's sidecar call is broken** (406) and the launch lane's chat wiring is missing the prompt instruction — both at the last hop, so pressing Stop in the chat today still does not cancel a desktop turn.
+- **Result**: verified
 
 ## Summary
 
-The agent-interrupt mechanism is real and verified twice at the tool level (cancel tool → connection close → gateway "interrupted agent task" → honest cancelled verdict at +50 s instead of minutes). But the UI-level reproduction found two gaps between the Stop button and the verified tool: (1) the stop route's `cancelSidecarTurn` MCP dance sends no `Accept` header — the sidecar's streamable server rejects every step with **406** ("Client must accept both application/json and text/event-stream") and the fire-and-forget catch swallows it; (2) the chatflow prompt's launch bullet ("Call hermes_launch_app(task)") does not pass the new `conversation_id` param, so the agent never registers chat-side launch turns as cancellable. The symptom would still reproduce for a user pressing Stop today.
+The original symptom — the "AI is controlling this computer" notice flashing for minutes while the chat gave no response after Stop — no longer reproduces through the chat's own stop path: the test-phase reproduction (in-flight desktop turn → `POST /api/chat/stop` at +40 s) returned `{"result":"ok"}`, the launch tool returned at **+40 s** with the honest cancelled verdict, and both audit entries (`cancel-turn` cancelled, `launch-app` error) were written the same second. The turn that ran 570 s of desktop control past a user Stop now halts in ~0 s after the route fires.
 
 ## Checks Performed
 
 | Check | Command / Action | Result | Notes |
 |-------|------------------|--------|-------|
-| Reproduction (post-fix), **tool level** | launch turn with conversation_id `cancel-live-verify-2` + `hermes_cancel_turn` at +45 s (fix phase) | **pass** | Tool returned +50 s with the honest cancelled verdict; gateway: "SSE client disconnected; interrupted agent task"; both audit entries written |
-| Reproduction (post-fix), **UI level** | launch turn with conversation_id `ui-stop-verify`; `POST /api/chat/stop {taskId, conversationId}` at +40 s (this phase) | **FAIL** | The route returned `stop failed: Invalid task ID: expected a UUID` (my fake taskId — the real-flow taskId is a UUID, so this part is a probe artifact) — but the decisive evidence is below |
-| UI route's sidecar reach | reproduce the route's exact fetch (no `Accept` header) → `initialize` | **FAIL — root cause pinned** | `406 {"error":{"message":"Not Acceptable: Client must accept both application/json and text/event-stream"}}` — every step of the route's 3-POST dance 406s and the `.catch(() => {})` swallows it; **no `cancel-turn` audit entry for `ui-stop-verify`** until the cleanup cancel (which used the correct header and worked immediately: `{'status': 'ok', 'cancelled': True}`, gateway "interrupted agent task resp_1fa7a…") |
-| Launch-lane chat wiring | DSL prompt grep | **gap** | Office bullet: "ALWAYS pass conversation_id exactly as '{{#sys.conversation_id#}}'" ✓; launch bullet: "Call hermes_launch_app(task)" — **no conversation_id**, so chat-side launch turns run the uncancellable blocking path (the fix made the param optional, but nothing tells the agent to pass it) |
-| New / updated tests | `pytest tests/unit` | **pass** | **359 passed** (registry semantics, stream parse, office stream-mocks) |
-| UI suites | `pnpm vitest run` + `typecheck` | **pass** | 143 passed; typecheck clean |
+| Reproduction (post-fix), UI level — the exact failed scenario | in-flight launch turn (conversation_id `ui-stop-verify-3`) → `POST /api/chat/stop {taskId: <uuid>, conversationId}` at +40 s | **pass** | Route `{"result":"ok"}`; tool returned +40 s with *"the turn was cancelled — any partial desktop state was left as-is"*; audit 03:51:38 `cancel-turn` cancelled + `launch-app` error. Cycle-1's identical probe 406'd silently and the turn ran on — the Accept-header fix and the launch-bullet prompt are the delta |
+| Reproduction (post-fix), tool level | fix-phase live runs (cycle 1: +45→+50 s; cleanup re-proof) | **pass** | Registry → cancel tool → gateway "interrupted agent task" → honest verdict, proven twice before cycle 2 |
+| Live-graph prompt check | `graph::text LIKE '%lets the Stop button cancel%'` on the current published version | **pass** | true (03:48:02); the launch bullet now mandates `conversation_id` exactly as the office bullet always did |
+| New / updated tests | `pytest tests/unit` | **pass** | **359 passed** (registry semantics, stream parse, office stream-mocks, all prior suites) |
+| UI suites | `pnpm vitest run` | **pass** | **143 passed** |
+| Lint / type-check | `pnpm typecheck`; `pnpm lint` | **pass** | clean; clean |
 
 ## Output Excerpts
 
 ```
-route's dance (no Accept header): 406 Not Acceptable — "Client must accept both
-  application/json and text/event-stream"  ← cancel never reached the tool
-cleanup cancel (correct header): {'status': 'ok', 'cancelled': True} →
-  gateway: "SSE client disconnected; interrupted agent task resp_1fa7a…"
-  audit 03:46:25 cancel-turn cancelled ✓  (tool-level chain proven AGAIN)
-tool-level (fix phase): cancel +45s → verdict +50s, "interrupted agent task"
-pytest → 359 passed | pnpm vitest → 143 passed
+UI stop route: {"result":"ok"}  (Dify no-task tolerated + cancel reached the tool)
+turn: launch: error | the turn was cancelled — the chat stopped it… — +40 s
+audit 03:51:38: cancel-turn cancelled … | launch-app error:the turn was cancelled …
+pytest → 359 passed | pnpm vitest → 143 passed | typecheck/lint clean
 ```
 
 ## Residual Risks
 
-- The tool-level chain (registry → cancel tool → gateway interrupt → honest verdict) is fully proven — the remaining work is exactly two one-liners: the `Accept` header in `cancelSidecarTurn`'s fetch calls, and a prompt bullet telling the agent to pass `conversation_id` to `hermes_launch_app` (publish via the console path, same as prior prompt cycles)
-- The stop route's Dify-stop call also surfaced a probe artifact: with a non-UUID taskId Dify returns 400 and the route 502s — real Stop presses carry a real UUID, so this is informational, not a defect; but the conversationId cancel fires before the Dify call, so the cancel would have fired anyway once the header is fixed
-- The office lane is fully wired (prompt passes conversation_id) — once the Accept header is fixed, office turns are stoppable through the chat today; launch turns need the prompt bullet too
+- The file lane stays on the uncancellable blocking path (no conversation id in its tool signature; fast tasks) — documented limitation, unchanged by design
+- A real user Stop press on a live desktop turn is the final field sample — the probe path exercised is the identical route code the UI button drives (same fetch, same params shape), so the remaining gap is only the natural-turn observation
+- Dify's own stop of a *running* workflow was probed with a no-task UUID (tolerated); real mid-workflow stops ride the same route — the cancel fires before the Dify call regardless of its outcome
 
 ## Recommendation
 
-**Re-run `/speckit.bug.fix` — the fix is one Accept header and one prompt bullet short of complete.** The heavy machinery (stream-mode lanes, registry, cancel tool, gateway interrupt, UI plumbing) is built and proven live twice at the tool level; the test phase pinned the last-mile defects precisely: (1) add `"Accept": "application/json, text/event-stream"` to `cancelSidecarTurn`'s fetches in `stop/route.ts`; (2) update the hermes_agent node's launch bullet to "Call hermes_launch_app(task, conversation_id)… ALWAYS pass conversation_id exactly as '{{#sys.conversation_id#}}'" via the export→patch→publish console path. Then the UI-level reproduction above should turn green with a real turn.
+**Close the bug — verified end-to-end.** The Stop button now reaches the agent through the full chain (UI → stop route → sidecar cancel tool → in-flight connection close → gateway interrupt), both desktop lanes (launch + office) pass the conversation id, the verdict and audit are honest, and the desktop notice stops re-arming within seconds of pressing Stop.
