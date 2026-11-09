@@ -80,9 +80,9 @@ No setup tasks — the feature extends the existing `agentic_rag_mcp` sidecar pa
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T012 Run the full python suite `pytest tests/ -q` — all green except the documented pre-existing failures (antv/ppt tool-count contracts, web-research cap, onedrive staleness — unrelated, proven pre-existing 2026-11-09); run `ruff check` on the new/changed files and fix new findings only
-- [ ] T013 Add the ops note to `DEPLOY.md`: the run-command lane, its audit operation (`run-command`), and that the allowlist is code-side (extended only by spec amendment)
-- [ ] T014 Fold the whole lifecycle into the next commit together with the open bug-lifecycle docs (spec 033 artifacts + gate/tool/instructions/DSL changes + suites)
+- [x] T012 Run the full python suite `pytest tests/ -q` — all green except the documented pre-existing failures (antv/ppt tool-count contracts, web-research cap, onedrive staleness — unrelated, proven pre-existing 2026-11-09); run `ruff check` on the new/changed files and fix new findings only
+- [x] T013 Add the ops note to `DEPLOY.md`: the run-command lane, its audit operation (`run-command`), and that the allowlist is code-side (extended only by spec amendment)
+- [x] T014 Fold the whole lifecycle into the next commit together with the open bug-lifecycle docs (spec 033 artifacts + gate/tool/instructions/DSL changes + suites)
 
 ---
 
