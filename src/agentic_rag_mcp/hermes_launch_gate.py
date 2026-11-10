@@ -155,13 +155,16 @@ def gate_launch(task: str, home: str = "/home/administrator") -> LaunchVerdict:
         task = task[:cut].strip(" ,.;")
     if _RE_SHELL.search(task) or _RE_SHELL.search(followup or ""):
         # spec 033: the refusal stands (this gate stays shell-free) but now
-        # points users at the run-command lane's read-only diagnostics
+        # points users at the command lanes — 033 read-only diagnostics and
+        # 034 confirmed PowerShell (spec 034 pointer)
         return _blocked(f"Blocked: shell/PowerShell/command-line requests are "
                         f"refused ({_LAUNCH_SCOPE}) — for read-only diagnostics "
                         f"(ipconfig, systeminfo, tasklist, whoami, hostname, "
                         f"ping/nslookup/tracert with one host or IP), ask for "
-                        f"the command by name and the run-command lane will "
-                        f"run it")
+                        f"the command by name and the run-command lane will run "
+                        f"it; for general PowerShell commands, ask for the "
+                        f"command and confirm it in chat — the PowerShell lane "
+                        f"runs confirmed commands")
     if _RE_WITH_ARGS.search(task):
         return _blocked(f"Blocked: launch arguments and documents are refused — "
                         f"launch one program by name or full .exe path only "

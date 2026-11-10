@@ -348,9 +348,9 @@
     "semantic_hash": "0351c98ec054f4bff086a5df3dcf735d"
   },
   "src/agentic_rag_mcp/server.py": {
-    "mtime": 1794214354.3363667,
-    "seen": 1794214822.4813986,
-    "ast_hash": "0456732eedf393a57eca24118019c76d",
+    "mtime": 1794302005.0100312,
+    "seen": 1794303745.5454192,
+    "ast_hash": "c2cd4c214d6f05b2a8e0aaa8c07d9d5a",
     "semantic_hash": ""
   },
   "src/agentic_rag_mcp/sources/__init__.py": {
@@ -900,9 +900,9 @@
     "semantic_hash": "eba6943b2a2f6407162ae12e0218bdac"
   },
   "DEPLOY.md": {
-    "mtime": 1794214812.2997937,
-    "seen": 1794214822.4815557,
-    "ast_hash": "3827501bb813bc946e8c9b08dfdea227",
+    "mtime": 1794303735.7482474,
+    "seen": 1794303745.5455613,
+    "ast_hash": "8ef2ae5dbaa7226f2be56ff4f6faf7e4",
     "semantic_hash": ""
   },
   "docs/NETWORK.md": {
@@ -3120,9 +3120,9 @@
     "semantic_hash": ""
   },
   "dify/AGIAssistant/AGI_Assistant.yml": {
-    "mtime": 1794214354.3354495,
-    "seen": 1794214822.4815922,
-    "ast_hash": "cc4d9314273f64681e5b0b0e1dfa7f8c",
+    "mtime": 1794302228.1792383,
+    "seen": 1794303745.5456014,
+    "ast_hash": "85463559abb9429bfbbe42b709a29c34",
     "semantic_hash": ""
   },
   "specs/024-install-difyctl/checklists/requirements.md": {
@@ -3498,9 +3498,9 @@
     "semantic_hash": ""
   },
   "src/agentic_rag_mcp/hermes_client.py": {
-    "mtime": 1794214354.3359911,
-    "seen": 1794214822.4813726,
-    "ast_hash": "4182e85e4d57cad9e597b3ec226eb8cd",
+    "mtime": 1794301933.6855724,
+    "seen": 1794303745.5453951,
+    "ast_hash": "421054b51fc4e4a95cfc036e3790ef3a",
     "semantic_hash": ""
   },
   "src/agentic_rag_mcp/hermes_gate.py": {
@@ -3570,9 +3570,9 @@
     "semantic_hash": ""
   },
   "src/agentic_rag_mcp/hermes_launch_gate.py": {
-    "mtime": 1794214354.3359911,
-    "seen": 1794214822.4813743,
-    "ast_hash": "c9a09a48ba846fe7580866113e161116",
+    "mtime": 1794302232.0272584,
+    "seen": 1794303745.5453973,
+    "ast_hash": "8dfbf7d3174383f0da192d1a61cca14c",
     "semantic_hash": ""
   },
   "tests/unit/test_hermes_launch_gate.py": {
@@ -3648,9 +3648,9 @@
     "semantic_hash": ""
   },
   "src/agentic_rag_mcp/hermes_run_gate.py": {
-    "mtime": 1794213448.8023722,
-    "seen": 1794214822.481375,
-    "ast_hash": "90f9a2c1a3f2f0b7190e9fbd97866f9d",
+    "mtime": 1794217345.5140932,
+    "seen": 1794303745.5454004,
+    "ast_hash": "7d1e269857826a742c6e870c27690e7f",
     "semantic_hash": ""
   },
   "src/agentic_rag_mcp/office_gate.py": {
@@ -3672,9 +3672,9 @@
     "semantic_hash": ""
   },
   "tests/unit/test_hermes_run_gate.py": {
-    "mtime": 1794213353.5325344,
-    "seen": 1794214822.4814408,
-    "ast_hash": "f95f0cc92ebfa6c525960bfa0320d95b",
+    "mtime": 1794217325.8537328,
+    "seen": 1794303745.545454,
+    "ast_hash": "971a85cc2f6c3d77c0204333f9a92b91",
     "semantic_hash": ""
   },
   "tests/unit/test_hermes_run_tool.py": {
@@ -4524,15 +4524,153 @@
     "semantic_hash": ""
   },
   "specs/033-hermes-run-command/spec.md": {
-    "mtime": 1794212750.6525865,
-    "seen": 1794214822.4817562,
-    "ast_hash": "18ddbeebc06a95211cc333f62591a41e",
+    "mtime": 1794217366.78246,
+    "seen": 1794303745.5457528,
+    "ast_hash": "b4824769cb166b0aa586a1f057b52195",
     "semantic_hash": ""
   },
   "specs/033-hermes-run-command/tasks.md": {
-    "mtime": 1794214351.866138,
-    "seen": 1794214822.4817567,
-    "ast_hash": "5ce91fb30655c2d2e5b1dd1c31ca7d2b",
+    "mtime": 1794214843.0805311,
+    "seen": 1794303745.5457532,
+    "ast_hash": "7f4be4ec7f198abe403888b166dd8b23",
+    "semantic_hash": ""
+  },
+  "src/agentic_rag_mcp/hermes_powershell_gate.py": {
+    "mtime": 1794301895.3013296,
+    "seen": 1794303745.5453985,
+    "ast_hash": "122da7291fb5848c0b454203d971d53c",
+    "semantic_hash": ""
+  },
+  "src/agentic_rag_mcp/hermes_powershell_state.py": {
+    "mtime": 1794301899.4253557,
+    "seen": 1794303745.5453992,
+    "ast_hash": "eea19c17c2e9b713b63eecf5b7a56044",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_hermes_powershell_gate.py": {
+    "mtime": 1794301886.9292762,
+    "seen": 1794303745.545453,
+    "ast_hash": "6bce67bd286e5ba31cb97dc2778c8fee",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_hermes_powershell_tool.py": {
+    "mtime": 1794303292.3750377,
+    "seen": 1794303745.5454535,
+    "ast_hash": "a579bfb613667b507f851be2cb6fc675",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/blocked-kill-is-not-on-the-run-command-allowlist/assessment.md": {
+    "mtime": 1794296611.5274425,
+    "seen": 1794303745.5454807,
+    "ast_hash": "7b0c983a045e356d96576ba2f5486845",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/disk-space-usage-isnt-one-of-the-commands-its-allowed-to-execute/assessment.md": {
+    "mtime": 1794217278.7969124,
+    "seen": 1794303745.545496,
+    "ast_hash": "d2cbb440253ce1965c9b6c69f2ab2877",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/disk-space-usage-isnt-one-of-the-commands-its-allowed-to-execute/fix.md": {
+    "mtime": 1794217444.4838364,
+    "seen": 1794303745.5454972,
+    "ast_hash": "3bff09900d23b0f8882cdcfe09ae967b",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/disk-space-usage-isnt-one-of-the-commands-its-allowed-to-execute/test.md": {
+    "mtime": 1794217729.6968248,
+    "seen": 1794303745.545498,
+    "ast_hash": "90a56d330a5252ba7170e62c64063f3f",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/hermes-run-command-with-task-not-work/assessment.md": {
+    "mtime": 1794216652.4217947,
+    "seen": 1794303745.5455031,
+    "ast_hash": "fc208aaa5beb0ee840c58ebb2d813f8d",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/hermes-run-command-with-task-not-work/fix.md": {
+    "mtime": 1794216725.151091,
+    "seen": 1794303745.5455034,
+    "ast_hash": "b05910e71e28db5516f254da1f743679",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/hermes-run-command-with-task-not-work/test.md": {
+    "mtime": 1794216914.6544719,
+    "seen": 1794303745.545504,
+    "ast_hash": "023d28da2c7dfda0f5418b77fceaac83",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/the-local-agent-was-not-called-for-this-request/assessment.md": {
+    "mtime": 1794215477.8246112,
+    "seen": 1794303745.545542,
+    "ast_hash": "1cf4e23d0c9b3a16f70b55ad1e021fb6",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/the-local-agent-was-not-called-for-this-request/fix.md": {
+    "mtime": 1794215723.7290735,
+    "seen": 1794303745.5455425,
+    "ast_hash": "5177436c99decdb00c39c6a9b29b5e90",
+    "semantic_hash": ""
+  },
+  ".specify/bugs/the-local-agent-was-not-called-for-this-request/test.md": {
+    "mtime": 1794216335.0081208,
+    "seen": 1794303745.5455432,
+    "ast_hash": "0847fd8af2b4a7ec07f100aa5f7c2c97",
+    "semantic_hash": ""
+  },
+  "specs/034-powershell-execution/checklists/requirements.md": {
+    "mtime": 1794300984.4520714,
+    "seen": 1794303745.545754,
+    "ast_hash": "17456a24e1e46625198dd4e207c1a505",
+    "semantic_hash": ""
+  },
+  "specs/034-powershell-execution/contracts/tool-contract.md": {
+    "mtime": 1794301434.3122742,
+    "seen": 1794303745.5457547,
+    "ast_hash": "70c831b029c0a268ecfc354406f47426",
+    "semantic_hash": ""
+  },
+  "specs/034-powershell-execution/data-model.md": {
+    "mtime": 1794301423.3614428,
+    "seen": 1794303745.545755,
+    "ast_hash": "e899fe89ade7a2b4ea70322acb64e86c",
+    "semantic_hash": ""
+  },
+  "specs/034-powershell-execution/plan.md": {
+    "mtime": 1794301395.3051271,
+    "seen": 1794303745.5457554,
+    "ast_hash": "5ffe4d8ed795a1b43e7a7c4a2d41113c",
+    "semantic_hash": ""
+  },
+  "specs/034-powershell-execution/quickstart.md": {
+    "mtime": 1794301442.6616597,
+    "seen": 1794303745.5457559,
+    "ast_hash": "fbdf3900408b8579f783d976788c76ec",
+    "semantic_hash": ""
+  },
+  "specs/034-powershell-execution/research.md": {
+    "mtime": 1794301413.1133275,
+    "seen": 1794303745.545756,
+    "ast_hash": "d2ffbbec08189cca7c650a5342dfb593",
+    "semantic_hash": ""
+  },
+  "specs/034-powershell-execution/spec.md": {
+    "mtime": 1794300977.4617045,
+    "seen": 1794303745.5457566,
+    "ast_hash": "5c280ce1de7d99276be6cae6d2c02dfd",
+    "semantic_hash": ""
+  },
+  "specs/034-powershell-execution/tasks.md": {
+    "mtime": 1794303735.7593184,
+    "seen": 1794303745.5457575,
+    "ast_hash": "1623b8910bc0dd02def5d80da7bb732f",
+    "semantic_hash": ""
+  },
+  "specs/034-powershell-execution/test-plan.md": {
+    "mtime": 1794301879.0852256,
+    "seen": 1794303745.545758,
+    "ast_hash": "efc84247dbfaf1e7e12875e2ba081c85",
     "semantic_hash": ""
   }
 }

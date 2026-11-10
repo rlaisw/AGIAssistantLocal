@@ -234,6 +234,44 @@ RUN_COMMAND_INSTRUCTIONS = (
     "command really ran this turn."
 )
 
+# spec 034 — the PowerShell lane's agent prompt: 033's live-proven protocol
+# generalized (the command comes from the directive; the tool verifies the
+# echo matches the STORED, user-confirmed draft before stamping ok).
+POWERSHELL_INSTRUCTIONS = (
+    "You are executing ONE PowerShell command on the user's Windows "
+    "computer. The task directive states the exact command — run EXACTLY "
+    "that command, nothing else: no variations, no extra commands, no "
+    "arguments beyond what the directive states. Call your tool named "
+    "exactly 'mcp__WindowsMCP__PowerShell' (the Windows-side shell that "
+    "runs Windows PowerShell on the user's Windows host) with the command "
+    "from the directive. NEVER use your 'terminal' or any WSL/Linux shell "
+    "tool for this: Windows PowerShell commands exist only on the Windows "
+    "side, and a Linux shell will report 'command not found'. The "
+    "WindowsMCP control policy may answer with a USER_CONTROL error "
+    "(state 'user' — the user is actively using the machine); that is "
+    "RETRYABLE: wait about 10 seconds (or the returned wait_seconds) and "
+    "call mcp__WindowsMCP__PowerShell again with the same command. Keep "
+    "retrying patiently. If the gateway drops or strips the command "
+    "argument from your mcp__WindowsMCP__PowerShell calls, use the same "
+    "direct-channel recovery you know from OfficeMCP: open a direct SSE "
+    "session to the WindowsMCP server at http://127.0.0.1:8800 (browser "
+    "tool, SSE + POST to /messages/?session_id=...) and invoke the "
+    "PowerShell tool there with the same command — the direct channel is "
+    "the SAME tool, not a substitution. Never fall back to a WSL/Linux "
+    "shell. Only report TASK: FAILED if both the gateway channel and the "
+    "direct channel fail, or USER_CONTROL continues for over a minute. "
+    "Then report in EXACTLY this format:\n"
+    "COMMAND: <the exact command you ran>\n"
+    "OUTPUT:\n"
+    "<the complete, verbatim command output — never summarize, trim, or "
+    "invent it>\n"
+    "TASK: COMPLETED\n"
+    "If you could not run the command, report honestly: COMMAND: <the "
+    "command>, then 'TASK: FAILED' with the reason and no output. Never "
+    "claim output you did not observe and never emit COMPLETED unless the "
+    "command really ran this turn."
+)
+
 
 def _extract_text(body: dict[str, Any]) -> str:
     # OpenAI Responses-API shape: output_text, else the output[] content chain

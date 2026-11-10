@@ -14,19 +14,33 @@ from dataclasses import dataclass
 _RUN_SCOPE = ("v1 run-command scope: read-only diagnostics only, "
               "one command per request")
 _ALLOWLIST = ("ipconfig, systeminfo, tasklist, whoami, hostname, "
-              "ping <host>, nslookup <host>, tracert <host>")
+              "ping <host>, nslookup <host>, tracert <host>, "
+              "Get-Volume (disk space)")
 
 # bare diagnostics — no arguments in v1
 _BARE_PHRASES: dict[str, tuple[str, ...]] = {
     "ipconfig": (r"\bipconfig\b", r"\bip\s+config\b", r"\bip\s+address\b",
                  r"\bmy\s+ip\b"),
-    "systeminfo": (r"\bsysteminfo\b", r"\bsystem\s+info(?:rmation)?\b",),
+    "systeminfo": (r"\bsysteminfo\b", r"\bsystem\s+info(?:rmation)?\b",
+                  # spec-033 follow-up (the-local-agent-was-NOT-called,
+                  # 2026-11-09): systeminfo output carries the System Locale
+                  # and Input Locale lines, so locale asks are servable
+                  r"\bsystem\s+locale\b", r"\binput\s+locale\b",
+                  r"\blocale\s+setting\b"),
     "tasklist": (r"\btasklist\b", r"\btask\s+list\b", r"\brunning\s+process(?:es)?\b",
                  r"\brunning\s+tasks\b", r"\bwhats\s+running\b",
                  r"\bwhat\s+is\s+running\b"),
     "whoami": (r"\bwhoami\b", r"\bwho\s+am\s+i\b"),
     "hostname": (r"\bhostname\b", r"\bhost\s+name\b", r"\bcomputers?\s+name\b"),
+    # spec-033 amendment (disk-space-…, 2026-11-09): a NAMED RECIPE — disk
+    # phrases map to the fixed read-only cmdlet Get-Volume; the user's words
+    # never become command syntax, and this is the ONLY allowlisted cmdlet
+    # (the generic cmdlet refusal stays for everything unlisted)
+    "Get-Volume": (r"\bget[-\s]?volume\b", r"\bdisk\s+space", r"\bhard\s?disks?\b",
+                   r"\bdisk\s+usage\b", r"\bfree\s+space\b", r"\bdrive\s+space\b",
+                   r"\bstorage\s+space\b"),
 }
+_RECIPE_CMDS = {"get-volume"}  # exempt from the generic cmdlet refusal
 # targeted diagnostics — exactly one simple host/IP token
 _TARGETED_PHRASES: dict[str, tuple[str, ...]] = {
     "ping": (r"\bping\s+(?:the\s+)?(?:host\s+)?(?P<t>[A-Za-z0-9.-]+)",
@@ -130,7 +144,8 @@ def gate_run_command(task: str) -> RunVerdict:
     # a named refused command outranks the generic flag refusal — the reason
     # must name it ("taskkill /im …" refuses taskkill, not the flag)
     m = _RE_CMDLET.search(task or "")
-    if m and m.group(0).lower() not in _FRAMING:
+    if (m and m.group(0).lower() not in _FRAMING
+            and m.group(0).lower() not in _RECIPE_CMDS):
         return _not_allowed(m.group(0))
     for tok in _tokens(text):
         if tok and tok not in _FRAMING and tok in _REFUSED_WORDS:
@@ -162,9 +177,12 @@ def gate_run_command(task: str) -> RunVerdict:
     cmd, m = next(iter(matched.items()))
     if cmd in _BARE_PHRASES:
         # bare commands take no arguments in v1 — any dotted non-filler token
-        # (a hostname/IP/path) means an argument was smuggled in
-        for tok in _tokens(text):
-            if tok and tok not in _FILLERS and "." in tok:
+        # (hostname/IP/path) or drive-letter token ("C:", "C:\…") is a
+        # smuggled argument; colons are kept here because _tokens strips them
+        for raw in text.split():
+            tok = raw.strip(",.!?;()[]{}")
+            if tok and tok not in _FILLERS and (
+                    "." in tok or re.match(r"^[a-z]:", tok)):
                 return _blocked(f"Blocked: {cmd} takes no arguments in v1 "
                                 f"({_RUN_SCOPE}). Allowed: {_ALLOWLIST}")
         return RunVerdict("ok", cmd, None, None)

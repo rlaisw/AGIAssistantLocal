@@ -11,7 +11,8 @@ from __future__ import annotations
 from agentic_rag_mcp.hermes_run_gate import gate_run_command
 
 ALLOW = ("ipconfig, systeminfo, tasklist, whoami, hostname, "
-         "ping <host>, nslookup <host>, tracert <host>")
+         "ping <host>, nslookup <host>, tracert <host>, "
+         "Get-Volume (disk space)")
 
 
 def ok(v, command=None, target=None):
@@ -38,6 +39,40 @@ def test_powershell_framing_still_maps_when_a_listed_intent_exists():
 def test_systeminfo_phrases():
     for t in ["show system info", "system information please", "run systeminfo"]:
         assert ok(gate_run_command(t), "systeminfo"), t
+
+
+def test_locale_asks_map_to_systeminfo():
+    # the-local-agent-was-NOT-called (2026-11-09): systeminfo output carries
+    # the System Locale / Input Locale lines, so locale asks are servable
+    for t in ["show my system locale setting", "what is my system locale",
+              "show the input locale", "check my locale setting"]:
+        assert ok(gate_run_command(t), "systeminfo"), t
+
+
+def test_disk_space_phrases_map_to_get_volume():
+    # spec-033 amendment (disk-space-…, 2026-11-09): named recipe — the exact
+    # reported phrasings map to the fixed read-only cmdlet Get-Volume
+    for t in ["show me harddisk disk spaces usage",
+              "check my hard disk disk spaces", "show my disk space",
+              "how much free space do I have", "disk usage on my machine",
+              "run Get-Volume", "what is my drive space"]:
+        assert ok(gate_run_command(t), "Get-Volume"), (t, gate_run_command(t))
+
+
+def test_recipe_carveout_is_name_specific():
+    # only Get-Volume is exempt from the cmdlet refusal — everything else,
+    # including lookalikes, still refuses with the allowlist shown
+    for t in ["run Get-NetIPAddress", "run Get-PSDrive", "run Get-Disk"]:
+        v = gate_run_command(t)
+        assert _blocked(v) and v.command is None, (t, v)
+        assert "not on the run-command allowlist" in v.reason
+
+
+def test_recipe_still_refuses_flags_and_args():
+    v = gate_run_command("run Get-Volume -Thoroughly")
+    assert _blocked(v) and "flags" in v.reason.lower()
+    v = gate_run_command("Get-Volume C:")
+    assert _blocked(v) and "no arguments" in v.reason.lower()
 
 
 def test_tasklist_phrases():
