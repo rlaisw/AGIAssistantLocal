@@ -119,3 +119,10 @@ T013 → T014 → T015 → T016            (polish)
 ## Implementation strategy
 
 MVP = Phase 2 + Phase 3 (T001–T007): the gate, state, protocol, and two-phase tool make the confirmed-execution path work end-to-end offline-testable — the entire feature value. US2/US3 harden and pin the same tool (small, fast), US4 wires the guards, US5 publishes and verifies live, polish closes the lifecycle. Each phase leaves the suite green.
+
+---
+
+## Phase 9: Convergence
+
+- [x] T017 Align the pending-draft lifecycle with cancelled confirm turns and fix the DEPLOY.md overclaim per spec Edge Cases + DEPLOY.md:423 (contradicts) — `src/agentic_rag_mcp/server.py`: on a cancelled confirm turn (the `outcome` error branch whose reason is the turn-cancel class, i.e. ReadError "turn was cancelled"), `ps_state.clear(conversation_id)` so a later confirm cannot re-execute a stopped draft; decide + document whether non-cancel failed confirms (USER_CONTROL/transport) keep the draft re-confirmable (current live-proven behavior) and correct DEPLOY.md:423's "a failed execution clears the pending draft" to match; add `tests/unit/test_hermes_powershell_tool.py` cases pinning: cancel-class confirm error → pending cleared; other confirm errors → pending kept
+- [x] T018 Collect the SC-001 live measurement per spec SC-001 (partial) — in an idle-machine window, run four fresh-conversation draft→confirm→relay round-trips (e.g. the services query), record first-attempt completions (target ≥3 of 4), and note the result in the spec's Clarifications or the DEPLOY.md ops row

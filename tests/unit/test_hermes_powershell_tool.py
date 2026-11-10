@@ -271,3 +271,53 @@ def test_pending_is_conversation_scoped(tmp_path, monkeypatch):
                {"task": "t", "conversation_id": "c2", "confirm": True})
     assert out["status"] == "blocked"
     assert "no pending command" in out["reason"].lower()
+
+# ------------------------------------------- pending lifecycle (T017, 2026-11-10)
+
+def test_cancelled_confirm_clears_pending(tmp_path, monkeypatch):
+    # spec edge case: a Stop between confirmation and execution cancels the
+    # pending draft — a later confirm must NOT re-execute a stopped command
+    import agentic_rag_mcp.hermes_client as hc
+    monkeypatch.setattr(hc, "run_task_stream",
+        lambda cfg, task, instructions, budget, key: {
+            "ok": False,
+            "error": "error:the turn was cancelled — the chat "
+                      "stopped it; any partial desktop state was left as-is",
+            "timing": {"total_s": 12.0, "first_event_s": 0.0,
+                       "event_count": 5, "gaps": []}})
+    srv = _server(tmp_path, monkeypatch)
+    call(srv, "hermes_run_powershell",
+         {"task": "t", "conversation_id": "c1", "draft": CMD})
+    out = call(srv, "hermes_run_powershell",
+               {"task": "t", "conversation_id": "c1", "confirm": True})
+    assert out["status"] == "error"
+    assert "cancelled" in out["reason"]
+    out2 = call(srv, "hermes_run_powershell",
+                {"task": "t", "conversation_id": "c1", "confirm": True})
+    assert out2["status"] == "blocked"            # pending is gone
+    assert "no pending command" in out2["reason"].lower()
+
+
+def test_other_failed_confirm_keeps_pending_reconfirmable(tmp_path, monkeypatch):
+    # USER_CONTROL / transport failures keep the draft: the user confirms
+    # again when the machine is idle (live-proven behavior, DEPLOY.md)
+    import agentic_rag_mcp.hermes_client as hc
+    calls = {"n": 0}
+    def fake_stream(cfg, task, instructions, budget, key):
+        calls["n"] += 1
+        return {"ok": False,
+                "error": "error:Hermes run failed: USER_CONTROL — desktop "
+                          "under user control",
+                "timing": {"total_s": 150.0, "first_event_s": 0.0,
+                           "event_count": 40, "gaps": []}}
+    monkeypatch.setattr(hc, "run_task_stream", fake_stream)
+    srv = _server(tmp_path, monkeypatch)
+    call(srv, "hermes_run_powershell",
+         {"task": "t", "conversation_id": "c1", "draft": CMD})
+    out = call(srv, "hermes_run_powershell",
+               {"task": "t", "conversation_id": "c1", "confirm": True})
+    assert out["status"] == "error" and "USER_CONTROL" in out["reason"]
+    out2 = call(srv, "hermes_run_powershell",
+                {"task": "t", "conversation_id": "c1", "confirm": True})
+    assert out2["status"] == "error"            # pending kept, re-confirmable
+    assert calls["n"] == 2                       # the draft executed again

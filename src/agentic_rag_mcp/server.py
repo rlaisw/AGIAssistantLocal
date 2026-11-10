@@ -1042,6 +1042,14 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
             timing = outcome.get("timing") or {}
             if not outcome.get("ok"):
                 error = outcome.get("error", "error:unknown Hermes failure")
+                # T017 (2026-11-10): a CANCELLED confirm turn cancels the
+                # pending draft (spec edge case — a later confirm must not
+                # re-execute a stopped command); other failed confirms
+                # (USER_CONTROL while the user is active, transport drops)
+                # KEEP the draft so the user can confirm again when idle
+                # (live-proven behavior, DEPLOY.md documents it)
+                if "turn was cancelled" in error:
+                    ps_state.clear(conversation_id)
                 audit.write_attempt(decision="error", operation="run-powershell",
                                     normalized_path=stored[:200], allowed_root="",
                                     reason=error,
