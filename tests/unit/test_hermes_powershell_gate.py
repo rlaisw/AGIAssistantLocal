@@ -90,3 +90,24 @@ def test_empty_draft_is_blocked():
     v = gate_powershell("")
     assert blocked(v)
     assert "no command drafted" in v.reason.lower()
+
+
+def test_two_command_drafts_ask_back_one_per_request():
+    # FR-006 (analysis C1, 2026-11-10): one command per request — separators
+    # and multi-line drafts refuse; semicolons INSIDE strings/blocks/params
+    # are legal single commands (the rough split must not false-positive)
+    for draft in ["Get-Date; Get-Host",
+                  "Get-Service\r\nGet-Process",
+                  "Get-Date\nGet-Host",
+                  "Restart-Service Spooler ; Stop-Process notepad"]:
+        v = gate_powershell(draft)
+        assert blocked(v), (draft, v)
+        assert "one command per request" in v.reason
+    # legal single commands: `;` inside strings/blocks/comments or after a
+    # closing `}` (pipeline continuation) must NOT trip the separator check
+    for draft in ["Write-Output 'a;b'",
+                  'Write-Output "one;two"',
+                  "ForEach-Object { $_.Name }; echo hi",
+                  "Get-Service # comment ; not a command",
+                  "Get-Service | Where-Object {$_.Status} | Format-Table"]:
+        assert ok(gate_powershell(draft)), (draft, gate_powershell(draft))

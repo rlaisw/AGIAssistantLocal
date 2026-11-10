@@ -348,9 +348,9 @@
     "semantic_hash": "0351c98ec054f4bff086a5df3dcf735d"
   },
   "src/agentic_rag_mcp/server.py": {
-    "mtime": 1794302005.0100312,
-    "seen": 1794303745.5454192,
-    "ast_hash": "c2cd4c214d6f05b2a8e0aaa8c07d9d5a",
+    "mtime": 1794303896.6994843,
+    "seen": 1794304952.675005,
+    "ast_hash": "53e1ecb85488a12e3c0446dafb516f48",
     "semantic_hash": ""
   },
   "src/agentic_rag_mcp/sources/__init__.py": {
@@ -900,9 +900,9 @@
     "semantic_hash": "eba6943b2a2f6407162ae12e0218bdac"
   },
   "DEPLOY.md": {
-    "mtime": 1794303735.7482474,
-    "seen": 1794303745.5455613,
-    "ast_hash": "8ef2ae5dbaa7226f2be56ff4f6faf7e4",
+    "mtime": 1794303898.4280272,
+    "seen": 1794304952.675148,
+    "ast_hash": "345261be105408e6c5896e2577e9f4e5",
     "semantic_hash": ""
   },
   "docs/NETWORK.md": {
@@ -4536,9 +4536,9 @@
     "semantic_hash": ""
   },
   "src/agentic_rag_mcp/hermes_powershell_gate.py": {
-    "mtime": 1794301895.3013296,
-    "seen": 1794303745.5453985,
-    "ast_hash": "122da7291fb5848c0b454203d971d53c",
+    "mtime": 1794304902.4443476,
+    "seen": 1794304952.6749835,
+    "ast_hash": "7e0833e24c7fca61e552d7e703b2dc04",
     "semantic_hash": ""
   },
   "src/agentic_rag_mcp/hermes_powershell_state.py": {
@@ -4548,15 +4548,15 @@
     "semantic_hash": ""
   },
   "tests/unit/test_hermes_powershell_gate.py": {
-    "mtime": 1794301886.9292762,
-    "seen": 1794303745.545453,
-    "ast_hash": "6bce67bd286e5ba31cb97dc2778c8fee",
+    "mtime": 1794304853.1315794,
+    "seen": 1794304952.6750402,
+    "ast_hash": "58a68535f82f90e7648b58c0a34735f3",
     "semantic_hash": ""
   },
   "tests/unit/test_hermes_powershell_tool.py": {
-    "mtime": 1794303292.3750377,
-    "seen": 1794303745.5454535,
-    "ast_hash": "a579bfb613667b507f851be2cb6fc675",
+    "mtime": 1794303905.5919774,
+    "seen": 1794304952.6750407,
+    "ast_hash": "edc9be4c176e2a81c90e19355b5cb85b",
     "semantic_hash": ""
   },
   ".specify/bugs/blocked-kill-is-not-on-the-run-command-allowlist/assessment.md": {
@@ -4656,15 +4656,15 @@
     "semantic_hash": ""
   },
   "specs/034-powershell-execution/spec.md": {
-    "mtime": 1794300977.4617045,
-    "seen": 1794303745.5457566,
-    "ast_hash": "5c280ce1de7d99276be6cae6d2c02dfd",
+    "mtime": 1794304915.8156013,
+    "seen": 1794304952.6753302,
+    "ast_hash": "69fbe8a0bfd4f4dd1d9b483e19d3ce57",
     "semantic_hash": ""
   },
   "specs/034-powershell-execution/tasks.md": {
-    "mtime": 1794303735.7593184,
-    "seen": 1794303745.5457575,
-    "ast_hash": "1623b8910bc0dd02def5d80da7bb732f",
+    "mtime": 1794304499.657008,
+    "seen": 1794304952.6753306,
+    "ast_hash": "d634df75e0cf71f86df24ed589cfea68",
     "semantic_hash": ""
   },
   "specs/034-powershell-execution/test-plan.md": {

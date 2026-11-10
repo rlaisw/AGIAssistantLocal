@@ -57,6 +57,9 @@ def gate_powershell(draft: str) -> PSVerdict:
         return _blocked("Blocked: no command drafted — draft the exact "
                         "command first and show it to the user for "
                         "confirmation.")
+    # never-list first (FR-002 outranks the one-per-request ask-back): a
+    # smuggled system-integrity command must refuse with the integrity rule
+    # named even when it also happens to be a second statement
     for name, pattern in _NEVER_PATTERNS:
         m = pattern.search(draft)
         if m:
@@ -65,4 +68,18 @@ def gate_powershell(draft: str) -> PSVerdict:
                 f"(matched: {name}; near {m.group(0)!r}) — disk-level "
                 f"destruction and boot/recovery/encryption-state operations "
                 f"are never executable from chat, even with confirmation.")
+    # FR-006 (analysis C1, 2026-11-10): one command per request — a draft
+    # with statement separators outside string/block/comment context is a
+    # smuggled second command; ask back for one command. A `;` directly after
+    # a closing `}` is a pipeline continuation (legal), not a separator.
+    # strings, blocks, and comments are scrubbed WITH their content; a `;`
+    # inside (or closing) a block is continuation syntax, not a separator —
+    # the [^{}\n]* scrub erases the content, so the closing `};` becomes
+    # part of the same scrub when the block span includes it
+    rough = re.sub(r"'[^'\n]*'|\"[^\"\n]*\"|\{[^{}\n]*\}\s*;?|#.*", " ", draft)
+    if ";" in rough or len(rough.splitlines()) > 1:
+        return _blocked("Blocked: the drafted text contains more than one "
+                        "command (statement separators or multiple lines) — "
+                        "one command per request; draft a single command and "
+                        "show it for confirmation.")
     return PSVerdict("ok", None)
