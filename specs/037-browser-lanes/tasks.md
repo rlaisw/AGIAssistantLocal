@@ -93,8 +93,8 @@
 - [X] T020 [P] Update `README.md` + `AGENTS.md`: tool count 33 → 35, browser-lane feature surface (house doc pattern)
 - [X] T021 Run `ruff` on new sources; full pytest suite green minus the 4 known pre-existing failures
 - [X] T022 [P] Run `graphify update .`
-- [ ] T023 Rebuild Dify `tool_mcp_providers` rows + restart `docker-api-1`/`docker-worker-1` (staleness rule) + `deploy chatflow` publish — deploy window
-- [ ] T024 Run quickstart.md live battery: R1/S1/S2/D1/**A2** + long-flow split; grep audit JSONL for `browser-*` rows incl. every A2 refusal — deploy window (idle host)
+- [X] T023 Rebuild Dify `tool_mcp_providers` rows + restart `docker-api-1`/`docker-worker-1` (staleness rule) + `deploy chatflow` publish — deploy window
+- [X] T24 note: deploy all 2026-11-11 05:08–05:49 UTC — 14/15 (only the pre-existing office X1 flake); 35-tool surface + published chatflow + browser lanes verified live R1/S1/S2/D1/**A2** + long-flow split; grep audit JSONL for `browser-*` rows incl. every A2 refusal — deploy window (idle host)
 
 ---
 
