@@ -13,7 +13,7 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
-from agentic_rag_mcp.deploy import docker_ops  # noqa: E402
+from agentic_rag_mcp.deploy import docker_ops
 
 
 class _Report:
@@ -49,10 +49,12 @@ def test_recreate_run_command_carries_documents_mount():
     assert f"{home}/.config/agentic-rag-mcp:/root/.config/agentic-rag-mcp" in volumes
     assert f"{home}/.cache/huggingface:/root/.cache/huggingface" in volumes
     assert any(v.endswith(":/opt/ppt-master") for v in volumes)
-    # exactly five mounts — no duplicates; the fifth is office-x1's
-    # read-only Windows drive (the REPLACED: probe, 2026-11-11)
-    assert len(volumes) == 5, volumes
+    # exactly six mounts — no duplicates; the fifth is office-x1's
+    # read-only Windows drive (the REPLACED: probe), the sixth is the
+    # browser-lane scripted registry (chrome-not-desktop-automation, 2026-11-11)
+    assert len(volumes) == 6, volumes
     assert "/mnt/c:/mnt/c:ro" in volumes
+    assert "/usr/local/scripts/browser" in " ".join(volumes)
 
 def test_recreate_creates_documents_folder_before_run():
     report = _Report()

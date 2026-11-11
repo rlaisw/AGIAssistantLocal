@@ -8,7 +8,7 @@ import time
 
 import httpx
 
-REPO_ROOT = subprocess.run(  # noqa: S603 — static path
+REPO_ROOT = subprocess.run(
     ["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True, check=False
 ).stdout.strip() or "."
 
@@ -23,6 +23,10 @@ MOUNTS = [
     ("/mnt/c", "/mnt/c:ro"),
 ]
 _PPT_MOUNT = ("ppt-master", "/opt/ppt-master")  # repo-relative (spec 009)
+# chrome-not-desktop-automation (2026-11-11, spec 037): the scripted lane's
+# registry — server.py resolves /usr/local/scripts/browser in-container, so
+# the repo's checked-in scripts mount there (no image rebuild per edit)
+_BROWSER_SCRIPTS_MOUNT = ("scripts/browser", "/usr/local/scripts/browser")
 
 
 def _run(cmd: list[str], timeout: int = 900) -> subprocess.CompletedProcess:
@@ -54,7 +58,9 @@ def recreate_container(container: str, image: str, report) -> None:
     _run(["mkdir", "-p", docs_dir])
     mounts = [
         (host.replace("~", home), dest) for host, dest in MOUNTS
-    ] + [(os.path.join(REPO_ROOT, _PPT_MOUNT[0]), _PPT_MOUNT[1])]
+    ] + [(os.path.join(REPO_ROOT, _PPT_MOUNT[0]), _PPT_MOUNT[1]),
+         (os.path.join(REPO_ROOT, _BROWSER_SCRIPTS_MOUNT[0]),
+          _BROWSER_SCRIPTS_MOUNT[1])]
     _run(["docker", "rm", "-f", container])
     run_cmd = [
         "docker", "run", "-d", "--name", container,

@@ -142,7 +142,12 @@ class Config:
     skill_min_rate: float = 0.80   # FR-002: strictly greater than
     skill_min_successes: int = 3   # sample floor — one lucky success never trusts
     # spec 038: [task_gateway] — the tier-1/tier-2/install service (R5)
-    task_gateway_url: str = "http://172.17.0.1:8080"
+    # chrome-not-desktop-automation: the WSL docker0 bridge shifts ports
+    # (mirrored networking forbids re-binding Windows-held ports) — the
+    # sidecar uses 13002/18080 on docker0, bridged to loopback 3002/8080
+    task_gateway_url: str = "http://172.17.0.1:18080"
+    browser_mcp_host: str = "172.17.0.1"   # via the bridge
+    browser_mcp_port: int = 13002          # bridge -> 127.0.0.1:3002
     task_gateway_connect_timeout_s: float = 5.0
     task_gateway_read_timeout_s: float = 30.0
     raw: dict[str, Any] = field(default_factory=dict)

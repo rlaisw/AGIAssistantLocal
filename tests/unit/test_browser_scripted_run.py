@@ -3,6 +3,9 @@ honesty, checkpoint verification, abort naming the failed step."""
 
 from __future__ import annotations
 
+import asyncio
+import json
+
 import pytest
 
 from agentic_rag_mcp.browser_lanes.scripted_run import (
@@ -120,3 +123,82 @@ class TestCheckpointVerify:
         steps = [{"step": 1, "ok": False, "summary": "crashed"}]
         out = verify_steps(steps, ["crashed"])
         assert out["status"] == "aborted"
+
+class TestDynamicTaskTool:
+    """chrome-not-desktop-automation (2026-11-11): the dynamic lane's Dify-
+    reachable tool — probe-first honest envelope, then the hermes directive."""
+
+    @staticmethod
+    def _server(tmp_path, monkeypatch, agent_reply=None, probe=None):
+        import agentic_rag_mcp.browser_lanes.dynamic_health as dh
+        import agentic_rag_mcp.hermes_client as hc
+        import agentic_rag_mcp.server as server_mod
+        from agentic_rag_mcp.office_state import OfficeState
+
+        monkeypatch.setattr(server_mod, "build_providers", lambda cfg: [])
+        monkeypatch.setattr(server_mod, "Embedder", lambda model, device: object())
+        if probe is not None:
+            monkeypatch.setattr(dh, "probe_dynamic", probe)
+        else:
+            monkeypatch.setattr(dh, "probe_dynamic",
+                                lambda **kw: {"status": "ok",
+                                         "dynamic": {"reachable": True,
+                                                     "url": "x"}})
+
+        def fake_run(cfg, task, instructions=""):
+            if isinstance(agent_reply, Exception):
+                raise agent_reply
+            return {"ok": True, "output": agent_reply}
+
+        monkeypatch.setattr(hc, "run_task", fake_run)
+        monkeypatch.setattr(hc, "run_task_stream",
+                            lambda cfg, task, instructions, budget, key:
+                            fake_run(cfg, task, instructions))
+        from agentic_rag_mcp.config import Config
+        cfg = Config(state_db=tmp_path / "s.sqlite3", vector_dir=tmp_path / "v",
+                     decider_enabled=False, hermes_api_url="http://h:1",
+                     hermes_api_key="k", hermes_timeout_s=5.0,
+                     hermes_audit_path=tmp_path / "audit.jsonl")
+        fresh = OfficeState()
+        monkeypatch.setattr(server_mod, "get_office_state", lambda: fresh)
+        return server_mod.build_server(cfg), cfg
+
+    def test_probe_down_honest_envelope_no_hermes_call(self, tmp_path, monkeypatch):
+        srv, cfg = self._server(
+            tmp_path, monkeypatch,
+            probe=lambda **kw: {"status": "error",
+                           "dynamic": {"reachable": False, "url": "x"},
+                           "reason": "error:browser-lane-unavailable — down"})
+        raw = asyncio.run(srv.call_tool("browser_dynamic_task",
+                                        {"task": "search the weather",
+                                         "conversation_id": "c1"}))
+        out = json.loads("".join(b.text for b in raw if getattr(b, "text", "")))
+        assert out["status"] == "error"
+        assert "browser-lane-unavailable" in out["reason"]
+        # zero audit 'executed' rows — nothing ran
+        rows = [json.loads(l) for l in open(cfg.hermes_audit_path).read().splitlines()]
+        assert all(r["operation"] == "browser-dynamic" for r in rows)
+        assert all(r["decision"] == "error" for r in rows)
+
+    def test_completed_relay_and_audit(self, tmp_path, monkeypatch):
+        reply = ("I navigated to the search page and typed the query. "
+                 "The page shows: Hong Kong 28C, cloudy.\nBROWSE: COMPLETED")
+        srv, cfg = self._server(tmp_path, monkeypatch, agent_reply=reply)
+        raw = asyncio.run(srv.call_tool("browser_dynamic_task",
+                                        {"task": "what is hong kong weather",
+                                         "conversation_id": "c2"}))
+        out = json.loads("".join(b.text for b in raw if getattr(b, "text", "")))
+        assert out["status"] == "ok" and out["verdict"] == "completed"
+        assert "28C" in out["result"]
+        rows = [json.loads(l) for l in open(cfg.hermes_audit_path).read().splitlines()]
+        assert any(r["operation"] == "browser-dynamic"
+                   and r["decision"] == "executed" for r in rows)
+
+    def test_missing_marker_is_failure_never_ok(self, tmp_path, monkeypatch):
+        srv, cfg = self._server(tmp_path, monkeypatch,
+                                agent_reply="I looked around. Trust me.")
+        raw = asyncio.run(srv.call_tool("browser_dynamic_task",
+                                        {"task": "find the news",
+                                         "conversation_id": "c3"}))
+        out = json.loads("".join(b.text for b in raw if getattr(b, "text", "")))
+        assert out["status"] == "error" and out["verdict"] == "failed"
