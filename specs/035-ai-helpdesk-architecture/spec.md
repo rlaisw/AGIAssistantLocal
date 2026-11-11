@@ -8,6 +8,16 @@
 
 **Input**: User description: "Build AI Helpdesk Architecture" based on the above conversation — a six-service architecture (Windows-MCP, Playwright MCP, Playwright Scripts, office-mcp, cli-anything, Skill Manager) with a skill auto-save/auto-reuse learning loop and a mandatory tool-routing agent prompt, extending the existing Hermes gateway lanes (specs 027–034).
 
+## Clarifications
+
+### Session 2026-11-11
+
+- Q: One monolithic build, or the architecture-defining spec with each new component implemented as its own separately spec'd increment? → A: Option A — architecture spec now; each component (Skill Manager, dynamic browser, scripted browser, task-API gateway) lands as its own numbered spec/lifecycle, Skill Manager first.
+- Q: Should the mandatory skill-search step apply to every request or only operational tasks? → A: Option A — only operational/action tasks (OS, office, browser, recovery) search skills first; questions/chat/knowledge-base lookups skip the loop.
+- Q: Where does the Skill Manager run — server-side (WSL) with one shared store, or client-side per Windows PC? → A: Option A — server-side, one shared skill store alongside Hermes/Dify; skills are fleet-wide institutional knowledge.
+- Q: Keep the intent-classifier → per-lane agent-node routing pattern, or a single router agent with all tools? → A: Option A — keep the classifier → per-lane pattern; new services join as new lanes, each lane independently gated/testable.
+- Q: Fleet transport — gateway-native MCP per host (extend current wiring), a new unified relay, or direct SSE? → A: Option A — gateway-native MCP per host, reusing the proven wiring/consent-retry/direct-fallback pattern; multi-host = more registered endpoints.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Office document control through the office lane (Priority: P1)
@@ -27,7 +37,7 @@ A user asks the assistant to edit a Word document, write cells into Excel, or re
 
 ### User Story 2 - Skills are searched before every task and reused when trusted (Priority: P1)
 
-Before executing any task, the agent searches the skill store. When a matching skill with sufficient success history exists, the agent retrieves and executes its recorded workflow; when none exists, the agent solves manually and — on success — saves a new versioned, parameterized skill. Feedback (success/failure) flows back into the store.
+Before executing any operational task (an action on the fleet — OS, office, browser, or recovery work; questions and chat skip the loop), the agent searches the skill store. When a matching skill with sufficient success history exists, the agent retrieves and executes its recorded workflow; when none exists, the agent solves manually and — on success — saves a new versioned, parameterized skill. Feedback (success/failure) flows back into the store.
 
 **Why this priority**: The skill loop is the novel value of the whole architecture — it converts one-off fixes into reusable institutional knowledge.
 
@@ -114,7 +124,7 @@ The same agent operates across a fleet of Windows PCs, each running the five cli
 
 **Skill loop**
 
-- **FR-001**: The system MUST search the skill store by semantic intent match BEFORE executing any task, and surface whether a skill was found to the routing decision.
+- **FR-001**: The system MUST search the skill store by semantic intent match BEFORE executing any operational task (an action on the fleet: OS, office, browser, or recovery work), and surface whether a skill was found to the routing decision. Questions, chat, and knowledge-base lookups skip the skill loop (clarified 2026-11-11).
 - **FR-002**: The system MUST record for every skill: name, trigger-keyword-bearing description, tier, parameterized workflow (steps with expected outcomes), version, and success/failure counts.
 - **FR-003**: The system MUST only auto-reuse a skill when its success rate exceeds 80% AND its sample size meets a minimum count; otherwise manual solving applies.
 - **FR-004**: The system MUST save a new versioned skill after a successful novel task, and update the existing skill (same name, version+1) after a successful retry of a failed skill.
@@ -122,6 +132,8 @@ The same agent operates across a fleet of Windows PCs, each running the five cli
 - **FR-006**: Every workflow step MUST carry an expected outcome, and Tier-2 skills MUST include a Tier-1 pre-check as step 1.
 
 **Routing**
+
+- **FR-017** (clarified 2026-11-11): Service routing MUST keep the existing intent-classifier → per-lane agent-node pattern — each new service (dynamic browser, scripted browser, task-API gateway, skill loop) joins as its own lane, with its gate and audit rules independently testable; no single all-tools router agent.
 
 - **FR-007**: The routing rules MUST route Office document control (Word, Excel, PowerPoint, Outlook, Notes, Calendar) to the office service — the draft prompt's "office-mcp does NOT handle Word/Excel/PowerPoint" rule is void. Office install/repair routes to the task-API gateway.
 - **FR-008**: The routing rules MUST send known/repeatable web tasks to scripted browser control and novel/exploratory browsing to dynamic browser control; browser control must never ride the low-level OS service.
@@ -139,10 +151,11 @@ The same agent operates across a fleet of Windows PCs, each running the five cli
 
 - **FR-015**: The client-side services MUST be reachable on stable, documented ports per host, with a port plan that resolves the collision between the proposed port map (3001–3004) and the live services (8800/8888).
 - **FR-016**: v1 MUST support at least the existing single Windows client, and the design MUST NOT preclude enrolling additional hosts with per-host targeting.
+- **FR-018** (clarified 2026-11-11): Windows-side services MUST be reached through the Hermes gateway's native MCP connections per host — extending the current wiring (consent-policy retries, direct-SSE fallback); multi-host support means more registered per-host endpoints, NOT a new relay protocol.
 
 ### Key Entities *(include if feature involves data)*
 
-- **Skill**: name, description (trigger keywords), tier (1|2), parameterized workflow (steps: tool, service, params-template, expected outcome), version, success/failure counts, creation/update timestamps.
+- **Skill**: name, description (trigger keywords), tier (1|2), parameterized workflow (steps: tool, service, params-template, expected outcome), version, success/failure counts, creation/update timestamps. Hosts the fleet's shared skill store **server-side (WSL, alongside Hermes/Dify)** — one shared store, not per-host (clarified 2026-11-11).
 - **SkillFeedback**: skill reference, outcome (success|failure), error context, timestamp.
 - **ServiceEndpoint**: service name, host identity, transport (MCP/SSE vs plain HTTP), port, capability class.
 - **AuditRecord**: operation, host, service, outcome, duration/timing profile — append-only.
@@ -168,3 +181,4 @@ The same agent operates across a fleet of Windows PCs, each running the five cli
 - Fleet multi-host support is designed-for but v1-deployed on the single existing client; per-host enrollment machinery may land in a later feature.
 - The user's draft agent routing prompt is the starting text; its Rule 2 office-scope error is corrected by FR-007, and its "ALWAYS confirm destructive operations" constraint aligns with the gate architecture.
 - Trusting a skill requires both a success-rate threshold (80%) and a minimum sample size (a reasonable default like 3 successes) — exact threshold values are tunable, not load-bearing for the architecture.
+- **Delivery model (clarified 2026-11-11)**: this spec is the governing architecture — routing rules, security-gate policy, entity model, and per-component acceptance are defined HERE; implementation lands as separately numbered component specs, each with its own tests and verification battery (Skill Manager first, then the browser services and the task-API gateway).
