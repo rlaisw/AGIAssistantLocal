@@ -33,3 +33,4 @@
 
 - All checklist items pass; the spec is ready for `/speckit.plan`.
 - The three owner decisions are recorded in FR-011, FR-012, FR-013 and in the checklist note above for traceability.
+- Second clarify pass (2026-11-11): 5 further decisions folded in — untrusted web content (FR-019), feedback-driven skill decay (FR-003), live re-confirmation of gated skill steps (FR-020), mandatory adversarial batteries (SC-007), per-component DSL ownership (Assumptions). All items remain passing.

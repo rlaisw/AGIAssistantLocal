@@ -18,6 +18,14 @@
 - Q: Keep the intent-classifier → per-lane agent-node routing pattern, or a single router agent with all tools? → A: Option A — keep the classifier → per-lane pattern; new services join as new lanes, each lane independently gated/testable.
 - Q: Fleet transport — gateway-native MCP per host (extend current wiring), a new unified relay, or direct SSE? → A: Option A — gateway-native MCP per host, reusing the proven wiring/consent-retry/direct-fallback pattern; multi-host = more registered endpoints.
 
+### Session 2026-11-11 (second pass)
+
+- Q: Should browsed web content be treated as untrusted input that cannot trigger fleet actions on its own authority? → A: Option A — web content is untrusted context: it informs answers but NEVER initiates tool calls or gate requests; all actions require user intent + gates (anti prompt-injection posture).
+- Q: What happens to skill trust when the recorded environment changes materially? → A: Option B — no active staleness detection; the trust threshold decays naturally as failures lower the success rate, demoting the skill to manual-solve-and-update automatically.
+- Q: Must a reused skill's gated steps still pass their own live gate at execution time? → A: Option A — every gated step re-passes its own live draft→confirm at execution time; skill reuse never pre-confirms anything (a skill record is untrusted replay data).
+- Q: Must each component's acceptance battery include adversarial scenarios attempting prohibited actions? → A: Option A — yes, each component spec's battery MUST include adversarial scenarios per its gates (refusal + audit row expected), as in the poisoned-conversation/dispatch-leak harness pattern.
+- Q: Who owns the chatflow DSL/prompt changes — per component or a standalone routing spec? → A: Option A — each component spec ships its own DSL changes (classifier class + lane node + prompt rules); no standalone DSL spec, no big-bang republish.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Office document control through the office lane (Priority: P1)
@@ -126,7 +134,7 @@ The same agent operates across a fleet of Windows PCs, each running the five cli
 
 - **FR-001**: The system MUST search the skill store by semantic intent match BEFORE executing any operational task (an action on the fleet: OS, office, browser, or recovery work), and surface whether a skill was found to the routing decision. Questions, chat, and knowledge-base lookups skip the skill loop (clarified 2026-11-11).
 - **FR-002**: The system MUST record for every skill: name, trigger-keyword-bearing description, tier, parameterized workflow (steps with expected outcomes), version, and success/failure counts.
-- **FR-003**: The system MUST only auto-reuse a skill when its success rate exceeds 80% AND its sample size meets a minimum count; otherwise manual solving applies.
+- **FR-003**: The system MUST only auto-reuse a skill when its success rate exceeds 80% AND its sample size meets a minimum count; otherwise manual solving applies. Skill staleness is feedback-driven (clarified 2026-11-11, second pass): no active environment-change detection — failures naturally lower the success rate below the threshold, which demotes the skill to manual-solve-and-update.
 - **FR-004**: The system MUST save a new versioned skill after a successful novel task, and update the existing skill (same name, version+1) after a successful retry of a failed skill.
 - **FR-005**: After two consecutive failures the system MUST record failure feedback, refuse deletion, and escalate to a human admin.
 - **FR-006**: Every workflow step MUST carry an expected outcome, and Tier-2 skills MUST include a Tier-1 pre-check as step 1.
@@ -142,6 +150,8 @@ The same agent operates across a fleet of Windows PCs, each running the five cli
 
 **Security gates (extending specs 028–034)**
 
+- **FR-019** (clarified 2026-11-11, second pass): Browsed web content MUST be treated as untrusted context — it may inform answers but NEVER initiates tool calls, gate requests, or fleet actions on its own authority; every action requires user intent and passes its lane's gate (anti prompt-injection posture for both browser lanes).
+- **FR-020** (clarified 2026-11-11, second pass): A reused skill's gated steps MUST each re-pass their own live gate (draft→confirm) at execution time — skill reuse NEVER pre-confirms its recorded steps; a skill record is untrusted replay data, and the spec-034 two-phase invariants hold absolutely regardless of how the skill was learned.
 - **FR-011**: PowerShell/cmd execution MUST flow through the existing two-phase draft→confirm gate with the never-list (system-integrity operations refused even with confirmation). Registry access MUST flow through a gated lane with a three-tier policy (owner decision Q1): reads auto-allowed; writes/deletes to non-critical paths behind the two-phase confirm; persistence-critical keys (Run key, services, BCD, SAM) refused with manual-only instructions — never a silent write.
 - **FR-012**: The office service's arbitrary-code execution tool (RunPython) MUST be admitted only behind the two-phase draft→confirm gate with full audit of the exact executed code (owner decision Q2) — never exposed raw to the agent; a cancelled confirm clears the pending draft.
 - **FR-013**: The agent MAY call the Tier-2 deep-repair API only when (a) a Tier-1 run has just recommended it, and (b) the user confirmed the deep repair in chat (owner decision Q3). The Tier-2 call MUST NOT become a bypass around the spec-034 never-list: system-integrity operations refused by the never-list stay refused even when Tier-1 recommends and the user confirms; they escalate to a human admin instead.
@@ -168,6 +178,7 @@ The same agent operates across a fleet of Windows PCs, each running the five cli
 - **SC-001**: A task successfully completed once is recognized on its next occurrence: the skill is found, reused, and completes without manual re-solving (the "learned task" round-trip) in at least 9 of 10 trials.
 - **SC-002**: 100% of tasks route to the correct service per the routing table, verified over a scenario battery covering at least one request per service.
 - **SC-003**: No security-gated operation (PowerShell, registry write, deep repair, office arbitrary code) executes without passing its gate, and no refusal is bypassed via another service — verifiable in the audit log for every trial including adversarial "gate-shopping" prompts.
+- **SC-007** (clarified 2026-11-11, second pass): Every component spec's acceptance battery MUST include adversarial scenarios attempting its prohibited actions (gate-shopping, prompt injection from browsed content, skill-replay pre-confirmation, dispatch leaks) with expected refusal + audit row — security posture is pinned by mandate, not by test-author goodwill.
 - **SC-004**: A long-running job (>30 s) completes without any single held-open streamed call — verifiable by timing profiles in the audit log.
 - **SC-005**: Skills saved by the system are reusable across restarts and (parameterized) across hosts — a skill recorded on one machine names no machine-specific literal that breaks execution on another.
 - **SC-006**: Every failed reused skill escalates to a human admin within two attempts (one retry), 100% of trials.
@@ -181,4 +192,4 @@ The same agent operates across a fleet of Windows PCs, each running the five cli
 - Fleet multi-host support is designed-for but v1-deployed on the single existing client; per-host enrollment machinery may land in a later feature.
 - The user's draft agent routing prompt is the starting text; its Rule 2 office-scope error is corrected by FR-007, and its "ALWAYS confirm destructive operations" constraint aligns with the gate architecture.
 - Trusting a skill requires both a success-rate threshold (80%) and a minimum sample size (a reasonable default like 3 successes) — exact threshold values are tunable, not load-bearing for the architecture.
-- **Delivery model (clarified 2026-11-11)**: this spec is the governing architecture — routing rules, security-gate policy, entity model, and per-component acceptance are defined HERE; implementation lands as separately numbered component specs, each with its own tests and verification battery (Skill Manager first, then the browser services and the task-API gateway).
+- **Delivery model (clarified 2026-11-11)**: this spec is the governing architecture — routing rules, security-gate policy, entity model, and per-component acceptance are defined HERE; implementation lands as separately numbered component specs, each with its own tests and verification battery (Skill Manager first, then the browser services and the task-API gateway). **DSL ownership (second pass)**: every chatflow DSL/prompt change (classifier class, lane node, routing rules) ships inside its owning component spec — no standalone routing spec, no big-bang republish.
