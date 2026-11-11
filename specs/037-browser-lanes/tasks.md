@@ -84,7 +84,7 @@
 
 - [X] T017 [US5] Create `windows/playwright-mcp-task.xml` (schtasks import definition mirroring `windows-mcp-server`: auto-start at logon, hidden, `%APPDATA%\npm\playwright-mcp.cmd --port 3002 --host 127.0.0.1`, restart on failure)
 - [ ] T018 [US5] Import the task on the host (`schtasks /create /tn playwright-mcp-server /xml windows/playwright-mcp-task.xml` via the full interop path), kill the ad-hoc hidden process from this morning, start the task, verify `:3002` listens
-- [ ] T019 [US5] Register the endpoint Hermes-side natively (`hermes mcp add PlaywrightMCP --url http://127.0.0.1:3002/sse` — the 035 FR-018 pattern) and verify the agent sees `mcp__PlaywrightMCP__*` tools
+- [X] T019 [US5] Register the endpoint Hermes-side natively (`hermes mcp add PlaywrightMCP --url http://127.0.0.1:3002/sse` — the 035 FR-018 pattern) and verify the agent sees `mcp__PlaywrightMCP__*` tools
 
 ---
 
