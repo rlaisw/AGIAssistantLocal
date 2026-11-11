@@ -20,7 +20,9 @@ question ──► System 1: embedded Laya decision model (one pass, no text gen
 
 Outage behavior: if the decision node is unavailable/invalid/timed-out, the keyword heuristic routes and responses are marked `provenance: "fallback"` (FR-003 of spec 002).
 
-## MCP tools — 33 total (16 core below + 5 `ppt_*` spec 009 + 2 `antv_*` spec 012 + `hermes_file_task` spec 028 + `hermes_launch_app` spec 029 + `hermes_office_task` spec 030 + `hermes_cancel_turn` + `hermes_run_command` spec 033 + `hermes_run_powershell` spec 034 + 4 `skill_*` spec 036)
+## MCP tools — 35 total (16 core below + 5 `ppt_*` spec 009 + 2 `antv_*` spec 012 + `hermes_file_task` spec 028 + `hermes_launch_app` spec 029 + `hermes_office_task` spec 030 + `hermes_cancel_turn` + `hermes_run_command` spec 033 + `hermes_run_powershell` spec 034 + 4 `skill_*` spec 036 + `browser_scripted_run` + `browser_status` spec 037)
+
+Web/browser intents (known repeatable flows AND exploratory reading) route to the **browser lanes** (spec 037): `browser_scripted_run` executes named, versioned, deterministic Playwright scripts (`scripts/browser/` — registry-validated, per-step `expect` checkpoints, ask-back on missing args, abort naming the first failed checkpoint) on the Windows host; `browser_status` probes the dynamic lane's Playwright MCP server (`127.0.0.1:3002`, Scheduled Task `playwright-mcp-server`) with honest unavailable envelopes. Browsed page content is **untrusted context** — no tool call or fleet action ever originates from a page (adversarial A2 is an acceptance gate). Browser intents never ride the OS/desktop lane; long flows split (~25 s scripts). Full story: `specs/037-browser-lanes/`.
 
 | Tool | Purpose |
 |---|---|

@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import re
+import time
 import uuid
 from pathlib import Path
 from urllib.parse import urljoin
@@ -1385,6 +1387,136 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
         return get_skill_manager().feedback(skill_name, outcome,
                                             conversation_id,
                                             error_context or None)
+
+    # ---- spec 037: the Browser Lanes' two tools ---------------------------
+    # The registry is checked-in files (scripts/browser/), synced to the
+    # Windows host with the repo; invalid scripts never enter the surface.
+    from pathlib import Path as _BPath
+
+    def _browser_registry_root() -> Path:
+        root = _BPath(cfg.mcp_host) if False else _BPath(
+            getattr(cfg, "browser_scripts_root",
+                    _BPath(__file__).resolve().parent.parent.parent
+                    / "scripts" / "browser"))
+        return root
+
+    @mcp.tool()
+    async def browser_scripted_run(script: str, args: dict,
+                                    conversation_id: str,
+                                    ctx: Context = None) -> dict:
+        """Run a NAMED, VERSIONED, DETERMINISTIC browser script (spec 037 —
+        known/repeatable web flows only): `{script, args}` in, per-step
+        checkpoint results out. Args are validated against the script's
+        params schema — a missing or extra value returns status ask-back
+        naming it (relay that question; never guess). The script executes
+        on the user's Windows computer and emits one JSON line per step,
+        verified in order against the script's declared checkpoints; the
+        first mismatch aborts naming the step (never a fabricated
+        completion). Unknown script -> honest error. Scripts are ~25 s
+        bounded; longer flows must split into per-request steps. Relay
+        honestly: status ok -> report the real per-step summaries; ask-back
+        -> relay the question; error -> say the lane failed and include the
+        recovery hint. Never claim a script ran without this tool call.
+        conversation_id is required (audited, cancellable)."""
+        from .browser_lanes.scripted_run import (
+            ScriptNotFound, ScriptRegistry, parse_step_lines, verify_steps)
+        audit = HermesAudit(cfg.hermes_audit_path)
+        registry = ScriptRegistry(_browser_registry_root())
+        t0 = time.monotonic()
+        try:
+            resolved = registry.resolve_args(script, args)
+        except ScriptNotFound:
+            reason = (f"error:script-not-found — no browser script named "
+                      f"{script!r} (registry: {', '.join(registry.names()) or 'empty'})")
+            audit.write_attempt(decision="error", operation="browser-scripted-run",
+                                normalized_path=None, allowed_root="",
+                                reason=reason, conversation_id=conversation_id,
+                                duration_s=time.monotonic() - t0)
+            return {"status": "error", "reason": reason}
+        if resolved["status"] != "ok":
+            audit.write_attempt(
+                decision="blocked", operation="browser-scripted-run",
+                normalized_path=None, allowed_root="",
+                reason=resolved["reason"],
+                conversation_id=conversation_id,
+                duration_s=time.monotonic() - t0)
+            return {"status": "ask-back", "reason": resolved["reason"]}
+        script_rec = registry.get(script)
+        # research R2: execute Windows-side via the hermes channel; the
+        # script's structured stdout carries the checkpoints
+        directive = (f"Run this exact script with these exact arguments and "
+                     f"nothing else: python \"{script_rec.path}\" "
+                     f"{json.dumps(resolved['args'], ensure_ascii=False)} "
+                     f"— report the script's JSON step lines verbatim.")
+        outcome = await _await_with_keepalive(
+            lambda: _run_hermes(cfg, directive,
+                               _BROWSER_RUN_INSTRUCTIONS, conversation_id),
+            ctx, budget=240.0)
+        timing = outcome.get("timing") or {}
+        duration = timing.get("total_s") or (time.monotonic() - t0)
+        if not outcome.get("ok"):
+            error = outcome.get("error", "error:unknown Hermes failure")
+            audit.write_attempt(decision="error", operation="browser-scripted-run",
+                                normalized_path=None, allowed_root="",
+                                reason=error, conversation_id=conversation_id,
+                                duration_s=duration, timing=timing or None)
+            return {"status": "error", "reason": error}
+        steps = parse_step_lines(outcome.get("output", ""))
+        verified = verify_steps(steps, script_rec.expect)
+        audit.write_attempt(
+            decision="executed" if verified["status"] == "completed" else "blocked",
+            operation="browser-scripted-run", normalized_path=None,
+            allowed_root="",
+            outcome=f"{script} v{script_rec.version}: "
+                    + json.dumps(verified)[:180],
+            reason=None if verified["status"] == "completed" else verified["reason"],
+            conversation_id=conversation_id,
+            duration_s=duration, timing=timing or None)
+        if verified["status"] != "completed":
+            return {"status": "ok", "script": script,
+                    "steps": verified.get("steps") or steps,
+                    "verdict": "aborted",
+                    "reason": verified["reason"]}
+        return {"status": "ok", "script": script,
+                "version": script_rec.version,
+                "steps": verified["steps"],
+                "verdict": "completed"}
+
+    @mcp.tool()
+    async def browser_status(conversation_id: str,
+                             ctx: Context = None) -> dict:
+        """Report the BROWSER LANES' health (spec 037): whether the dynamic
+        lane's Playwright MCP server (127.0.0.1:3002) is reachable and how
+        many deterministic scripts the scripted lane offers. On unreachable,
+        returns status error with the recovery hint (start the Scheduled
+        Task: schtasks /run /tn playwright-mcp-server) — relay that
+        honestly; a dynamic-lane request while it is down fails until the
+        task runs. Never fabricate reachability. conversation_id required
+        (audited)."""
+        from .browser_lanes.dynamic_health import probe_dynamic
+        from .browser_lanes.scripted_run import ScriptRegistry
+        audit = HermesAudit(cfg.hermes_audit_path)
+        t0 = time.monotonic()
+        probe = probe_dynamic()
+        registry = ScriptRegistry(_browser_registry_root())
+        probe["scripted"] = {"registry": len(registry.names()),
+                            "scripts": registry.names()}
+        audit.write_attempt(
+            decision="executed" if probe["status"] == "ok" else "error",
+            operation="browser-status", normalized_path=None,
+            allowed_root="",
+            outcome="probe ok" if probe["status"] == "ok" else probe["reason"],
+            conversation_id=conversation_id,
+            duration_s=time.monotonic() - t0)
+        return probe
+
+    _BROWSER_RUN_INSTRUCTIONS = (
+        "You are executing a deterministic browser script on the user's "
+        "Windows computer. Run the given python command exactly as given, "
+        "in the current working directory. Report the script's JSON step "
+        "lines verbatim — do not paraphrase, do not add steps, do not "
+        "invent results. If python or playwright is missing, say so "
+        "honestly. End with: SCRIPT: COMPLETED or SCRIPT: FAILED: <reason>.")
 
     return mcp
 
