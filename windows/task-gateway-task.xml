@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-16"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!-- Spec 038 (T020): auto-start task for the task-gateway service (:8080).
      Mirrors the proven windows-mcp-server / playwright-mcp-server pattern:
      logon auto-start, hidden window, restart on failure. Import (elevated):
@@ -32,7 +32,7 @@
   </Settings>
   <Actions Context="Author">
     <Exec>
-      <!-- conhost --headless: the python console is INVISIBLE — nobody can
+      <!-- conhost headless wrapper: the python console is INVISIBLE — nobody can
            accidentally close the service window (user request 2026-11-11) -->
       <Command>C:\Windows\System32\conhost.exe</Command>
       <Arguments>--headless cmd /c ""C:\temp\task-gateway\run_service.cmd""</Arguments>

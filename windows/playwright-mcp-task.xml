@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-16"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!-- Spec 037 (T017): auto-start task for the Playwright MCP server (:3002).
      Mirrors the proven windows-mcp-server pattern: logon auto-start, hidden
      window, restart on failure. Import (elevated):
@@ -32,11 +32,11 @@
   </Settings>
   <Actions Context="Author">
     <Exec>
-      <!-- conhost --headless: the node console is INVISIBLE — nobody can
+      <!-- conhost headless wrapper: the node console is INVISIBLE — nobody can
            accidentally close the service window (user request 2026-11-11);
            Chrome windows during actual browsing still show (consent-visible) -->
       <Command>C:\Windows\System32\conhost.exe</Command>
-      <Arguments>--headless cmd /c ""%APPDATA%\npm\playwright-mcp.cmd" --port 3002 --host 127.0.0.1"</Arguments>
+      <Arguments>--headless cmd /c C:\Users\RLWC145\AppData\Roaming\npm\playwright-mcp.cmd --port 3002 --host 127.0.0.1</Arguments>
     </Exec>
   </Actions>
 </Task>
