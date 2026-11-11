@@ -47,6 +47,6 @@ The assessment proposed routing fixes only at the DSL level; the fix adds a **st
 
 ## Follow-ups
 
-- **Publish required**: the DSL change needs `deploy chatflow` (deploy window); the gate change needs the sidecar rebuild — one `deploy all` covers both, and its battery now includes the chrome+typing class via the re-scoped pins.
-- The two assessment open questions (UI symptom, Chrome visibility) were never answered — the root cause was confirmed without them (rule conflict found in the DSL text itself), so they can stay open or close as moot.
-- Live re-test: after the deploy window, re-send the verbatim prompt — expected: dynamic browser lane executes (or an honest ask-back), never silence.
+- **Publish DONE (2026-11-11T09:07Z)**: `deploy all` rebuilt the container (gate fix verified in-image: browser-refusal refs present) and published the re-scoped DSL (chatflow-publish ✓ at 08:48). The battery died mid-office-lane when the container exited cleanly (Exit 0, no OOM) at ~09:01 and restart=always recovered it — the office/run/powershell lanes + final summary never ran. **Targeted live verification on the post-deploy container instead**: the X1 probe returned status ok + the REPLACED: stamp (both legs green), and the launch-gate browser refusal is in the image. A full `deploy verify` re-run at a future window would give the formal 15/15 battery record; the fixes themselves are live.
+- The two assessment open questions (UI symptom, Chrome visibility) closed as moot — the root cause was confirmed in the DSL text itself.
+- Live re-test: re-send the verbatim weather prompt — expected: the dynamic browser lane executes (or an honest ask-back), never silence.
