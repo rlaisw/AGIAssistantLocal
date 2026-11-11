@@ -141,6 +141,10 @@ class Config:
     skill_vectordb_path: Path = Path("~/.config/agentic-rag-mcp/hermes-mcp/skill-vectors")
     skill_min_rate: float = 0.80   # FR-002: strictly greater than
     skill_min_successes: int = 3   # sample floor — one lucky success never trusts
+    # spec 038: [task_gateway] — the tier-1/tier-2/install service (R5)
+    task_gateway_url: str = "http://172.17.0.1:8080"
+    task_gateway_connect_timeout_s: float = 5.0
+    task_gateway_read_timeout_s: float = 30.0
     raw: dict[str, Any] = field(default_factory=dict)
 
 
@@ -255,6 +259,15 @@ def load_config(path: Path | None = None) -> Config:
     cfg.skill_min_successes = int(
         _get(raw, "skill_manager", "min_successes",
              default=cfg.skill_min_successes))
+    # spec 038: [task_gateway] url / connect_timeout_s / read_timeout_s
+    cfg.task_gateway_url = str(
+        _get(raw, "task_gateway", "url", default=cfg.task_gateway_url))
+    cfg.task_gateway_connect_timeout_s = float(
+        _get(raw, "task_gateway", "connect_timeout_s",
+             default=cfg.task_gateway_connect_timeout_s))
+    cfg.task_gateway_read_timeout_s = float(
+        _get(raw, "task_gateway", "read_timeout_s",
+             default=cfg.task_gateway_read_timeout_s))
     return cfg
 
 

@@ -13,25 +13,10 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-# (class name, pattern) — case-insensitive, scanned against the whole draft
-_NEVER_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = tuple(
-    (name, re.compile(pat, re.IGNORECASE))
-    for name, pat in [
-        # volume format/wipe: classic "format D:" and the Format-Volume cmdlet
-        # (display cmdlets Format-Table/List/Wide/Custom do NOT match — they
-        # lack the volume target / cmdlet name)
-        ("volume format/wipe", r"\bformat-volume\b"),
-        ("volume format/wipe", r"\bformat\s+[a-z]:"),
-        ("disk partitioning (diskpart)", r"\bdiskpart\b"),
-        ("boot configuration", r"\b(bcdedit|bootcfg|bootrec)\b"),
-        ("shadow-copy deletion", r"\bvssadmin\b[^;|&]*\bdelete\b"),
-        ("Windows recovery (reagentc)", r"\breagentc\b"),
-        ("disk encryption state (BitLocker)", r"\bmanage-bde\b"),
-        ("disk wipe (cipher /w)", r"\bcipher\b[^;|&]*\s/w"),
-        ("disk initialization/clear", r"\b(clear-disk|initialize-disk|restore-disk)\b"),
-        ("secure-delete wiping", r"\bsdelete\b"),
-    ]
-)
+# Spec 038 (R3): the never-list moved to the SHARED module —
+# task_gateway.neverlist.NEVER_PATTERNS is this gate's own pattern table
+# (object-identical import; the suite re-pins against the shared source).
+from .task_gateway.neverlist import NEVER_PATTERNS as _NEVER_PATTERNS
 
 
 @dataclass

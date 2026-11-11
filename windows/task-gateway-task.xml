@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-16"?>
+<!-- Spec 038 (T020): auto-start task for the task-gateway service (:8080).
+     Mirrors the proven windows-mcp-server / playwright-mcp-server pattern:
+     logon auto-start, hidden window, restart on failure. Import (elevated):
+       schtasks /create /tn task-gateway-service /xml windows\task-gateway-task.xml /f
+     Run now:  schtasks /run /tn task-gateway-service -->
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Description>Task-API gateway service (spec 038) — 127.0.0.1:8080, tier-1/tier-2/install endpoints</Description>
+  </RegistrationInfo>
+  <Triggers>
+    <LogonTrigger>
+      <Enabled>true</Enabled>
+    </LogonTrigger>
+  </Triggers>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
+    <AllowStartOnDemand>true</AllowStartOnDemand>
+    <Enabled>true</Enabled>
+    <Hidden>true</Hidden>
+    <RestartOnFailure>
+      <Interval>PT1M</Interval>
+      <Count>3</Count>
+    </RestartOnFailure>
+    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+    <Priority>7</Priority>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>%USERPROFILE%\..\..\services\task-gateway\run_service.cmd</Command>
+    </Exec>
+  </Actions>
+</Task>

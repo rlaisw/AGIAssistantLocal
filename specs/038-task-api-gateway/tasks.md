@@ -15,16 +15,16 @@
 
 ## Phase 1: Setup
 
-- [ ] T001 Create `src/agentic_rag_mcp/task_gateway/__init__.py` + `services/task-gateway/` directory structure per plan.md (two halves: sidecar lane + stdlib host service)
-- [ ] T002 Add `[task_gateway]` config to `src/agentic_rag_mcp/config.py`: `task_gateway_url` default `http://172.17.0.1:8080`, connect timeout 5 s, read timeout 30 s (R5) — with graceful absence handling
+- [X] T001 Create `src/agentic_rag_mcp/task_gateway/__init__.py` + `services/task-gateway/` directory structure per plan.md (two halves: sidecar lane + stdlib host service)
+- [X] T002 Add `[task_gateway]` config to `src/agentic_rag_mcp/config.py`: `task_gateway_url` default `http://172.17.0.1:8080`, connect timeout 5 s, read timeout 30 s (R5) — with graceful absence handling
 
 ## Phase 2: Foundational (blocking prerequisites)
 
-- [ ] T003 [P] Write `tests/unit/test_neverlist_shared.py` first — 034's full pattern table (format/diskpart/bcdedit/bootcfg/bootrec/vssadmin delete/reagentc/manage-bde/cipher /w/Clear-Disk/Initialize-Disk/Restore-Disk/sdelete) + tier-2 additions (smuggled "repair by formatting" class) + repair-class allowed cases (`sfc /scannow`, `DISM /Online /Cleanup-Image /RestoreHealth` WITHOUT /ResetBase) — FAIL first
-- [ ] T004 Extract the shared never-list into `src/agentic_rag_mcp/task_gateway/neverlist.py` (`NEVERLIST_PATTERNS` + `scan(text) -> reason | None`, byte-identical 034 patterns verbatim from data-model) and point `src/agentic_rag_mcp/hermes_powershell_gate.py` at it — **034's existing suite (`tests/unit/test_hermes_powershell_gate.py` or wherever 034 pins live) re-runs green unchanged** (Constitution V constraint quoted from plan.md)
-- [ ] T005 [P] Write `tests/unit/test_task_tier2_state.py` first — the 034-pattern state: `set_pending`/`pending`/`clear`/supersede (new tier1 run replaces), conversation-scoped, thread-safe — FAIL first
-- [ ] T006 Implement `src/agentic_rag_mcp/task_gateway/tier2_state.py` (`Tier2State` mirroring `PowerShellState` per data-model Tier2Recommendation: conversation_id, issue_type, repair_name, repair_text, created_at; supersession rule FR-004)
-- [ ] T007 [P] Write `tests/unit/test_task_gateway_client.py` first — honest envelopes: connect refused → `task-gateway-unavailable` + recovery text; malformed JSON/HTML → `task-gateway-malformed-response` (never parsed as content, never a fabricated "none"); recommendation values only "none"|"tier2" (anything else → error) — FAIL first
+- [X] T003 [P] Write `tests/unit/test_neverlist_shared.py` first — 034's full pattern table (format/diskpart/bcdedit/bootcfg/bootrec/vssadmin delete/reagentc/manage-bde/cipher /w/Clear-Disk/Initialize-Disk/Restore-Disk/sdelete) + tier-2 additions (smuggled "repair by formatting" class) + repair-class allowed cases (`sfc /scannow`, `DISM /Online /Cleanup-Image /RestoreHealth` WITHOUT /ResetBase) — FAIL first
+- [X] T004 Extract the shared never-list into `src/agentic_rag_mcp/task_gateway/neverlist.py` (`NEVERLIST_PATTERNS` + `scan(text) -> reason | None`, byte-identical 034 patterns verbatim from data-model) and point `src/agentic_rag_mcp/hermes_powershell_gate.py` at it — **034's existing suite (`tests/unit/test_hermes_powershell_gate.py` or wherever 034 pins live) re-runs green unchanged** (Constitution V constraint quoted from plan.md)
+- [X] T005 [P] Write `tests/unit/test_task_tier2_state.py` first — the 034-pattern state: `set_pending`/`pending`/`clear`/supersede (new tier1 run replaces), conversation-scoped, thread-safe — FAIL first
+- [X] T006 Implement `src/agentic_rag_mcp/task_gateway/tier2_state.py` (`Tier2State` mirroring `PowerShellState` per data-model Tier2Recommendation: conversation_id, issue_type, repair_name, repair_text, created_at; supersession rule FR-004)
+- [X] T007 [P] Write `tests/unit/test_task_gateway_client.py` first — honest envelopes: connect refused → `task-gateway-unavailable` + recovery text; malformed JSON/HTML → `task-gateway-malformed-response` (never parsed as content, never a fabricated "none"); recommendation values only "none"|"tier2" (anything else → error) — FAIL first
 
 **Checkpoint**: never-list shared + 034 re-pinned; state + envelope suites green.
 
@@ -35,9 +35,9 @@
 **Goal**: `task_helpdesk_tier1` runs the protocol's first step with honest verdicts.
 **Independent Test**: quickstart P1 — tier1 audit row, "none"→report+stop, "tier2"→pending named repair.
 
-- [ ] T008 [US1] Implement `services/task-gateway/service.py` tier-1 half: `POST /api/helpdesk/tier1` with a curated tier-1 script set (`services/task-gateway/tier1_scripts/`: service-restart, printer-queue-clear, cache-clear), structured JSON `{recommendation: none|tier2, actions, detail}`, `GET /api/healthz`, stdlib `http.server`, loopback bind
-- [ ] T009 [US1] Implement `src/agentic_rag_mcp/task_gateway/client.py` tier-1 call (httpx, cfg timeouts per T002) and the lane handler in `src/agentic_rag_mcp/task_gateway/lane.py`: audit `operation=task-tier1`; on "tier2" register pending state (T006) and return `pending-repair: <name>` guidance
-- [ ] T010 [US1] Register `task_helpdesk_tier1` MCP tool in `src/agentic_rag_mcp/server.py` (schema per contracts/README.md; `conversation_id` required; additive — existing 35 schemas byte-identical)
+- [X] T008 [US1] Implement `services/task-gateway/service.py` tier-1 half: `POST /api/helpdesk/tier1` with a curated tier-1 script set (`services/task-gateway/tier1_scripts/`: service-restart, printer-queue-clear, cache-clear), structured JSON `{recommendation: none|tier2, actions, detail}`, `GET /api/healthz`, stdlib `http.server`, loopback bind
+- [X] T009 [US1] Implement `src/agentic_rag_mcp/task_gateway/client.py` tier-1 call (httpx, cfg timeouts per T002) and the lane handler in `src/agentic_rag_mcp/task_gateway/lane.py`: audit `operation=task-tier1`; on "tier2" register pending state (T006) and return `pending-repair: <name>` guidance
+- [X] T010 [US1] Register `task_helpdesk_tier1` MCP tool in `src/agentic_rag_mcp/server.py` (schema per contracts/README.md; `conversation_id` required; additive — existing 35 schemas byte-identical)
 
 **Checkpoint**: US1 independently testable.
 
@@ -48,10 +48,10 @@
 **Goal**: two-phase tier-2 with the named-repair confirmation and never-list refused even confirmed.
 **Independent Test**: quickstart P2 + A4 — confirm/decline/silence/modify matrix + never-listed refused with both preconditions.
 
-- [ ] T011 [P] [US2] Write `tests/unit/test_task_tier2_lane.py` first — the full matrix: no-recommendation→blocked; confirm executes ONLY stored repair (confirm call carries no payload); never-list at draft AND execution → refused + escalated (FR-003); supersession by a new tier1; missing state → honest blocked — FAIL first
-- [ ] T012 [US2] Implement the tier-2 half of `service.py` (`POST /api/helpdesk/tier2`: bounded ~120 s sync, repair catalog per issue_type) + the tier-2 lane handler in `lane.py` (draft→`pending-confirmation` with the NAMED repair; confirm→never-list re-scan→execute stored; audits `task-tier2-draft|executed|refused`)
-- [ ] T013 [US2] Register `task_helpdesk_tier2` MCP tool in `server.py` (two-phase schema per contracts: `issue_type, conversation_id, confirm=False`)
-- [ ] T014 [P] [US2] Build the A4 adversarial harness in `tests/integration/test_task_a14.py`: seed a never-listed "repair", assert refusal + escalation WITH recommendation + confirmation, assert zero executions of the class, assert audit rows (`task-tier2-refused`) — 035 SC-007 mandate
+- [X] T011 [P] [US2] Write `tests/unit/test_task_tier2_lane.py` first — the full matrix: no-recommendation→blocked; confirm executes ONLY stored repair (confirm call carries no payload); never-list at draft AND execution → refused + escalated (FR-003); supersession by a new tier1; missing state → honest blocked — FAIL first
+- [X] T012 [US2] Implement the tier-2 half of `service.py` (`POST /api/helpdesk/tier2`: bounded ~120 s sync, repair catalog per issue_type) + the tier-2 lane handler in `lane.py` (draft→`pending-confirmation` with the NAMED repair; confirm→never-list re-scan→execute stored; audits `task-tier2-draft|executed|refused`)
+- [X] T013 [US2] Register `task_helpdesk_tier2` MCP tool in `server.py` (two-phase schema per contracts: `issue_type, conversation_id, confirm=False`)
+- [X] T014 [P] [US2] Build the A4 adversarial harness in `tests/integration/test_task_a14.py`: seed a never-listed "repair", assert refusal + escalation WITH recommendation + confirmation, assert zero executions of the class, assert audit rows (`task-tier2-refused`) — 035 SC-007 mandate
 
 **Checkpoint**: the destructive-surface security story is closed and pinned.
 
@@ -62,9 +62,9 @@
 **Goal**: install returns a job handle; polling reports real states; nothing near 300 s.
 **Independent Test**: quickstart J1 — job handle fast, real polled states, audit durations ≪ 300 s.
 
-- [ ] T015 [P] [US3] Write `tests/unit/test_task_jobs.py` first (service half, mocked exec): install→queued handle; background thread → running→progress→completed/failed; `GET /api/helpdesk/job/{id}` real at every poll; unknown id → honest not-found; JSONL rows appended per transition (data-model Job verbatim) — FAIL first
-- [ ] T016 [US3] Implement the install/job half of `service.py` (job table + background thread + `C:\ProgramData\agentic-rag\task-gateway\jobs.jsonl` append-only rows) + `lane.py` handlers (install → handle, never blocking; `task_job_status` → poll) + register `task_office_install` and `task_job_status` MCP tools in `server.py` (audits `task-office-install`, `task-job-status`)
-- [ ] T017 [US3] Add the DSL poll discipline to the lane rules: report the handle, poll on ask or turn end, never loop-poll inside one call beyond ~15 s (R4)
+- [X] T015 [P] [US3] Write `tests/unit/test_task_jobs.py` first (service half, mocked exec): install→queued handle; background thread → running→progress→completed/failed; `GET /api/helpdesk/job/{id}` real at every poll; unknown id → honest not-found; JSONL rows appended per transition (data-model Job verbatim) — FAIL first
+- [X] T016 [US3] Implement the install/job half of `service.py` (job table + background thread + `C:\ProgramData\agentic-rag\task-gateway\jobs.jsonl` append-only rows) + `lane.py` handlers (install → handle, never blocking; `task_job_status` → poll) + register `task_office_install` and `task_job_status` MCP tools in `server.py` (audits `task-office-install`, `task-job-status`)
+- [X] T017 [US3] Add the DSL poll discipline to the lane rules: report the handle, poll on ask or turn end, never loop-poll inside one call beyond ~15 s (R4)
 
 ---
 
@@ -73,8 +73,8 @@
 **Goal**: FR-007 structural + A1 pinned.
 **Independent Test**: quickstart A1 — tool-surface enumeration shows no raw HTTP tool; cross-lane smuggling refused.
 
-- [ ] T018 [US4] Pin the tool-scope in `tests/integration/test_task_a14.py` (extend): the gateway lane's DSL tool list carries ONLY the 4 task tools + skill tools + status (no powershell/office/browser tools) and NO generic HTTP tool exists in any lane; adversarial "call the API directly with curl/POST to :8080" prompts → refused (no tool to do it with) + reported
-- [ ] T019 [US4] Add the gateway lane DSL wiring to `dify/AGIAssistant/AGI_Assistant.yml`: issue-intent classifier class, tier1-first protocol rules verbatim, tier-2 confirmation semantics, install job+poll discipline, never-list-refusal-is-final rule, and the lane's scoped tool list
+- [X] T018 [US4] Pin the tool-scope in `tests/integration/test_task_a14.py` (extend): the gateway lane's DSL tool list carries ONLY the 4 task tools + skill tools + status (no powershell/office/browser tools) and NO generic HTTP tool exists in any lane; adversarial "call the API directly with curl/POST to :8080" prompts → refused (no tool to do it with) + reported
+- [X] T019 [US4] Add the gateway lane DSL wiring to `dify/AGIAssistant/AGI_Assistant.yml`: issue-intent classifier class, tier1-first protocol rules verbatim, tier-2 confirmation semantics, install job+poll discipline, never-list-refusal-is-final rule, and the lane's scoped tool list
 
 ---
 
@@ -84,15 +84,15 @@
 **Independent Test**: quickstart D1 — task stopped → honest unavailable envelope within one turn.
 
 - [ ] T020 [US5] Create `windows/task-gateway-task.xml` + `services/task-gateway/run_service.cmd` (037 pattern: logon auto-start, hidden, restart-on-failure PT1M, loopback :8080) — import on the host via the elevated path (`schtasks /create /tn task-gateway-service /xml …`, the T018-of-037 UAC route), verify `:8080/api/healthz`
-- [ ] T021 [US5] Pin the degradation test: service stopped → tier-1 call returns `error:task-gateway-unavailable` + recovery (`schtasks /run /tn task-gateway-service`) within one turn (unit, against a dead URL)
+- [X] T021 [US5] Pin the degradation test: service stopped → tier-1 call returns `error:task-gateway-unavailable` + recovery (`schtasks /run /tn task-gateway-service`) within one turn (unit, against a dead URL)
 
 ---
 
 ## Phase 8: Polish & Cross-Cutting
 
-- [ ] T022 [P] Update `README.md` + `AGENTS.md`: tool count 35 → 39, the gateway lane feature surface + tier protocol description (house doc pattern)
-- [ ] T023 Run `ruff` on new sources; full pytest suite green minus the 3 pre-existing contract pins
-- [ ] T024 [P] Run `graphify update .`
+- [X] T022 [P] Update `README.md` + `AGENTS.md`: tool count 35 → 39, the gateway lane feature surface + tier protocol description (house doc pattern)
+- [X] T023 Run `ruff` on new sources; full pytest suite green minus the 3 pre-existing contract pins
+- [X] T024 [P] Run `graphify update .`
 - [ ] T025 Rebuild Dify `tool_mcp_providers` rows + restart `docker-api-1`/`docker-worker-1` + `deploy chatflow` publish — deploy window
 - [ ] T026 Run quickstart.md live battery: P1/P2/A1/A4/J1/D1; grep the audit JSONL for `task-*` rows incl. every A1/A4 refusal — deploy window (idle host)
 

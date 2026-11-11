@@ -1518,6 +1518,87 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
         "invent results. If python or playwright is missing, say so "
         "honestly. End with: SCRIPT: COMPLETED or SCRIPT: FAILED: <reason>.")
 
+    # ---- spec 038: the Task-API Gateway lane (tier protocol, jobs) -------
+    _task_lane: list = []  # at most one entry (lazy singleton)
+
+    def get_task_lane():
+        if not _task_lane:
+            from .task_gateway.client import TaskGatewayClient
+            from .task_gateway.lane import TaskLane
+            _task_lane.append(TaskLane(
+                TaskGatewayClient(getattr(cfg, "task_gateway_url",
+                                           "http://172.17.0.1:8080")),
+                HermesAudit(cfg.hermes_audit_path)))
+        return _task_lane[0]
+
+    @mcp.tool()
+    async def task_helpdesk_tier1(issue_type: str, issue_text: str,
+                                   conversation_id: str,
+                                   ctx: Context = None) -> dict:
+        """Run the TIER-1 QUICK FIX for a reported system issue on the user's
+        Windows computer (spec 038) — ALWAYS the first gateway call for a
+        system issue, BEFORE any tier-2 consideration. Returns
+        {status, recommendation: none|tier2, actions, detail} — relay the
+        verdict honestly: report the actions actually run. On
+        recommendation 'tier2' the named repair is registered
+        pending-confirmation in this conversation: show the user the
+        repair NAME and what it does, and ask — only their plain chat
+        confirmation (then task_helpdesk_tier2 with confirm=true) executes
+        it. On 'none' report resolution and stop. Never fabricate a
+        recommendation; on error say the gateway is unavailable and
+        include the recovery hint. conversation_id required (audited).
+        """
+        return get_task_lane().tier1(issue_type, issue_text, conversation_id)
+
+    @mcp.tool()
+    async def task_helpdesk_tier2(issue_type: str, conversation_id: str,
+                                   confirm: bool = False,
+                                   ctx: Context = None) -> dict:
+        """Run a CONFIRMED TIER-2 DEEP REPAIR (spec 038) — a TWO-PHASE flow.
+        Phase 1 (confirm=false, default): requires a fresh tier-2
+        recommendation from this conversation's task_helpdesk_tier1 call;
+        returns status pending-confirmation with the NAMED repair and what
+        it will do — show it VERBATIM and ask the user. NOTHING executes.
+        Phase 2 (confirm=true): the user gave a plain affirmative for that
+        exact repair; the STORED repair executes (the confirm call carries
+        no repair payload — what was confirmed is structurally what runs).
+        System-integrity operations (volume format, diskpart, boot config,
+        shadow-copy deletion, recovery, BitLocker state, disk wipes) are
+        REFUSED ALWAYS — even with the recommendation AND the user's
+        confirmation — relay the refusal verbatim and escalate to the
+        human admin. A modification re-drafts from scratch; silence never
+        executes; a new tier-1 run supersedes the old recommendation.
+        conversation_id required (audited).
+        """
+        return get_task_lane().tier2(issue_type, conversation_id,
+                                     confirm=confirm)
+
+    @mcp.tool()
+    async def task_office_install(version: str = "365",
+                                  channel: str = "Current",
+                                  conversation_id: str = "",
+                                  ctx: Context = None) -> dict:
+        """START an Office install as a background JOB (spec 038) — returns
+        {job_id, status: queued} FAST; never a held-open call. After
+        starting, tell the user the job is queued and poll its real status
+        with task_job_status — report only what the gateway actually
+        returns at each poll (queued/running/completed/failed), never a
+        fabricated 'installed'. conversation_id required (audited).
+        """
+        return get_task_lane().install(version, channel, conversation_id)
+
+    @mcp.tool()
+    async def task_job_status(job_id: str, conversation_id: str = "",
+                              ctx: Context = None) -> dict:
+        """Poll a gateway JOB's real status (spec 038) — {status, job:
+        {job_id, kind, status, detail}} with the gateway's actual fields.
+        Unknown job → honest not-found. Gateway down → honest unavailable
+        envelope with the recovery hint (schtasks /run /tn
+        task-gateway-service). Report only real states; never invent
+        progress or completion. conversation_id required (audited).
+        """
+        return get_task_lane().job_status(job_id, conversation_id)
+
     return mcp
 
 
