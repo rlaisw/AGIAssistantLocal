@@ -25,8 +25,8 @@ def call(server, name, args):
 
 
 def _server(tmp_path, monkeypatch, agent_reply=None, calls=None, timing=None):
-    import agentic_rag_mcp.server as server_mod
     import agentic_rag_mcp.hermes_client as hc
+    import agentic_rag_mcp.server as server_mod
 
     monkeypatch.setattr(server_mod, "build_providers", lambda cfg: [])
     monkeypatch.setattr(server_mod, "Embedder", lambda model, device: object())
@@ -503,3 +503,70 @@ def test_office_instructions_contain_attach_failure_protocol():
     # stay inside the 600s client budget (the marathon killed the gateway)
     assert "AT MOST ONE fast GetActiveObject" in OFFICE_INSTRUCTIONS
     assert "AT MOST ONE Dispatch attempt" in OFFICE_INSTRUCTIONS
+
+
+# ------------------------------------------- office-x1 REPLACED: attestation
+# (spec 031 + battery X1, 3-for-3 failures root-caused 2026-11-11: the
+# free-form report never says "replaced" — the stamp makes it deterministic)
+
+def _x1_reply():
+    return ("STEP 1: document-write OK — opened the file, wrote v2, saved\n"
+            "ACTIVE FILE: C:\\OfficeMCP\\overwrite_probe.docx\n"
+            "TASK: COMPLETED")
+
+
+def test_x1_overwrite_of_existing_file_gets_replaced_stamp(tmp_path, monkeypatch):
+    import agentic_rag_mcp.server as server_mod
+    monkeypatch.setattr(server_mod, "_office_path_exists", lambda p: True)
+    srv, cfg = _server(tmp_path, monkeypatch, agent_reply=_x1_reply())
+    out = call(srv, "hermes_office_task",
+               {"task": "update the Word document "
+                        "C:\\OfficeMCP\\overwrite_probe.docx with the text 'v2'",
+                "conversation_id": "c-x1a"})
+    assert out["status"] == "ok"
+    assert "REPLACED: the existing file at C:\\OfficeMCP\\overwrite_probe.docx" \
+           in out["result"]
+    assert "was overwritten" in out["result"]
+
+
+def test_x1_fresh_create_gets_no_replaced_stamp(tmp_path, monkeypatch):
+    import agentic_rag_mcp.server as server_mod
+    monkeypatch.setattr(server_mod, "_office_path_exists", lambda p: False)
+    srv, cfg = _server(tmp_path, monkeypatch, agent_reply=_x1_reply())
+    out = call(srv, "hermes_office_task",
+               {"task": "create a Word document with the text 'v1' and save "
+                        "it to C:\\OfficeMCP\\overwrite_probe.docx",
+                "conversation_id": "c-x1b"})
+    assert out["status"] == "ok"
+    assert "REPLACED:" not in out["result"]
+
+
+def test_x1_failed_write_on_existing_file_gets_no_stamp(tmp_path, monkeypatch):
+    import agentic_rag_mcp.server as server_mod
+    monkeypatch.setattr(server_mod, "_office_path_exists", lambda p: True)
+    reply = ("STEP 1: document-write FAILED — Word could not open the file\n"
+             "TASK: FAILED")
+    srv, cfg = _server(tmp_path, monkeypatch, agent_reply=reply)
+    out = call(srv, "hermes_office_task",
+               {"task": "update the Word document "
+                        "C:\\OfficeMCP\\overwrite_probe.docx with the text 'v2'",
+                "conversation_id": "c-x1c"})
+    assert out["status"] == "error"
+    assert "REPLACED:" not in json.dumps(out)
+
+
+def test_x1_read_task_never_stamps(tmp_path, monkeypatch):
+    # reads can name an existing file — REPLACED: is for WRITES only
+    import agentic_rag_mcp.server as server_mod
+    monkeypatch.setattr(server_mod, "_office_path_exists", lambda p: True)
+    reply = ("STEP 1: document-read OK — read the file, it says 'v2'\n"
+             "ACTIVE FILE: C:\\OfficeMCP\\overwrite_probe.docx\n"
+             "TASK: COMPLETED")
+    srv, cfg = _server(tmp_path, monkeypatch, agent_reply=reply)
+    out = call(srv, "hermes_office_task",
+               {"task": "read the Word document "
+                        "C:\\OfficeMCP\\overwrite_probe.docx and tell me "
+                        "what it says",
+                "conversation_id": "c-x1d"})
+    assert out["status"] == "ok"
+    assert "REPLACED:" not in out["result"]

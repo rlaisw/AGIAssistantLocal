@@ -11,6 +11,16 @@ import uuid
 from pathlib import Path
 from urllib.parse import urljoin
 
+
+def _office_path_exists(posix_path: str) -> bool:
+    """office-x1 (spec 031): pre-existence probe for the REPLACED:
+    attestation — module-level so tests can pin the stamp logic
+    hermetically (the real check hits /mnt/<drive>, host-only)."""
+    try:
+        return Path(posix_path).exists()
+    except OSError:
+        return False
+
 import httpx
 from mcp.server.fastmcp import FastMCP, Context
 
@@ -769,7 +779,8 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
                             "keepalive progress ping failed: %r (ctx=%r)", exc, type(ctx).__name__)
                         pass
     from .office_gate import (
-        OP_CANCEL, OP_COMPOSE_EMAIL, OP_CONTINUE, OP_SEND_CONFIRMATION,
+        OP_CANCEL, OP_COMPOSE_EMAIL, OP_CONTINUE, OP_DOCUMENT_WRITE,
+        OP_SEND_CONFIRMATION,
         gate_office,
     )
 
@@ -781,6 +792,9 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
     _RE_DRAFT_ID = _re.compile(r"^DRAFT ID:\s*(\S+)", _re.IGNORECASE | _re.MULTILINE)
     _RE_TASK = _re.compile(r"^TASK:\s*(COMPLETED|PARTIAL|FAILED)",
                            _re.IGNORECASE | _re.MULTILINE)
+    # office-x1 (2026-11-11): a Windows-style file path named in an office
+    # task — the pre-existence check's target for the REPLACED: attestation
+    _RE_OFFICE_TARGET = _re.compile(r"[A-Za-z]:\\[^\s\"']+\.\w{1,5}")
     # spec 033 — the echo-and-attest protocol: the agent must echo the exact
     # gated command; a mismatch or missing marker is an error, never ok
     _RE_RUN_ECHO = _re.compile(r"^COMMAND:\s*(.+?)\s*$",
@@ -1127,6 +1141,21 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
         audit = HermesAudit(cfg.hermes_audit_path)
         state = get_office_state()
 
+        # office-x1 (2026-11-11, spec 031): the "replaced" report for an
+        # overwrite of a pre-existing user-named file is a CONTRACT, and the
+        # free-form agent report reliably phrases it "opened/wrote/saved"
+        # (3-for-3 battery failures). Deterministic attestation, 034
+        # echo-and-attest pattern: stamp ONLY when the named target exists
+        # BEFORE the call and a write-kind task COMPLETES — fresh creates
+        # and failures never claim a replacement.
+        _win_path = _RE_OFFICE_TARGET.search(task)
+        _target_pre_existing = False
+        if _win_path and verdict.kind == OP_DOCUMENT_WRITE:
+            from .hermes_gate import normalize_path as _normalize
+            _norm = _normalize(_win_path.group(0), home=str(Path.home()),
+                               allowed_root="/mnt")
+            _target_pre_existing = bool(_norm) and _office_path_exists(_norm)
+
         def _audit(decision: str, reason: str | None = None,
                    outcome: str | None = None,
                    timing: dict | None = None) -> None:
@@ -1205,8 +1234,15 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
                 _audit("error", reason=reason, timing=turn_timing or None)
                 return {"status": "error", "reason": reason, **envelope}
             if tm.group(1).upper() == "COMPLETED":
+                result = f"{output}\n\n{tline}" if tline else output
+                if _target_pre_existing:
+                    # office-x1 (spec 031): the deterministic, honest
+                    # replaced-report — only for a COMPLETED write onto a
+                    # file that existed before the call
+                    result += ("\nREPLACED: the existing file at "
+                               f"{_win_path.group(0)} was overwritten.")
                 return {"status": "ok", "decision": "executed",
-                        "result": f"{output}\n\n{tline}" if tline else output,
+                        "result": result,
                         **envelope}
             failed = [m.group(0).strip() for m in _RE_STEP.finditer(output)
                       if m.group(1).upper() == "FAILED"]
