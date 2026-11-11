@@ -52,6 +52,7 @@ specs/035-ai-helpdesk-architecture/
 ├── research.md          # Phase 0 output
 ├── data-model.md        # Phase 1 output
 ├── quickstart.md        # Phase 1 output
+├── test-plan.md        # Consolidated unit + e2e + adversarial + error-handling test plan (spec-034 format)
 ├── contracts/           # Phase 1 output
 └── tasks.md             # NOT created by /speckit.plan (component specs carry their own tasks)
 ```
@@ -77,3 +78,7 @@ specs/03[6-9]-*/                       # component specs, one per service
 ## Complexity Tracking
 
 > Not required — Constitution Check passes with no violations.
+
+## Test Plan
+
+See **[test-plan.md](./test-plan.md)** — the consolidated test surface for the whole program, in the spec-034 format: unit suites (skill trust/executor, per-lane gates, routing pins), live end-to-end battery (E1–E6), the mandatory adversarial battery (A1–A6, SC-007: gate-shopping, web prompt-injection, skill-replay bypass, never-list-via-Tier-2, dispatch leaks, fabricated completions — each expected refusal + audit row), the error-handling matrix (degradation, near-miss, malformed gateway JSON, per-host failure), and regression pins (suite green minus 4 known, tool schemas additive-only, audit append-only). Component specs 036+ inherit and instantiate exactly these cases.
