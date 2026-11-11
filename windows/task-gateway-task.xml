@@ -32,7 +32,7 @@
   </Settings>
   <Actions Context="Author">
     <Exec>
-      <Command>%USERPROFILE%\..\..\services\task-gateway\run_service.cmd</Command>
+      <Command>C:\temp\task-gateway\run_service.cmd</Command>
     </Exec>
   </Actions>
 </Task>

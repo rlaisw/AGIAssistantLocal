@@ -83,7 +83,7 @@
 **Goal**: the service survives reboots; outage degrades honestly.
 **Independent Test**: quickstart D1 — task stopped → honest unavailable envelope within one turn.
 
-- [ ] T020 [US5] Create `windows/task-gateway-task.xml` + `services/task-gateway/run_service.cmd` (037 pattern: logon auto-start, hidden, restart-on-failure PT1M, loopback :8080) — import on the host via the elevated path (`schtasks /create /tn task-gateway-service /xml …`, the T018-of-037 UAC route), verify `:8080/api/healthz`
+- [X] T020 [US5] Create `windows/task-gateway-task.xml` + `services/task-gateway/run_service.cmd` (037 pattern: logon auto-start, hidden, restart-on-failure PT1M, loopback :8080) — import on the host via the elevated path (`schtasks /create /tn task-gateway-service /xml …`, the T018-of-037 UAC route), verify `:8080/api/healthz`
 - [X] T021 [US5] Pin the degradation test: service stopped → tier-1 call returns `error:task-gateway-unavailable` + recovery (`schtasks /run /tn task-gateway-service`) within one turn (unit, against a dead URL)
 
 ---
