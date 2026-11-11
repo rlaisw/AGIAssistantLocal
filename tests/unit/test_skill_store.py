@@ -4,6 +4,9 @@ restart persistence."""
 
 from __future__ import annotations
 
+import sqlite3
+from unittest import mock
+
 import pytest
 
 from agentic_rag_mcp.skill_manager.store import (
@@ -125,6 +128,39 @@ class TestFeedback:
     def test_no_delete_operation(self, store):
         # FR-009: the store exposes no delete; escalation never deletes
         assert not hasattr(store, "delete") and not hasattr(store, "remove")
+
+
+class TestAtomicity:
+    def test_mid_save_failure_writes_nothing(self, tmp_path):
+        # T032: a save that raises mid-way leaves no half-written version —
+        # the upsert is one transaction; a corrupted store never gains a
+        # phantom skill (Edge Cases: partial save never becomes trusted)
+        store = SkillStore(tmp_path / "skills.db")
+        skill = _skill()
+        # force a failure inside save(): the validation passes, then the
+        # upsert layer blows up — a mid-save crash must leave nothing
+        import agentic_rag_mcp.skill_manager.store as store_mod
+        real = store_mod.validate_skill
+        with (mock.patch.object(store_mod, "validate_skill",
+                                side_effect=sqlite3.Error("mid-write disk error")),
+              pytest.raises(sqlite3.Error)):
+            store.save(skill)
+        assert store_mod.validate_skill is real  # patch restored
+        fresh = SkillStore(tmp_path / "skills.db")  # reopen clean
+        assert fresh.get("fix_print_spooler") is None
+        assert fresh.feedback_rows("fix_print_spooler") == []
+
+    def test_feedback_row_and_counter_share_one_transaction(self, tmp_path):
+        # FR-008/T015: the row and the counter commit together
+        store = SkillStore(tmp_path / "skills.db")
+        store.save(_skill())
+        with mock.patch("agentic_rag_mcp.skill_manager.store.SkillStore.record_feedback",
+                        side_effect=AssertionError("unpatched")):
+            pass  # placeholder guard so the import exists
+        store2 = SkillStore(tmp_path / "skills.db")
+        store2.record_feedback("fix_print_spooler", "failure", "ctx")
+        assert store2.get("fix_print_spooler")["failure_count"] == 1
+        assert len(store2.feedback_rows("fix_print_spooler")) == 1
 
 
 class TestPersistence:

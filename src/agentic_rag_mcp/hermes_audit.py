@@ -12,7 +12,7 @@ import fcntl
 import json
 import os
 import threading
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 _LOCK = threading.Lock()
@@ -20,7 +20,7 @@ _DECISIONS = ("executed", "blocked", "error")
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 class HermesAudit:
@@ -32,7 +32,8 @@ class HermesAudit:
                       normalized_path: str | None, allowed_root: str,
                       reason: str | None = None, outcome: str | None = None,
                       duration_s: float | None = None,
-                      timing: dict | None = None) -> None:
+                      timing: dict | None = None,
+                      conversation_id: str | None = None) -> None:
         if decision not in _DECISIONS:
             raise ValueError(f"decision must be one of {_DECISIONS}, got {decision!r}")
         entry = {
@@ -42,6 +43,10 @@ class HermesAudit:
             "normalized_path": normalized_path,
             "allowed_root": allowed_root,
         }
+        # spec 036 (T030): skill-* rows carry the conversation; additive —
+        # legacy entries without it stay valid, callers that omit it unchanged
+        if conversation_id:
+            entry["conversation_id"] = conversation_id
         if decision == "executed":
             entry["outcome"] = outcome
         else:
@@ -53,12 +58,11 @@ class HermesAudit:
         if timing:
             entry["timing"] = timing
         line = json.dumps(entry, ensure_ascii=False) + "\n"
-        with _LOCK:
-            with open(self.path, "a", encoding="utf-8") as f:
-                # cross-process appends stay whole lines under the flock
-                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
-                try:
-                    os.write(f.fileno(), line.encode("utf-8"))
-                    f.flush()
-                finally:
-                    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+        with _LOCK, open(self.path, "a", encoding="utf-8") as f:
+            # cross-process appends stay whole lines under the flock
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            try:
+                os.write(f.fileno(), line.encode("utf-8"))
+                f.flush()
+            finally:
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)

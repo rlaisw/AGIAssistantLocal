@@ -50,11 +50,13 @@ class SkillManager:
             self.audit.write_attempt(
                 decision="error", operation=operation, normalized_path=None,
                 allowed_root="", reason=f"skill-store-unavailable: {exc}",
+                conversation_id=conversation_id,
                 duration_s=time.monotonic() - t0)
             return _unavailable(exc)
         self.audit.write_attempt(
             decision="executed", operation=operation, normalized_path=None,
             allowed_root="", outcome=ok_outcome[:200],
+            conversation_id=conversation_id,
             duration_s=time.monotonic() - t0)
         return out
 

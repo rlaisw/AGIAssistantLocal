@@ -73,3 +73,101 @@ class TestGatedReplayStructural:
         for step in out["workflow"]:
             assert set(step) <= {"step", "tool", "service", "params",
                                  "expect", "gated"}
+
+class TestReplayWalk:
+    """T031: the walk drives steps through the lane tools, pauses on gated
+    steps, resumes after live confirmation, and cancels without failure."""
+
+    @staticmethod
+    def _wf():
+        return [
+            {"step": 1, "tool": "hermes_run_command", "service": "os-control",
+             "params": {"task": "restart Spooler"}, "expect": "service restarted",
+             "gated": False},
+            {"step": 2, "tool": "hermes_run_powershell", "service": "os-control",
+             "params": {"draft": "Set-Service -Name Spooler -StartupType Automatic"},
+             "expect": "startup type set", "gated": True},
+            {"step": 3, "tool": "hermes_run_command", "service": "os-control",
+             "params": {"task": "check Spooler"}, "expect": "running",
+             "gated": False},
+        ]
+
+    @staticmethod
+    def _audit():
+        import pathlib
+        import tempfile
+
+        from agentic_rag_mcp.hermes_audit import HermesAudit
+        return HermesAudit(pathlib.Path(tempfile.mkdtemp()) / "audit.jsonl")
+
+    def test_walk_pauses_at_gated_step(self):
+        from agentic_rag_mcp.skill_manager.executor import ReplayWalk
+        walk = ReplayWalk(self._audit(), "fix_print_spooler", "c1", self._wf())
+        out = walk.next_action()
+        assert out["status"] == "run-step" and out["step"] == 1
+        out2 = walk.record_step_result({"status": "ok",
+                                        "result": "the service restarted ok"})
+        assert out2["status"] == "pending-confirmation"
+        assert out2["tool"] == "hermes_run_powershell"
+        # nothing executes past the gated step until advance_past_gated
+        assert walk.cursor == 1
+
+    def test_gated_result_never_recorded_directly(self):
+        from agentic_rag_mcp.skill_manager.executor import ReplayWalk
+        walk = ReplayWalk(self._audit(), "fix_print_spooler", "c1", self._wf())
+        walk.next_action()
+        walk.record_step_result({"status": "ok", "result": "service restarted"})
+        # attempt to feed a gated step's "result" straight in: refused
+        out = walk.record_step_result({"status": "ok",
+                                        "result": "startup type set"})
+        assert out["status"] == "aborted"
+
+    def test_resume_after_confirmed_gated_step(self):
+        from agentic_rag_mcp.skill_manager.executor import ReplayWalk
+        walk = ReplayWalk(self._audit(), "fix_print_spooler", "c1", self._wf())
+        walk.next_action()
+        walk.record_step_result({"status": "ok", "result": "service restarted"})
+        out = walk.advance_past_gated()
+        assert out["status"] == "run-step" and out["step"] == 3
+        out2 = walk.record_step_result({"status": "ok", "result": "Spooler is running"})
+        assert out2["status"] == "done" and out2["completed_steps"] == 3
+
+    def test_cancel_aborts_without_failure(self):
+        from agentic_rag_mcp.skill_manager.executor import ReplayWalk
+        walk = ReplayWalk(self._audit(), "fix_print_spooler", "c1", self._wf())
+        walk.next_action()
+        walk.record_step_result({"status": "ok", "result": "service restarted"})
+        out = walk.cancel()
+        assert out["status"] == "aborted" and "no failure feedback" in out["reason"]
+
+    def test_expect_mismatch_aborts_honestly(self):
+        from agentic_rag_mcp.skill_manager.executor import ReplayWalk
+        walk = ReplayWalk(self._audit(), "fix_print_spooler", "c1", self._wf())
+        walk.next_action()
+        out = walk.record_step_result({"status": "ok", "result": "unrelated"})
+        assert out["status"] == "aborted"
+        assert "step expected" in out["reason"] and "stops honestly" in out["reason"]
+
+    def test_start_and_abort_write_audit_rows(self):
+        from agentic_rag_mcp.skill_manager.executor import ReplayWalk
+        audit = self._audit()
+        walk = ReplayWalk(audit, "fix_print_spooler", "c1", self._wf())
+        walk.cancel()
+        with open(audit.path) as f:
+            lines = f.read().strip().splitlines()
+        ops = [__import__("json").loads(l)["operation"] for l in lines]
+        assert "skill-replay-start" in ops and "skill-replay-abort" in ops
+        # T030: rows carry the conversation
+        assert all("conversation_id" not in l or '"c1"' in l
+                   for l in lines)
+
+    def test_walk_records_carry_conversation_id(self):
+        import json as _json
+
+        from agentic_rag_mcp.skill_manager.executor import ReplayWalk
+        audit = self._audit()
+        walk = ReplayWalk(audit, "fix_print_spooler", "c42", self._wf())
+        walk.cancel()
+        with open(audit.path) as f:
+            rows = [_json.loads(l) for l in f.read().splitlines()]
+        assert all(r.get("conversation_id") == "c42" for r in rows)
