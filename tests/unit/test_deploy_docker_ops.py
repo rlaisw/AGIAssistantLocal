@@ -49,9 +49,10 @@ def test_recreate_run_command_carries_documents_mount():
     assert f"{home}/.config/agentic-rag-mcp:/root/.config/agentic-rag-mcp" in volumes
     assert f"{home}/.cache/huggingface:/root/.cache/huggingface" in volumes
     assert any(v.endswith(":/opt/ppt-master") for v in volumes)
-    # exactly four mounts — no duplicates from the refactor
-    assert len(volumes) == 4, volumes
-
+    # exactly five mounts — no duplicates; the fifth is office-x1's
+    # read-only Windows drive (the REPLACED: probe, 2026-11-11)
+    assert len(volumes) == 5, volumes
+    assert "/mnt/c:/mnt/c:ro" in volumes
 
 def test_recreate_creates_documents_folder_before_run():
     report = _Report()

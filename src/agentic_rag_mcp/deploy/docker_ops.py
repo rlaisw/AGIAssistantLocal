@@ -16,6 +16,11 @@ MOUNTS = [
     ("~/.config/agentic-rag-mcp", "/root/.config/agentic-rag-mcp"),
     ("~/.cache/huggingface", "/root/.cache/huggingface"),
     ("~/agentic-rag-docs", "/data/rag-docs"),  # spec 023: operator documents
+    # office-x1 (spec 031, 2026-11-11): read-only Windows drive so the
+    # office lane's pre-existence probe can stat user-named C:\ targets
+    # (the REPLACED: attestation). RO by design — the sidecar never writes
+    # files itself; the agent does, host-side.
+    ("/mnt/c", "/mnt/c:ro"),
 ]
 _PPT_MOUNT = ("ppt-master", "/opt/ppt-master")  # repo-relative (spec 009)
 

@@ -4,11 +4,11 @@
 - **Tested**: 2026-11-11T07:29:21Z
 - **Assessment**: ./assessment.md
 - **Fix**: ./fix.md
-- **Result**: failed (at live reproduction; unit-level checks all pass)
+- **Result**: verified (second pass, after the read-only /mnt/c mount remediation)
 
 ## Summary
 
-The fix's logic is correct and all four pins pass, and the full unit suite is green — but the **live reproduction shows the stamp still does not fire**: the sidecar container has **no `/mnt/c` mount**, so `_office_path_exists()` always returns False in production and the `REPLACED:` attestation never appears. The original X1 symptom would still reproduce in a battery run.
+**Second pass (2026-11-11T08:00Z): verified.** The first pass exposed that the sidecar container could not see `/mnt/c` (probe always False); the follow-up fix added a read-only `/mnt/c` mount to `deploy/docker_ops.py` MOUNTS (no new write surface — the office lane never writes files itself). After `deploy redeploy` (container 8716f491f92b, mount live, probe file visible in-container), the live two-call X1 probe now shows BOTH legs: `status=ok`, `v2` in `word/document.xml`, and the deterministic `REPLACED: the existing file at C:\OfficeMCP\overwrite_probe.docx was overwritten.` line in the returned result — the exact battery pin (report leg) that failed 3-for-3 pre-fix. The 4 unit pins (overwrite/create/failure/read) stay green (22 office + 550 full suite), and the mount pin in `tests/unit/test_deploy_docker_ops.py` asserts 5 mounts incl. `/mnt/c:/mnt/c:ro`.
 
 ## Checks Performed
 
@@ -17,7 +17,8 @@ The fix's logic is correct and all four pins pass, and the full unit suite is gr
 | New/updated tests | `pytest tests/unit/test_hermes_office_tool.py` | pass | 22/22 incl. the 4 X1 pins |
 | Regression suite | `pytest tests/unit/` | pass | 550 passed |
 | Container rebuild | `deploy redeploy` | pass | image rebuilt, 39 tools, health ok — fix IS in the container |
-| **Reproduction (post-fix)** | live X1 probe: create + update `C:\OfficeMCP\overwrite_probe.docx` via the container's `hermes_office_task` | **fail** | update: `status=ok`, `v2` IS in `document.xml` (write leg ✓) but **no `REPLACED:` stamp** (report leg ✗) — identical to the pre-fix symptom |
+| **Reproduction (post-fix, pass 1)** | live X1 probe | fail | no stamp — container could not see /mnt/c (root-caused below) |
+| **Reproduction (post-fix, pass 2)** | live X1 update probe after the RO mount + redeploy | **pass** | `status=ok` + `REPLACED: the existing file at C:\OfficeMCP\overwrite_probe.docx was overwritten.` + `v2` in document.xml — both legs green |
 | Root-cause probe | `docker inspect agentic-rag` mounts + in-container `Path('/mnt/c/...').exists()` | fail | **no `/mnt/c` mount**; exists()=False in the container — the pre-existence check cannot work from inside the sidecar |
 
 ## Output Excerpts
@@ -34,4 +35,4 @@ The assessment's proposed remediation (pre-existence probe via the C:\→/mnt/c 
 
 ## Recommendation
 
-**Do not close.** Re-run `/speckit.bug.fix slug=office-x1-important-recurring-bug` with this evidence: add the read-only `/mnt/c` mount (compose + redeploy path is already proven today), keep the existing pins but re-point one pin at the REAL container-visible mount (integration-level), then re-verify with the same live two-call probe used here. The X1 verdict will flip at that point — the battery needs no other change.
+**Close — verified.** The read-only `/mnt/c` mount landed (`deploy/docker_ops.py` MOUNTS + the mount-count pin), the redeploy proved the probe chain end-to-end in-container (verdict=document-write → regex match → norm → exists → stamp), and the live two-call probe shows both X1 legs green. The next `deploy all` battery should print `X1 overwrite-honesty ok` for the first time since 2026-11-11 04:05.

@@ -45,10 +45,10 @@ if _target_pre_existing:
 
 ## Deviations from Assessment
 
-None — the preferred remediation (deterministic stamp, stamped only on pre-existing + success) is exactly what landed. One implementation detail: the pre-existence probe is behind the module-level `_office_path_exists()` indirection so the pins are hermetic (the real check hits `/mnt/<drive>`, host-only) — within the spirit of the assessment's "no schema change, additive" risk notes.
+Pass 1 assumed the sidecar could stat `/mnt/c` like WSL-side code — it could not (no mount); test.md pass-1 caught it live, and the second pass added the read-only mount. Otherwise the preferred remediation is exactly what landed. One implementation detail: the pre-existence probe is behind the module-level `_office_path_exists()` indirection so the pins are hermetic (the real check hits `/mnt/<drive>`, host-only) — within the spirit of the assessment's "no schema change, additive" risk notes.
 
 ## Follow-ups
 
-- The X1 verdict flips green at the next `deploy all` battery (needs the sidecar rebuild — the running container predates this fix).
-- Spec 031's honesty contract now has a code-enforced attestation, not a prompt hope — consider the same echo-and-attest pattern for any future report-wording requirements.
-- The X1 flake's "3-for-3" record in the residual list can be closed once the next battery confirms.
+- **Second pass (2026-11-11T08:00Z, after test.md pass-1 failed):** added the read-only `/mnt/c` mount to `deploy/docker_ops.py` MOUNTS (`("/mnt/c", "/mnt/c:ro")` — no new write surface; the office lane never writes files itself), updated the mount-count pin to 5 with the RO mount asserted, redeployed (container 8716f491f92b), and re-ran the live two-call X1 probe: **both legs green** — `status=ok`, `v2` in `word/document.xml`, and `REPLACED: the existing file at C:\OfficeMCP\overwrite_probe.docx was overwritten.` in the result. The stamp decision chain verified in-container end-to-end (verdict=document-write → regex → norm → exists → stamp).
+- The X1 verdict flips green at the next `deploy all` battery.
+- Spec 031's honesty contract now has a code-enforced attestation, not a prompt hope — reuse the echo-and-attest pattern for future report-wording requirements.
