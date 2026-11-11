@@ -32,8 +32,11 @@
   </Settings>
   <Actions Context="Author">
     <Exec>
-      <Command>%APPDATA%\npm\playwright-mcp.cmd</Command>
-      <Arguments>--port 3002 --host 127.0.0.1</Arguments>
+      <!-- conhost --headless: the node console is INVISIBLE — nobody can
+           accidentally close the service window (user request 2026-11-11);
+           Chrome windows during actual browsing still show (consent-visible) -->
+      <Command>C:\Windows\System32\conhost.exe</Command>
+      <Arguments>--headless cmd /c ""%APPDATA%\npm\playwright-mcp.cmd" --port 3002 --host 127.0.0.1"</Arguments>
     </Exec>
   </Actions>
 </Task>
