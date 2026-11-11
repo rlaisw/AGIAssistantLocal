@@ -11,7 +11,6 @@ from __future__ import annotations
 
 from agentic_rag_mcp.hermes_launch_gate import gate_launch
 
-
 # ---------------------------------------------------------------- name targets
 
 def test_bare_name_launches():
@@ -160,7 +159,7 @@ def test_or_phrased_two_targets_ask_back():
 
 
 def test_trailing_period_after_exe_path_tolerated():
-    """Bug fail-to-save-file: 'run C:\Windows\System32\notepad.exe.' — the
+    """Bug fail-to-save-file: 'run C:\\Windows\\System32\notepad.exe.' — the
     sentence period must not defeat the .exe suffix check."""
     v = gate_launch("run C:\\Windows\\System32\\notepad.exe.")
     assert v.decision == "ok", v.reason
@@ -193,21 +192,26 @@ def test_mixed_prompt_file_part_is_owned_by_the_file_lane():
 
 
 def test_launch_plus_gui_followup_splits_not_two_apps():
-    """blocked-more-than-one-application-named (2026-11-06): "open chrome and
+    """blocked-more-than-one-application-named (2026-11-06): "open notepad and
     type www.google.com" names ONE application plus a desktop followup — the
     gate must not refuse it as two apps; the followup rides on the verdict
-    for the agent's WindowsMCP tools, and the launch keeps all scope rules."""
-    v = gate_launch("open chrome and type www.google.com")
+    for the agent's WindowsMCP tools, and the launch keeps all scope rules.
+    (no-response-test-playwright 2026-11-11: chrome examples moved to
+    TestBrowserFollowupRefusal — browser+followup is a web intent.)"""
+    v = gate_launch("open notepad and type www.google.com")
     assert v.decision == "ok"
-    assert v.target == "chrome"
+    assert v.target == "notepad"
     assert v.desktop_followup is not None and "www.google.com" in v.desktop_followup
 
 
 def test_default_browser_is_one_compound_target():
+    # compound parsing holds; browser+followup refuses per spec 037
     v = gate_launch("open default browser and type www.google.com")
-    assert v.decision == "ok"
-    assert v.target == "default browser"
-    assert v.desktop_followup and "type" in v.desktop_followup
+    assert v.decision == "blocked"
+    assert "browser" in v.reason.lower()
+    # a bare default-browser launch stays a clean launch
+    v2 = gate_launch("open default browser")
+    assert v2.decision == "ok" and v2.target == "default browser"
 
 
 def test_two_real_apps_still_ask_back():
@@ -218,27 +222,27 @@ def test_two_real_apps_still_ask_back():
 
 
 def test_followup_does_not_bypass_shell_or_chaining_rules():
-    assert gate_launch("open chrome and type x; rm -rf /").decision == "blocked"
-    assert gate_launch("open chrome and type powershell trick").decision == "blocked"
+    assert gate_launch("open notepad and type x; rm -rf /").decision == "blocked"
+    assert gate_launch("open notepad and type powershell trick").decision == "blocked"
 
 
 def test_comma_list_splits_at_first_gui_verb():
     """typing-search bug (2026-11-06): real chat phrasing uses comma lists —
     'open chrome, open a new tab, type X, type Y' — must split into one
     launch plus the full desktop followup, not phantom app names."""
-    v = gate_launch("open chrome, open a new tab, type www.google.com, "
+    v = gate_launch("open notepad, type www.google.com, "
                     "type hong kong hang seng index at search")
     assert v.decision == "ok"
-    assert v.target == "chrome"
-    assert v.desktop_followup and v.desktop_followup.startswith("open a new tab")
+    assert v.target == "notepad"
+    assert v.desktop_followup and v.desktop_followup.startswith("type www.google.com")
     assert "www.google.com" in v.desktop_followup
     assert "hong kong" in v.desktop_followup
 
 
 def test_comma_before_verb_splits():
-    v = gate_launch("open chrome, type www.google.com")
+    v = gate_launch("open notepad, type www.google.com")
     assert v.decision == "ok"
-    assert v.target == "chrome"
+    assert v.target == "notepad"
     assert v.desktop_followup == "type www.google.com"
 
 
@@ -253,26 +257,30 @@ def test_gui_only_with_no_app_ask_back():
 
 
 def test_search_verb_splits_without_conjunction():
-    """blocked-…-named-20261108: 'open chrome search hong kong weather' —
-    search/find/look up are desktop followups, not second applications."""
-    v = gate_launch("open chrome search hong kong weather")
+    """blocked-…-named-20261108: search/find/look up are desktop followups,
+    not second applications (notepad example; chrome+search is now the
+    spec-037 browser refusal — see TestBrowserFollowupRefusal)."""
+    v = gate_launch("open notepad search hong kong weather")
     assert v.decision == "ok"
-    assert v.target == "chrome"
+    assert v.target == "notepad"
     assert v.desktop_followup == "search hong kong weather"
 
 
 def test_search_tail_rides_with_observe_clause():
-    v = gate_launch("open chrome search hong kong weather , "
+    v = gate_launch("open notepad search hong kong weather , "
                     "show me the temperature today")
     assert v.decision == "ok"
-    assert v.target == "chrome"
+    assert v.target == "notepad"
     assert "show me the temperature today" in v.desktop_followup
 
 
 def test_new_session_browser_context_nouns_are_fillers():
+    # fillers still parse to ONE target (chrome) — but browser+search now
+    # refuses per spec 037 (the refusal proves the target parsed cleanly)
     v = gate_launch("open a new session chrome browser , search hong kong weather")
-    assert v.decision == "ok"
+    assert v.decision == "blocked"
     assert v.target == "chrome"
+    assert "browser" in v.reason.lower()
 
 
 def test_open_search_alone_is_askback_not_phantom_launch():
@@ -326,19 +334,54 @@ def test_check_verb_splits_and_rides_followup():
     """the-local-agent-blocked-… (2026-11-09): "check" is the natural
     observe companion — "open chrome , check hong kong temperature" must
     split, not MULTI-block."""
-    v = gate_launch("help to open chrome browser , check hong kong temperature today")
+    v = gate_launch("help to open notepad , check hong kong temperature today")
     assert v.decision == "ok"
-    assert v.target == "chrome"
+    assert v.target == "notepad"
     assert v.desktop_followup == "check hong kong temperature today"
 
 
 def test_read_and_tell_me_verbs_split_on_comma():
     v = gate_launch("open control panel , read me the ip address")
     assert v.decision == "ok" and v.target == "control"
-    v = gate_launch("open chrome , tell me the weather")
-    assert v.decision == "ok" and v.target == "chrome" and v.desktop_followup
+    v = gate_launch("open notepad , tell me the weather")
+    assert v.decision == "ok" and v.target == "notepad" and v.desktop_followup
 
 
 def test_check_verb_comma_form_only_unknown_pair_still_multi():
     assert gate_launch("open chrome firefox").decision == "blocked"
     assert gate_launch("open search").decision == "blocked"  # bare-verb protection intact
+
+
+class TestBrowserFollowupRefusal:
+    """no-response-test-playwright (2026-11-11, spec 037): a typing/reading
+    followup on a BROWSER is a web intent — the launch lane refuses with an
+    honest re-route; it never rides GUI automation into a silent stall."""
+
+    def test_chrome_plus_typing_refused_with_reroute(self):
+        from agentic_rag_mcp.hermes_launch_gate import gate_launch
+        v = gate_launch("open chrome, type what is hong kong weather today "
+                        "at search bar, display hong kong weather")
+        assert v.decision == "blocked"
+        assert "browser lane" in v.reason or "browser" in v.reason
+        assert "re-ask" in v.reason.lower() or "web/browser task" in v.reason
+
+    def test_edge_plus_search_refused(self):
+        from agentic_rag_mcp.hermes_launch_gate import gate_launch
+        v = gate_launch("open edge and search for the news")
+        assert v.decision == "blocked"
+        assert v.reason.startswith("Blocked:")
+
+    def test_bare_chrome_launch_still_ok(self):
+        # launching the browser itself (no content followup) stays a launch
+        from agentic_rag_mcp.hermes_launch_gate import gate_launch
+        v = gate_launch("open chrome")
+        assert v.decision == "ok"
+        assert v.target.lower() == "chrome"
+        assert v.desktop_followup is None
+
+    def test_notepad_plus_typing_still_ok_followup(self):
+        # non-browser desktop followups keep the 2026-11-06 capability
+        from agentic_rag_mcp.hermes_launch_gate import gate_launch
+        v = gate_launch("open notepad and type hello world")
+        assert v.decision == "ok"
+        assert v.desktop_followup and "type" in v.desktop_followup.lower()

@@ -121,6 +121,23 @@ def _is_arg_token(tok: str) -> bool:
     return "=" in tok
 
 
+# no-response-test-playwright (2026-11-11, spec 037): a typing/search/reading
+# followup on a BROWSER is a WEB intent, not desktop automation — GUI-typing
+# into a browser stalls (focus/idle policies) and dies silently inside the
+# ~300 s tool window. The launch lane refuses it with an honest re-route to
+# the browser lanes; the DSL carries the same rule (its prompt-level twin).
+_BROWSER_PROGRAMS = {"chrome", "msedge", "edge", "firefox", "brave",
+                      "browser", "safari", "opera", "vivaldi",
+                      "default browser"}
+_BROWSER_FOLLOWUP_REFUSAL = (
+    "Blocked: '{app}' is a browser — typing, searching, or reading in it is a "
+    "web/browser task (spec 037), not a program launch or desktop automation; "
+    "re-ask it as a browser request (e.g. \"search for today's weather in Hong "
+    "Kong\" / \"open this page and tell me what it says\") and it will route to "
+    "the browser lane, which types into the page and reports what it observes. "
+    "GUI-typing into a browser is never performed from the launch lane.")
+
+
 def gate_launch(task: str, home: str = "/home/administrator") -> LaunchVerdict:
     """The launch gate pipeline (contracts §2, in order).
 
@@ -220,6 +237,9 @@ def gate_launch(task: str, home: str = "/home/administrator") -> LaunchVerdict:
         if names:
             return _ask_back(_MULTI)
         low = target.lower()
+        if low in _BROWSER_PROGRAMS and followup:
+            return _blocked(_BROWSER_FOLLOWUP_REFUSAL.format(app=target),
+                            target=target)
         if "." in low and not low.endswith(".exe"):
             return _blocked(_EXE_ONLY, target=target)
         return LaunchVerdict("ok", None, OP_LAUNCH_APP, target, "name",
@@ -249,6 +269,11 @@ def gate_launch(task: str, home: str = "/home/administrator") -> LaunchVerdict:
     low = target.lower()
     if low in _NON_APP_NOUNS:
         return _ask_back(_NO_APP)
+    # no-response-test-playwright (2026-11-11): browser + followup is a web
+    # intent — refuse with the re-route, never a stalled silent GUI attempt
+    if low in _BROWSER_PROGRAMS and followup:
+        return _blocked(_BROWSER_FOLLOWUP_REFUSAL.format(app=target),
+                        target=target)
     if "." in low and not low.endswith(".exe"):
         return _blocked(_EXE_ONLY, target=target)
     return LaunchVerdict("ok", None, OP_LAUNCH_APP, target, "name",
