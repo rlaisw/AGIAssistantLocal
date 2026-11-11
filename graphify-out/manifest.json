@@ -216,9 +216,9 @@
     "semantic_hash": "366689124ca42b54b992cf8129db2ca6"
   },
   "src/agentic_rag_mcp/config.py": {
-    "mtime": 1794367466.5371468,
-    "seen": 1794367542.1067183,
-    "ast_hash": "31495e9a0549d47fc46c9efa00870542",
+    "mtime": 1794376930.5031457,
+    "seen": 1794377251.4747314,
+    "ast_hash": "b20b315e94a2a2923c82cbd4c2e1ed91",
     "semantic_hash": ""
   },
   "src/agentic_rag_mcp/errors.py": {
@@ -348,9 +348,9 @@
     "semantic_hash": "0351c98ec054f4bff086a5df3dcf735d"
   },
   "src/agentic_rag_mcp/server.py": {
-    "mtime": 1794372927.3307314,
-    "seen": 1794373507.7873337,
-    "ast_hash": "b36274d1b04728764313f2bd3739a075",
+    "mtime": 1794376918.7356577,
+    "seen": 1794377251.4747646,
+    "ast_hash": "9188b132c686a7c4c77bd6036af1e098",
     "semantic_hash": ""
   },
   "src/agentic_rag_mcp/sources/__init__.py": {
@@ -714,9 +714,9 @@
     "semantic_hash": "b8ed482dd2103953e4f871e0ed12d4bd"
   },
   "README.md": {
-    "mtime": 1794367502.5215473,
-    "seen": 1794367542.106899,
-    "ast_hash": "111b3f68936fb4d8ca972a986146f0e7",
+    "mtime": 1794377245.4771166,
+    "seen": 1794377251.4749236,
+    "ast_hash": "5f7b35cb57ccee8267beeb70823c9d28",
     "semantic_hash": ""
   },
   "dify/Chatflow Basic (AgenticRAG Agent).yml": {
@@ -1122,9 +1122,9 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1794367502.5216615,
-    "seen": 1794367542.1068978,
-    "ast_hash": "2a59ce34243ad2e6c1747e8533d8ffb6",
+    "mtime": 1794377245.4772596,
+    "seen": 1794377251.4749224,
+    "ast_hash": "48cc7f914233ef215bf475064968c317",
     "semantic_hash": ""
   },
   "specs/003-web-search-scrape/tasks.md": {
@@ -3120,9 +3120,9 @@
     "semantic_hash": ""
   },
   "dify/AGIAssistant/AGI_Assistant.yml": {
-    "mtime": 1794372972.815295,
-    "seen": 1794373507.7875342,
-    "ast_hash": "46f04595a244aa6b9ab4ae6a32ef3c07",
+    "mtime": 1794377012.0716105,
+    "seen": 1794377251.4749548,
+    "ast_hash": "c924e85eba3ae157973c60047b0c2e10",
     "semantic_hash": ""
   },
   "specs/024-install-difyctl/checklists/requirements.md": {
@@ -4536,9 +4536,9 @@
     "semantic_hash": ""
   },
   "src/agentic_rag_mcp/hermes_powershell_gate.py": {
-    "mtime": 1794304902.4443476,
-    "seen": 1794304952.6749835,
-    "ast_hash": "7e0833e24c7fca61e552d7e703b2dc04",
+    "mtime": 1794376765.3222482,
+    "seen": 1794377251.4747434,
+    "ast_hash": "bd9df166b7f2a4f61bf8c5cae0d23f5a",
     "semantic_hash": ""
   },
   "src/agentic_rag_mcp/hermes_powershell_state.py": {
@@ -4926,15 +4926,129 @@
     "semantic_hash": ""
   },
   "specs/037-browser-lanes/tasks.md": {
-    "mtime": 1794372682.0694282,
-    "seen": 1794373507.787728,
-    "ast_hash": "6bdcf6e505ae14bf98ac59215ec9d716",
+    "mtime": 1794376183.4772255,
+    "seen": 1794377251.4751356,
+    "ast_hash": "652ba4ee5491f2c6e5e078c72c2ccf74",
     "semantic_hash": ""
   },
   "tests/fixtures/injection_page.html": {
     "mtime": 1794372979.0391061,
     "seen": 1794373507.7877295,
     "ast_hash": "450f652a5913f46a4e1801e93e2fe75a",
+    "semantic_hash": ""
+  },
+  "services/task-gateway/service.py": {
+    "mtime": 1794377204.586345,
+    "seen": 1794377251.4747171,
+    "ast_hash": "f4fb21bb9ddef1f8af30ab541a380f77",
+    "semantic_hash": ""
+  },
+  "src/agentic_rag_mcp/task_gateway/__init__.py": {
+    "mtime": 1794376721.9301298,
+    "seen": 1794377251.4747753,
+    "ast_hash": "80191a75eb540ce979428760de400ee0",
+    "semantic_hash": ""
+  },
+  "src/agentic_rag_mcp/task_gateway/client.py": {
+    "mtime": 1794377181.4941115,
+    "seen": 1794377251.474776,
+    "ast_hash": "721ad1367fd8583f347350561c89d53c",
+    "semantic_hash": ""
+  },
+  "src/agentic_rag_mcp/task_gateway/lane.py": {
+    "mtime": 1794377176.055807,
+    "seen": 1794377251.4747763,
+    "ast_hash": "4888b5dfaab47c82adac41eac425a842",
+    "semantic_hash": ""
+  },
+  "src/agentic_rag_mcp/task_gateway/neverlist.py": {
+    "mtime": 1794376731.0179207,
+    "seen": 1794377251.4747767,
+    "ast_hash": "695159ffeefd1ec22b46b1c7d0134ece",
+    "semantic_hash": ""
+  },
+  "src/agentic_rag_mcp/task_gateway/tier2_state.py": {
+    "mtime": 1794376742.090024,
+    "seen": 1794377251.4747775,
+    "ast_hash": "cd87ce9c7a462d9207b6e8360b01c349",
+    "semantic_hash": ""
+  },
+  "tests/integration/test_task_a14.py": {
+    "mtime": 1794377193.7891889,
+    "seen": 1794377251.4747958,
+    "ast_hash": "7e5ce3146cc83b172d83ce4a3840ffb8",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_neverlist_shared.py": {
+    "mtime": 1794377074.121133,
+    "seen": 1794377251.4748142,
+    "ast_hash": "96e9a8acca1abddc456cb0e31aba5b2c",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_task_gateway_client.py": {
+    "mtime": 1794376801.6216543,
+    "seen": 1794377251.474826,
+    "ast_hash": "ebec0f25e55d37ee843a1f2ad89e3171",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_task_tier2_lane.py": {
+    "mtime": 1794377163.9220076,
+    "seen": 1794377251.4748268,
+    "ast_hash": "7d7aef9f6518ba56fd3b9cc0405267a8",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_task_tier2_state.py": {
+    "mtime": 1794377074.121133,
+    "seen": 1794377251.4748273,
+    "ast_hash": "a11d24c0f62a36208d19cb2d1aa2c96d",
+    "semantic_hash": ""
+  },
+  "specs/038-task-api-gateway/checklists/requirements.md": {
+    "mtime": 1794376369.4302552,
+    "seen": 1794377251.475136,
+    "ast_hash": "845378184b820b61140d1c5cff9b8f9d",
+    "semantic_hash": ""
+  },
+  "specs/038-task-api-gateway/contracts/README.md": {
+    "mtime": 1794376547.0320718,
+    "seen": 1794377251.4751365,
+    "ast_hash": "cebd1345bb7b7fbc1025ba814fb96133",
+    "semantic_hash": ""
+  },
+  "specs/038-task-api-gateway/data-model.md": {
+    "mtime": 1794376511.0996916,
+    "seen": 1794377251.4751368,
+    "ast_hash": "a84540592281208d9f42aff01d95c7d5",
+    "semantic_hash": ""
+  },
+  "specs/038-task-api-gateway/plan.md": {
+    "mtime": 1794376459.6511765,
+    "seen": 1794377251.4751372,
+    "ast_hash": "a6767667b50d6fffd8f565293e203389",
+    "semantic_hash": ""
+  },
+  "specs/038-task-api-gateway/quickstart.md": {
+    "mtime": 1794376564.6082487,
+    "seen": 1794377251.4751377,
+    "ast_hash": "4df590131f20a4616e82842bc839290b",
+    "semantic_hash": ""
+  },
+  "specs/038-task-api-gateway/research.md": {
+    "mtime": 1794376495.6155367,
+    "seen": 1794377251.4751382,
+    "ast_hash": "890b1e5080386feead71000715f8c894",
+    "semantic_hash": ""
+  },
+  "specs/038-task-api-gateway/spec.md": {
+    "mtime": 1794376357.530128,
+    "seen": 1794377251.4751387,
+    "ast_hash": "4708af638c24fde9c627fd5db75ba351",
+    "semantic_hash": ""
+  },
+  "specs/038-task-api-gateway/tasks.md": {
+    "mtime": 1794376643.0090477,
+    "seen": 1794377251.4751391,
+    "ast_hash": "f64b16305c8e710abecb7582bc101944",
     "semantic_hash": ""
   }
 }
