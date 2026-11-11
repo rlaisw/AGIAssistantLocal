@@ -51,20 +51,46 @@ class TestMixedBrowserTyping:
     prompts are WEB intents — dynamic lane, never launch+GUI."""
 
     @pytest.mark.parametrize("task", [
-        "open chrome browser, type what is hong kong weather today at "
-        "search bar, display hong kong weather",
         "open chrome and type www.google.com",
         "open chrome, open a new tab, type today's weather",
-        "open edge and search for the news",
     ])
     def test_routes_to_dynamic_never_ask_back_or_scripted(self, task):
+        # typing without a search-and-report shape stays dynamic
         verdict = gate_browser_intent(task)
         assert verdict.lane == "dynamic", (
             f"{task[:40]!r} -> {verdict.lane} (want dynamic — mixed "
             f"browser+typing is a web intent, spec 037)")
         assert verdict.lane != "os"
 
+    def test_verbatim_weather_prompt_takes_the_fast_path(self):
+        # browsing-is-working-but-very-slow (2026-11-11): the original
+        # no-response prompt is a SEARCH-AND-REPORT shape — the scripted
+        # fast path (~10-25s, arg-strip-immune) supersedes the dynamic
+        # lane; the launch gate still refuses the launch+GUI route
+        verdict = gate_browser_intent(
+            "open chrome browser, type what is hong kong weather today at "
+            "search bar, display hong kong weather")
+        assert verdict.lane == "scripted"
+
     def test_non_browser_typing_is_not_browser(self):
         # "open notepad and type hello" has no browser hint — not ours
         verdict = gate_browser_intent("open notepad and type hello")
         assert verdict.lane == "ask-back"
+
+
+class TestSearchAndReportFastPath:
+    """browsing-is-working-but-very-slow (2026-11-11): search-and-report
+    intents are KNOWN flows — the scripted fast path (~10-25s, immune to the
+    gateway arg-strip), not the dynamic lane."""
+
+    @pytest.mark.parametrize("task", [
+        "search for what is hong kong weather today and report the results",
+        "what is hong kong weather today",
+        "look up the Hang Seng index and tell me",
+        "search the news about typhoons",
+    ])
+    def test_search_intents_route_scripted(self, task):
+        verdict = gate_browser_intent(task)
+        assert verdict.lane == "scripted", (
+            f"{task[:40]!r} -> {verdict.lane} (search-and-report is a known "
+            f"flow — scripted fast path)")

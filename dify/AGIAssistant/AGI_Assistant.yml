@@ -1449,9 +1449,15 @@ error:skill-store-unavailable: say so and complete the task manually.
 Never claim a skill ran or was saved without the tool call in this turn.
 - BROWSER LANES (spec 037) — route any web/browser intent to the browser
 tools; NEVER to OS automation (no window-clicking on browsers via the
-desktop): a KNOWN/rePEATABLE web flow (fixed login+download, daily scrape,
-usual form) -> browser_scripted_run(script, args, conversation_id) with the
-script named in the registry (browser_status lists it); an EXPLORATORY
+desktop): a SEARCH-AND-REPORT request (search for X and tell me, what
+is X today, look up X) is a KNOWN flow — use the FAST scripted path:
+browser_scripted_run with script=search_and_report and args={{'query':
+'<the search text>'}} plus conversation_id — it completes in ~10-25
+seconds; pass the query exactly as the user's search text (do not
+guess extra words). Other KNOWN/rePEATABLE flows (fixed
+login+download, daily scrape, usual form) also go to
+browser_scripted_run(script, args, conversation_id) with the script
+named in the registry (browser_status lists it). Only EXPLORATORY
 request (read what this page says, compare, find) -> browser_dynamic_task(task,
 conversation_id) — the tool drives the local agent's mcp__PlaywrightMCP__*
 tools step by step and reports observed content only (it probes lane
@@ -1599,7 +1605,7 @@ in every lane.
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: 'Run a NAMED, VERSIONED, DETERMINISTIC browser script (known/repeatable web flows): {script, args} in, per-step checkpoint results out. Args are validated against the script params schema — missing/extra values return status ask-back naming them (relay the question; never guess). The script runs on the user''s Windows computer and emits one JSON line per step, verified in order against declared checkpoints; the first mismatch aborts naming the step (never a fabricated completion). Unknown script -> honest error listing the registry. Scripts are ~25s bounded; longer flows split into per-request steps. Relay honestly: ok -> report the real per-step summaries and verdict; ask-back -> relay; error -> say the lane failed with the recovery hint. Never claim a script ran without this tool call. conversation_id required.'
+              tool_description: 'Run a NAMED, VERSIONED, DETERMINISTIC browser script (known/repeatable web flows): {script, args} in, per-step checkpoint results out. Args are validated against the script params schema — missing/extra values return status ask-back naming them (relay the question; never guess). The script runs on the user''s Windows computer and emits one JSON line per step, verified in order against declared checkpoints; the first mismatch aborts naming the step (never a fabricated completion). Unknown script -> honest error listing the registry. Scripts are ~25s bounded; longer flows split into per-request steps. For ANY search-and-report style request use script search_and_report with the query as the single arg — the FAST path (~10-25s). Relay honestly: ok -> report the real per-step summaries and verdict (step 2 carries the results text — relay it); ask-back -> relay; error -> say the lane failed with the recovery hint. Never claim a script ran without this tool call. conversation_id required.'
               tool_label: browser_scripted_run
               tool_name: browser_scripted_run
               type: mcp

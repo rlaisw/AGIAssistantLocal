@@ -1443,11 +1443,12 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
     from pathlib import Path as _BPath
 
     def _browser_registry_root() -> Path:
-        root = _BPath(cfg.mcp_host) if False else _BPath(
-            getattr(cfg, "browser_scripts_root",
-                    _BPath(__file__).resolve().parent.parent.parent
-                    / "scripts" / "browser"))
-        return root
+        # cfg-driven (container mount path); the __file__-relative fallback
+        # only works on a dev checkout — in-container it mis-resolves
+        # (site-packages depth) — chrome-not-desktop-automation pass 2
+        return _BPath(getattr(cfg, "browser_scripts_root",
+                              _BPath(__file__).resolve().parent.parent.parent
+                              / "scripts" / "browser"))
 
     @mcp.tool()
     async def browser_scripted_run(script: str, args: dict,
@@ -1496,10 +1497,20 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
             return {"status": "ask-back", "reason": resolved["reason"]}
         script_rec = registry.get(script)
         # research R2: execute Windows-side via the hermes channel; the
-        # script's structured stdout carries the checkpoints
+        # script's structured stdout carries the checkpoints. The registry
+        # path is the CONTAINER mount — the agent runs on WINDOWS, so the
+        # directive uses the host-synced mirror root (C:\scripts\browser,
+        # repo scripts/browser copied by deploy/host setup) + the shared
+        # ms-playwright browser cache env (fastpath fix 2026-11-11)
+        win_root = getattr(cfg, "browser_scripts_win_root",
+                           "C:\\scripts\\browser")
+        win_script = win_root.rstrip("\\") + "\\" + script_rec.path.name
+        query = resolved["args"].get("query", "")
         directive = (f"Run this exact script with these exact arguments and "
-                     f"nothing else: python \"{script_rec.path}\" "
-                     f"{json.dumps(resolved['args'], ensure_ascii=False)} "
+                     f"nothing else, in one PowerShell command: "
+                     f"$env:PLAYWRIGHT_BROWSERS_PATH="
+                     f"'C:\\Users\\RLWC145\\AppData\\Local\\ms-playwright'; "
+                     f"python \"{win_script}\" \"{query}\" "
                      f"— report the script's JSON step lines verbatim.")
         outcome = await _await_with_keepalive(
             lambda: _run_hermes(cfg, directive,

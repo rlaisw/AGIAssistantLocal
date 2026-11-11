@@ -148,6 +148,8 @@ class Config:
     task_gateway_url: str = "http://172.17.0.1:18080"
     browser_mcp_host: str = "172.17.0.1"   # via the bridge
     browser_mcp_port: int = 13002          # bridge -> 127.0.0.1:3002
+    browser_scripts_root: Path = Path("/usr/local/scripts/browser")  # container mount (docker_ops MOUNTS)
+    browser_scripts_win_root: str = "C:\\scripts\\browser"  # host-synced mirror (repo scripts/browser)
     task_gateway_connect_timeout_s: float = 5.0
     task_gateway_read_timeout_s: float = 30.0
     raw: dict[str, Any] = field(default_factory=dict)

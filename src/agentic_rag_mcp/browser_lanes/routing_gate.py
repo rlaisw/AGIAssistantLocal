@@ -16,7 +16,15 @@ _REPEATABLE = re.compile(
     r"|\b(download|save)\b.*\b(file|statement|invoice|report)\b"
     r"|\b(fill ?in|fill out|submit)\b.*\b(form)\b"
     r"|\blike\s+(yesterday|usual|before|last time)\b"
-    r"|\b(as always|the usual|every (day|morning))\b",
+    r"|\b(as always|the usual|every (day|morning))\b"
+    # browsing-is-working-but-very-slow (2026-11-11): search-and-report is
+    # a KNOWN flow — the scripted search_and_report fast path (~10-25s)
+    r"|\bsearch( for|ing)?\b.*\b(report|tell|show|display|find out)\b"
+    r"|\bsearch (for|the)\b"
+    r"|\bwhat is\b.*\b(today|now|current)\b"
+    r"|\blook up\b.*\b(tell|show|and)\b"
+    r"|\b(find|check)\b.*\b(today'?s?|current)\b"
+    r"|\bsearch the\b",
     re.IGNORECASE)
 # exploratory phrasing: open-ended reading/comparison/discovery
 _EXPLORATORY = re.compile(
@@ -27,7 +35,9 @@ _EXPLORATORY = re.compile(
 # any browser surface at all
 _BROWSER_HINT = re.compile(
     r"\b(browser|web ?site|website|web ?page|url|http|chrome|edge|firefox"
-    r"|internet|pages?|portal|site|log ?in|scrape|intranet|form|forms?)\b",
+    r"|internet|pages?|portal|site|log ?in|scrape|intranet|form|forms?"
+    r"|search( for| the|ing)?|look ?up|find out)\b"
+    r"|\bwhat is\b.{0,40}\b(today|now|current|weather|price|temperature)\b",
     re.IGNORECASE)
 # long-flow markers: the split hint rides the verdict, never blocks
 _LONG = re.compile(
