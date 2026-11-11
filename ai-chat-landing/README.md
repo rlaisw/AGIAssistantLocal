@@ -53,7 +53,7 @@ shadcn components installed: button, badge, card, accordion, avatar, table, sepa
 
 ## Testing
 
-`pnpm test` runs vitest over `lib/**/*.test.ts` (pure logic — deck-URL recognition/derivation, history grouping and delete state, sidebar search, the PDF-export pipeline incl. the image-proxy rewrite, the stop state machine, and the follow-up prompt splitter; 136 tests across 19 files). Browser-facing behavior is covered by the deploy battery's `chat-ui-liveness` and `chat-journey` scenarios (`python -m agentic_rag_mcp.deploy verify` from the repo root). Layout acceptance is measured live by the CDP scripts: `node scripts/wide-layout.mjs` (layout + `--smoke` behavioral — spec 016), `node scripts/landing-check.mjs` (New-chat landing — spec 020), and `node scripts/welcome-cards.mjs` (welcome feature cards — spec 021); all need Chrome on `--remote-debugging-port=9240`.
+`pnpm test` runs vitest (pure logic — deck-URL recognition/derivation, history grouping and delete state, sidebar search, the PDF-export pipeline incl. the image-proxy rewrite, the stop state machine, the chat route's `message_end`→`done` stream finalization and upstream-reader cancellation (`app/api/chat/route.test.ts`), and the follow-up prompt splitter; 143 tests). Browser-facing behavior is covered by the deploy battery's `chat-ui-liveness` and `chat-journey` scenarios (`python -m agentic_rag_mcp.deploy verify` from the repo root). Layout acceptance is measured live by the CDP scripts: `node scripts/wide-layout.mjs` (layout + `--smoke` behavioral — spec 016), `node scripts/landing-check.mjs` (New-chat landing — spec 020), and `node scripts/welcome-cards.mjs` (welcome feature cards — spec 021); all need Chrome on `--remote-debugging-port=9240`.
 
 ## Notes
 
