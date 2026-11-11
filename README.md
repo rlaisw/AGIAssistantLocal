@@ -20,7 +20,7 @@ question ──► System 1: embedded Laya decision model (one pass, no text gen
 
 Outage behavior: if the decision node is unavailable/invalid/timed-out, the keyword heuristic routes and responses are marked `provenance: "fallback"` (FR-003 of spec 002).
 
-## MCP tools — 29 total (16 core below + 5 `ppt_*` spec 009 + 2 `antv_*` spec 012 + `hermes_file_task` spec 028 + `hermes_launch_app` spec 029 + `hermes_office_task` spec 030 + `hermes_cancel_turn` + `hermes_run_command` spec 033 + `hermes_run_powershell` spec 034)
+## MCP tools — 33 total (16 core below + 5 `ppt_*` spec 009 + 2 `antv_*` spec 012 + `hermes_file_task` spec 028 + `hermes_launch_app` spec 029 + `hermes_office_task` spec 030 + `hermes_cancel_turn` + `hermes_run_command` spec 033 + `hermes_run_powershell` spec 034 + 4 `skill_*` spec 036)
 
 | Tool | Purpose |
 |---|---|

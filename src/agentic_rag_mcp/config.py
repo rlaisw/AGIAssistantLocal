@@ -136,6 +136,11 @@ class Config:
     hermes_allowed_root: Path = Path("/mnt/c/temp")
     hermes_office_root: str = "C:\\OfficeMCP"   # spec 030: gate containment root (Windows style)
     hermes_audit_path: Path = Path("~/.config/agentic-rag-mcp/hermes-mcp/audit.jsonl")
+    # spec 036: [skill_manager] — shared skill store (server-side WSL)
+    skill_db_path: Path = Path("~/.config/agentic-rag-mcp/hermes-mcp/skills.db")
+    skill_vectordb_path: Path = Path("~/.config/agentic-rag-mcp/hermes-mcp/skill-vectors")
+    skill_min_rate: float = 0.80   # FR-002: strictly greater than
+    skill_min_successes: int = 3   # sample floor — one lucky success never trusts
     raw: dict[str, Any] = field(default_factory=dict)
 
 
@@ -237,6 +242,19 @@ def load_config(path: Path | None = None) -> Config:
     cfg.hermes_audit_path = Path(
         str(_get(raw, "hermes", "audit_path", default=str(cfg.hermes_audit_path)))
     ).expanduser()
+    # spec 036: [skill_manager] db_path / vectordb_path / min_rate / min_successes
+    cfg.skill_db_path = Path(
+        str(_get(raw, "skill_manager", "db_path", default=str(cfg.skill_db_path)))
+    ).expanduser()
+    cfg.skill_vectordb_path = Path(
+        str(_get(raw, "skill_manager", "vectordb_path",
+                 default=str(cfg.skill_vectordb_path)))
+    ).expanduser()
+    cfg.skill_min_rate = float(
+        _get(raw, "skill_manager", "min_rate", default=cfg.skill_min_rate))
+    cfg.skill_min_successes = int(
+        _get(raw, "skill_manager", "min_successes",
+             default=cfg.skill_min_successes))
     return cfg
 
 

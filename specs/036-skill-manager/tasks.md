@@ -15,15 +15,15 @@
 
 ## Phase 1: Setup
 
-- [ ] T001 Create `src/agentic_rag_mcp/skill_manager/__init__.py` per plan.md structure decision (module of the existing sidecar; no new service/container)
-- [ ] T002 Add `[skill_manager]` config block to `src/agentic_rag_mcp/config.py` (DB path default `~/.config/agentic-rag-mcp/hermes-mcp/skills.db`, trust thresholds rate=0.80, min_successes=3 — data-model trust rule verbatim) with graceful absence handling
+- [X] T001 Create `src/agentic_rag_mcp/skill_manager/__init__.py` per plan.md structure decision (module of the existing sidecar; no new service/container)
+- [X] T002 Add `[skill_manager]` config block to `src/agentic_rag_mcp/config.py` (DB path default `~/.config/agentic-rag-mcp/hermes-mcp/skills.db`, trust thresholds rate=0.80, min_successes=3 — data-model trust rule verbatim) with graceful absence handling
 
 ## Phase 2: Foundational (blocking prerequisites)
 
-- [ ] T003 Implement SQLite store core in `src/agentic_rag_mcp/skill_manager/store.py`: WAL mode, `skills` table (columns + CHECK constraints verbatim from data-model.md: `tier IN (1,2)`, PK `name`), `skill_feedback` table (PK `(skill_name, ts)`, `outcome IN ('success','failure')`), upsert semantics (same name → version+1, counters preserved), schema migration on open
-- [ ] T004 [P] Write `tests/unit/test_skill_store.py` first: upsert versioning, counter preservation, append-only feedback, feedback-on-missing-skill explicit error, restart persistence (reopen), partial-save atomicity — per data-model validation rules; suite must FAIL before T003 logic lands (Constitution II)
-- [ ] T005 Implement save-boundary validator (same file as T003 or `skill_manager/validate.py`): reject non-snake name (`^[a-z][a-z0-9_]*$`), empty description, tier outside {1,2}, steps missing `expect`, `{{snake_case}}` slot grammar in `params_template`, machine-specific literals (`C:\Users\`, hostnames, absolute host paths), tier-2 without tier-1 pre-check as first step — each rejection names the offending field (FR-004/005)
-- [ ] T006 Extend `src/agentic_rag_mcp/hermes_audit.py` with the six `skill-*` operation rows (`skill-search|get|save|feedback|replay-start|replay-abort`) carrying `conversation_id`, outcome, `duration_s`+`timing` (house row shape)
+- [X] T003 Implement SQLite store core in `src/agentic_rag_mcp/skill_manager/store.py`: WAL mode, `skills` table (columns + CHECK constraints verbatim from data-model.md: `tier IN (1,2)`, PK `name`), `skill_feedback` table (PK `(skill_name, ts)`, `outcome IN ('success','failure')`), upsert semantics (same name → version+1, counters preserved), schema migration on open
+- [X] T004 [P] Write `tests/unit/test_skill_store.py` first: upsert versioning, counter preservation, append-only feedback, feedback-on-missing-skill explicit error, restart persistence (reopen), partial-save atomicity — per data-model validation rules; suite must FAIL before T003 logic lands (Constitution II)
+- [X] T005 Implement save-boundary validator (same file as T003 or `skill_manager/validate.py`): reject non-snake name (`^[a-z][a-z0-9_]*$`), empty description, tier outside {1,2}, steps missing `expect`, `{{snake_case}}` slot grammar in `params_template`, machine-specific literals (`C:\Users\`, hostnames, absolute host paths), tier-2 without tier-1 pre-check as first step — each rejection names the offending field (FR-004/005)
+- [X] T006 Extend `src/agentic_rag_mcp/hermes_audit.py` with the six `skill-*` operation rows (`skill-search|get|save|feedback|replay-start|replay-abort`) carrying `conversation_id`, outcome, `duration_s`+`timing` (house row shape)
 
 **Checkpoint**: store + validation + audit ready; user stories can proceed.
 
@@ -34,9 +34,9 @@
 **Goal**: manual success → validated, audited, versioned skill save.
 **Independent Test**: novel task end-to-end → row exists (v1) + audit row → search finds it next time (quickstart E1).
 
-- [ ] T007 [P] [US1] Write `tests/unit/test_skill_save.py` (or fold into store suite T004): every validator rejection case from 035 test-plan 1a "Param template validation" + save-success audit row — FAIL first
-- [ ] T008 [US1] Implement `skill_save` handler in `src/agentic_rag_mcp/skill_manager/api.py`: validate → upsert → `{name, version}` + audit row (T005/T003 dependents)
-- [ ] T009 [US1] Register `skill_save` MCP tool in `src/agentic_rag_mcp/server.py` (schema per contracts/README.md, `conversation_id` required) — additive only; existing 29 schemas byte-identical (Principle I)
+- [X] T007 [P] [US1] Write `tests/unit/test_skill_save.py` (or fold into store suite T004): every validator rejection case from 035 test-plan 1a "Param template validation" + save-success audit row — FAIL first
+- [X] T008 [US1] Implement `skill_save` handler in `src/agentic_rag_mcp/skill_manager/api.py`: validate → upsert → `{name, version}` + audit row (T005/T003 dependents)
+- [X] T009 [US1] Register `skill_save` MCP tool in `src/agentic_rag_mcp/server.py` (schema per contracts/README.md, `conversation_id` required) — additive only; existing 29 schemas byte-identical (Principle I)
 
 **Checkpoint**: US1 independently testable.
 
@@ -47,10 +47,10 @@
 **Goal**: semantic search before operational tasks; `reusable` pre-computed.
 **Independent Test**: seeded trust matrix → auto-reuse iff >80% AND ≥3 (quickstart E1 step 3; SC-002 matrix).
 
-- [ ] T010 [P] [US2] Write `tests/unit/test_skill_trust.py` first — the full 035 test-plan 1a matrix: rate/sample combinations, decay-by-feedback, re-earn, no-time-expiry — FAIL first
-- [ ] T011 [US2] Implement intent index in `src/agentic_rag_mcp/skill_manager/intent.py`: embed `"{name}\n{description}"` via existing `search/embeddings.py` `Embedder`, LanceDB `skills` table via existing `store/vectordb.py` wrapper, delete+insert re-embed on upsert (no stale vectors), `skill_search` = embed → top-k → SQLite trust join → `{found, skills:[{name, description, success_rate, sample, reusable}]}`
-- [ ] T012 [P] [US2] Write outage-vs-miss envelope test: store down → `error:skill-store-unavailable`; miss → `{found:false, skills:[]}` — never conflated (research R6)
-- [ ] T013 [US2] Register `skill_search` + `skill_get` MCP tools in `server.py` (schemas per contracts; `skill_get` unknown name → explicit not-found)
+- [X] T010 [P] [US2] Write `tests/unit/test_skill_trust.py` first — the full 035 test-plan 1a matrix: rate/sample combinations, decay-by-feedback, re-earn, no-time-expiry — FAIL first
+- [X] T011 [US2] Implement intent index in `src/agentic_rag_mcp/skill_manager/intent.py`: embed `"{name}\n{description}"` via existing `search/embeddings.py` `Embedder`, LanceDB `skills` table via existing `store/vectordb.py` wrapper, delete+insert re-embed on upsert (no stale vectors), `skill_search` = embed → top-k → SQLite trust join → `{found, skills:[{name, description, success_rate, sample, reusable}]}`
+- [X] T012 [P] [US2] Write outage-vs-miss envelope test: store down → `error:skill-store-unavailable`; miss → `{found:false, skills:[]}` — never conflated (research R6)
+- [X] T013 [US2] Register `skill_search` + `skill_get` MCP tools in `server.py` (schemas per contracts; `skill_get` unknown name → explicit not-found)
 
 **Checkpoint**: US1+US2 independently testable (round-trip minus replay).
 
@@ -61,8 +61,8 @@
 **Goal**: append-only feedback; two-failure escalation; no deletion ever.
 **Independent Test**: seeded failing skill → retry → update-or-escalate, skill intact (quickstart E6; SC-005).
 
-- [ ] T014 [P] [US3] Write `tests/unit/test_skill_feedback.py` first: append-only rows, `error_context` required on failure, missing-skill explicit error, escalation-after-two-consecutive-failures surfaces honestly, no delete operation exists in the API surface — FAIL first
-- [ ] T015 [US3] Implement `skill_feedback` handler in `api.py` (FR-008/009: counters update in the same transaction as the feedback row; escalation surfaced in the return envelope, not just logs)
+- [X] T014 [P] [US3] Write `tests/unit/test_skill_feedback.py` first: append-only rows, `error_context` required on failure, missing-skill explicit error, escalation-after-two-consecutive-failures surfaces honestly, no delete operation exists in the API surface — FAIL first
+- [X] T015 [US3] Implement `skill_feedback` handler in `api.py` (FR-008/009: counters update in the same transaction as the feedback row; escalation surfaced in the return envelope, not just logs)
 
 **Checkpoint**: the loop (save→search→reuse→feedback) is complete and testable.
 
@@ -73,9 +73,9 @@
 **Goal**: FR-020 structural — gated steps re-confirm live; substitution honest.
 **Independent Test**: trusted skill with a gated step → replay pauses; no confirm → zero gated execution; cancel → no failure feedback (quickstart A3; SC-003).
 
-- [ ] T016 [P] [US4] Write `tests/unit/test_skill_executor.py` first — 035 test-plan 1b verbatim: substitution + unknown-slot ask-back, per-step `expect` verify, near-miss bailout, gated-step pause/resume (mocked lanes), cancel-clears-no-failure, replay start/abort audit — FAIL first
-- [ ] T017 [US4] Implement `src/agentic_rag_mcp/skill_manager/executor.py`: walk steps → call **existing** lane handlers (powershell/office/run gates) — gated step → `pending-confirmation` riding the **existing** `hermes_powershell_state` (no new state store, research R4), confirm resumes at next step, cancel aborts walk without skill-failure feedback; structural invariant: no code path reaches a gated tool's execution without the live confirm
-- [ ] T018 [US4] Adversarial pin A3: replay-bypass test asserting the structural invariant (attempt to confirm with different text → stored draft wins; spec-034 rules hold through replay) — mandatory per 035 SC-007
+- [X] T016 [P] [US4] Write `tests/unit/test_skill_executor.py` first — 035 test-plan 1b verbatim: substitution + unknown-slot ask-back, per-step `expect` verify, near-miss bailout, gated-step pause/resume (mocked lanes), cancel-clears-no-failure, replay start/abort audit — FAIL first
+- [X] T017 [US4] Implement `src/agentic_rag_mcp/skill_manager/executor.py`: walk steps → call **existing** lane handlers (powershell/office/run gates) — gated step → `pending-confirmation` riding the **existing** `hermes_powershell_state` (no new state store, research R4), confirm resumes at next step, cancel aborts walk without skill-failure feedback; structural invariant: no code path reaches a gated tool's execution without the live confirm
+- [X] T018 [US4] Adversarial pin A3: replay-bypass test asserting the structural invariant (attempt to confirm with different text → stored draft wins; spec-034 rules hold through replay) — mandatory per 035 SC-007
 
 **Checkpoint**: US4 = the security invariant, testable alone.
 
@@ -86,19 +86,19 @@
 **Goal**: questions/chat never consult the store; store-down degrades honestly.
 **Independent Test**: store down → operational task completes with notice, question turn unaffected (quickstart store-down; SC-006).
 
-- [ ] T019 [US3] Add DSL wiring to `dify/AGIAssistant/AGI_Assistant.yml` (per-component ownership rule): Hermes lane instructions gain the skill-loop rules (search before acting, reuse iff `reusable`, save on novel success, feedback every reuse, retry-once then escalate, ANTI-FABRICATION LAW covers skill claims); **General lane tool list excludes the four skill tools** (structural FR-001 scope); publish via `deploy chatflow`
-- [ ] T020 [US5] Wrap every store call in the honest-outage envelope (`error:skill-store-unavailable` naming the outage) + lane instruction: route manually, say so in the answer (FR-013)
-- [ ] T021 [P] [US5] Write degradation test: store unreachable → operational completes manually with honest notice; question turn shows zero skill round trips (mocked)
+- [X] [P] T019-part [US3] Add DSL wiring to `dify/AGIAssistant/AGI_Assistant.yml` (per-component ownership rule): Hermes lane instructions gain the skill-loop rules (search before acting, reuse iff `reusable`, save on novel success, feedback every reuse, retry-once then escalate, ANTI-FABRICATION LAW covers skill claims); **General lane tool list excludes the four skill tools** (structural FR-001 scope); publish via `deploy chatflow`
+- [X] T020 [US5] Wrap every store call in the honest-outage envelope (`error:skill-store-unavailable` naming the outage) + lane instruction: route manually, say so in the answer (FR-013)
+- [X] T021 [P] [US5] Write degradation test: store unreachable → operational completes manually with honest notice; question turn shows zero skill round trips (mocked)
 
 ---
 
 ## Phase 8: Polish & Cross-Cutting
 
-- [ ] T022 [P] Update `README.md` + `AGENTS.md` tool counts (29 → 33) + spec 036 feature surface section (house doc pattern)
-- [ ] T023 Run `ruff` on new sources; full pytest suite green minus the 4 known pre-existing failures
+- [X] T022 [P] Update `README.md` + `AGENTS.md` tool counts (29 → 33) + spec 036 feature surface section (house doc pattern)
+- [X] T023 Run `ruff` on new sources; full pytest suite green minus the 4 known pre-existing failures
 - [ ] T024 Rebuild Dify `tool_mcp_providers` rows for the 4 new tools + restart `docker-api-1`/`docker-worker-1` (staleness rule)
 - [ ] T025 Run quickstart.md live battery: E1/E5/E6 + adversarial A3/A6 + store-down; verify audit rows for every trial refusal
-- [ ] T026 [P] Run `graphify update .` to refresh the code graph
+- [X] T026 [P] Run `graphify update .` to refresh the code graph
 
 ---
 

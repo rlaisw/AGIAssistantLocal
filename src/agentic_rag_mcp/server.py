@@ -1312,6 +1312,80 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
                      f"Follow the step-report protocol.")
         return await _run_agent(directive)
 
+    # ---- spec 036: the Skill Manager's four data-only tools --------------
+    # Lazy singleton: heavy imports (sentence-transformers) stay deferred
+    # until the first skill call; absence degrades honestly, never hangs.
+    _skill_manager: list = []  # at most one entry
+
+    def get_skill_manager():
+        if not _skill_manager:
+            from .skill_manager.api import SkillManager
+            _skill_manager.append(SkillManager(
+                cfg.skill_db_path, cfg.skill_vectordb_path,
+                HermesAudit(cfg.hermes_audit_path),
+                min_rate=cfg.skill_min_rate,
+                min_successes=cfg.skill_min_successes))
+        return _skill_manager[0]
+
+    @mcp.tool()
+    async def skill_search(intent: str, conversation_id: str,
+                           ctx: Context = None) -> dict:
+        """Search the shared SKILL STORE by semantic intent BEFORE executing an
+        operational task (a task that acts on the user's computer — never for
+        questions or chat). Returns {found, skills:[{name, description,
+        success_rate, sample, reusable}]} — auto-reuse a skill ONLY when its
+        reusable flag is true (rate > 0.80 AND >= 3 successes); otherwise
+        solve manually. On error:skill-store-unavailable say so honestly and
+        complete the task manually without the skill loop. Never fabricate a
+        skill match. conversation_id is required (audited).
+        """
+        return get_skill_manager().search(intent, conversation_id)
+
+    @mcp.tool()
+    async def skill_get(name: str, conversation_id: str, values: dict | None = None,
+                        ctx: Context = None) -> dict:
+        """Retrieve a saved skill by exact name — returns {status, skill}
+        with the parameterized workflow, version, and trust counts. Pass
+        `values` to fill the workflow's {{placeholders}} for a replay:
+        unfilled slots return status ask-back naming them — ask the user,
+        never guess. Steps whose tool is confirm-gated are marked gated=true:
+        execute them ONLY through their lane tool's live draft->confirm flow
+        (the skill record NEVER pre-confirms its gated steps). Unknown name
+        returns error:skill-not-found — never an empty workflow.
+        """
+        return get_skill_manager().get(name, conversation_id, values)
+
+    @mcp.tool()
+    async def skill_save(skill: dict, conversation_id: str,
+                         ctx: Context = None) -> dict:
+        """Save a reusable SKILL after a successful operational task with no
+        matching skill. skill = {name (snake_case), description (trigger
+        keywords — what it does AND when to use it), tier (1|2), workflow:
+        [{step, tool, service, params_template, expect}]} — params_template
+        carries {{snake_case}} placeholder slots (machine-specific literals
+        like profile paths are REJECTED); every step carries expect; tier-2
+        skills include a Tier-1 pre-check as step 1. Same name = update,
+        version increments. Returns {name, version}. This tool creates data
+        only — it never executes anything.
+        """
+        return get_skill_manager().save(skill, conversation_id)
+
+    @mcp.tool()
+    async def skill_feedback(skill_name: str, outcome: str,
+                             conversation_id: str,
+                             error_context: str = "",
+                             ctx: Context = None) -> dict:
+        """Record feedback for one skill reuse attempt — call after EVERY
+        replayed skill: outcome success or failure (error_context is REQUIRED
+        on failure and feeds self-correction). After two consecutive
+        failures the store escalates: surface the escalation to the user
+        honestly and STOP retrying — skills are never deleted. Returns
+        {acknowledged, escalate?}.
+        """
+        return get_skill_manager().feedback(skill_name, outcome,
+                                            conversation_id,
+                                            error_context or None)
+
     return mcp
 
 
