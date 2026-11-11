@@ -35,3 +35,34 @@ None new (prompt text + task args); the existing 562 stay green. Verification is
 - **New lifecycle needed**: `gateway-arg-strip-persistent` — the strip now hits every fresh session; upstream fix or a lighter persistent direct channel.
 - Tier 3 (scripted-first routing + the deterministic executor, ~10–20s) remains the structural endgame — the arg-strip issue makes it MORE attractive since the scripted lane does not ride the gateway's MCP arg path at all.
 - Watch for the profile-lock class: the hygiene line should clear it; if a lock recurs, the recovery must also kill leaked chromium processes.
+
+---
+
+# Fix Pass 2: the scripted route (owner's choice, 2026-11-11T15:00Z)
+
+## Summary
+
+The search-and-report fast path is fully wired: a deterministic `search_and_report` script (~15 s direct), routing that recognizes search phrasings as KNOWN flows (the scripted lane, immune to the gateway arg-strip and LLM steering), the DSL published with the new rules, and the container-path bugs found on the way fixed (cfg-driven registry root; Windows-mirror directive).
+
+## Changes
+
+| Piece | Detail |
+|-------|--------|
+| `scripts/browser/search_and_report.py` | direct-URL Bing search, one read, JSON step lines; **positional query arg** (PowerShell mangles JSON-on-the-command-line — found live) |
+| `browser_lanes/routing_gate.py` | search-and-report patterns (`search for X and report`, `what is X today`, `look up`, `search the`) → **scripted**; browser-hint widened (search/look up/find out/what-is-today); the original no-response prompt now pins **scripted** (fast path supersedes dynamic) |
+| `server.py` `browser_scripted_run` | registry root now cfg-driven (the `__file__`-relative default mis-resolved at site-packages depth in-container → registry appeared EMPTY); directive uses the host-synced mirror `C:\scripts\browser\<script>` + `PLAYWRIGHT_BROWSERS_PATH` env |
+| Windows host | Python playwright installed (pip); `C:\scripts\browser` mirror synced; chromium launch verified on-host |
+| DSL | search intents → `browser_scripted_run(script="search_and_report", args={'query': ...})` — quote-safe for the multi-line YAML scalar (found live) |
+| Pins | 5 new routing pins incl. the verbatim weather prompt → scripted; 565 unit green |
+
+## Local Verification
+
+- Script direct on Windows: **runs in ~15 s**, JSON step lines emitted, chromium launches with the shared browser cache.
+- Routing pins: all search-and-report shapes → scripted lane.
+- **E2E caveat (the honest limit)**: end-to-end chat runs while the desktop is IN USE stall in the **USER_CONTROL consent policy** — the agent's PowerShell execution patiently retries until the desktop is idle (331.6 s and 322.6 s turns observed, both lost to the 300 s ceiling server-side). This is the designed consent behavior (spec 029), not a bug in the fast path: the script itself is 15 s; the consent-wait dominates when the owner is actively using the PC.
+
+## Follow-ups
+
+- **Test the fast path when the desktop is idle** — expected wall-time ≈ 30–60 s (agent overhead + 15 s script), well under the ceiling.
+- If consent-waits prove annoying for read-only browsing, the design lever is a **WSL-side headless script runner** (no Windows desktop consent at all) — a scope decision, not a patch.
+- The gateway arg-strip lifecycle (`gateway-arg-strip-persistent`) remains open for the dynamic lane.
