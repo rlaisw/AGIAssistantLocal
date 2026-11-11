@@ -216,9 +216,9 @@
     "semantic_hash": "366689124ca42b54b992cf8129db2ca6"
   },
   "src/agentic_rag_mcp/config.py": {
-    "mtime": 1793598001.8536196,
-    "seen": 1794214822.481363,
-    "ast_hash": "058e10e5d13d115277d61aa3fadb462f",
+    "mtime": 1794367466.5371468,
+    "seen": 1794367542.1067183,
+    "ast_hash": "31495e9a0549d47fc46c9efa00870542",
     "semantic_hash": ""
   },
   "src/agentic_rag_mcp/errors.py": {
@@ -348,9 +348,9 @@
     "semantic_hash": "0351c98ec054f4bff086a5df3dcf735d"
   },
   "src/agentic_rag_mcp/server.py": {
-    "mtime": 1794303896.6994843,
-    "seen": 1794304952.675005,
-    "ast_hash": "53e1ecb85488a12e3c0446dafb516f48",
+    "mtime": 1794367466.5373957,
+    "seen": 1794367542.1067498,
+    "ast_hash": "4f5b21785a7666615ef49182eea69d31",
     "semantic_hash": ""
   },
   "src/agentic_rag_mcp/sources/__init__.py": {
@@ -714,9 +714,9 @@
     "semantic_hash": "b8ed482dd2103953e4f871e0ed12d4bd"
   },
   "README.md": {
-    "mtime": 1793689579.6199296,
-    "seen": 1794214822.4815564,
-    "ast_hash": "3caed402827d2c21da9376ac282d3dc7",
+    "mtime": 1794367502.5215473,
+    "seen": 1794367542.106899,
+    "ast_hash": "111b3f68936fb4d8ca972a986146f0e7",
     "semantic_hash": ""
   },
   "dify/Chatflow Basic (AgenticRAG Agent).yml": {
@@ -906,9 +906,9 @@
     "semantic_hash": ""
   },
   "docs/NETWORK.md": {
-    "mtime": 1793493790.2848268,
-    "seen": 1793501402.7352877,
-    "ast_hash": "ba314bc92af12334a03360efd9c8ca27",
+    "mtime": 1794362180.383074,
+    "seen": 1794367542.106937,
+    "ast_hash": "64106159cb0783e55fcd5df9cfff9c7a",
     "semantic_hash": ""
   },
   "specs/003-web-search-scrape/checklists/requirements.md": {
@@ -1122,9 +1122,9 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1793689581.1799324,
-    "seen": 1794214822.4815552,
-    "ast_hash": "cadb541462ecc8b4786d49a7c0f0bc17",
+    "mtime": 1794367502.5216615,
+    "seen": 1794367542.1068978,
+    "ast_hash": "2a59ce34243ad2e6c1747e8533d8ffb6",
     "semantic_hash": ""
   },
   "specs/003-web-search-scrape/tasks.md": {
@@ -1674,9 +1674,9 @@
     "semantic_hash": ""
   },
   "ai-chat-landing/README.md": {
-    "mtime": 1793493790.2774224,
-    "seen": 1793501402.7352679,
-    "ast_hash": "3fa8343031122cac03f519da099687df",
+    "mtime": 1794361277.835292,
+    "seen": 1794367542.1069155,
+    "ast_hash": "babb7c67509d3bc999a0943f72bf8cd3",
     "semantic_hash": ""
   },
   "ai-chat-landing/agent/skills/migrate-radix-to-base/SKILL.md": {
@@ -3120,9 +3120,9 @@
     "semantic_hash": ""
   },
   "dify/AGIAssistant/AGI_Assistant.yml": {
-    "mtime": 1794302228.1792383,
-    "seen": 1794303745.5456014,
-    "ast_hash": "85463559abb9429bfbbe42b709a29c34",
+    "mtime": 1794367466.5370142,
+    "seen": 1794367542.1069334,
+    "ast_hash": "5bbe9a64eeb8cdd32ff13497109e334b",
     "semantic_hash": ""
   },
   "specs/024-install-difyctl/checklists/requirements.md": {
@@ -4671,6 +4671,156 @@
     "mtime": 1794301879.0852256,
     "seen": 1794303745.545758,
     "ast_hash": "efc84247dbfaf1e7e12875e2ba081c85",
+    "semantic_hash": ""
+  },
+  "src/agentic_rag_mcp/skill_manager/__init__.py": {
+    "mtime": 1794367475.86546,
+    "seen": 1794367542.106751,
+    "ast_hash": "c50a358d0a5db53fa1e93b393bf193f1",
+    "semantic_hash": ""
+  },
+  "src/agentic_rag_mcp/skill_manager/api.py": {
+    "mtime": 1794367483.3695302,
+    "seen": 1794367542.1067514,
+    "ast_hash": "05837db4a60205fe8786902b5c0f2274",
+    "semantic_hash": ""
+  },
+  "src/agentic_rag_mcp/skill_manager/executor.py": {
+    "mtime": 1794366808.7741492,
+    "seen": 1794367542.1067522,
+    "ast_hash": "40106f460ba96187f2895450a6d2e193",
+    "semantic_hash": ""
+  },
+  "src/agentic_rag_mcp/skill_manager/intent.py": {
+    "mtime": 1794366803.838092,
+    "seen": 1794367542.1067524,
+    "ast_hash": "891cdc5d68f3a1409b5962d7e335b4c9",
+    "semantic_hash": ""
+  },
+  "src/agentic_rag_mcp/skill_manager/store.py": {
+    "mtime": 1794367475.86546,
+    "seen": 1794367542.106753,
+    "ast_hash": "9cc51d157a2537e3f60e6a4f7a529092",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_skill_executor.py": {
+    "mtime": 1794367475.86546,
+    "seen": 1794367542.1068003,
+    "ast_hash": "b1500153bdce254487ae1b9537a12b57",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_skill_feedback.py": {
+    "mtime": 1794366863.47802,
+    "seen": 1794367542.1068008,
+    "ast_hash": "2ef86bebc0b9c8c57f9619b99a2d42c5",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_skill_store.py": {
+    "mtime": 1794366863.4778938,
+    "seen": 1794367542.1068015,
+    "ast_hash": "6ddf7a26ab7eded6a89167cd735067b6",
+    "semantic_hash": ""
+  },
+  "tests/unit/test_skill_trust.py": {
+    "mtime": 1794367475.86546,
+    "seen": 1794367542.106802,
+    "ast_hash": "f9630a4af63875d7cce9dcda8a093c92",
+    "semantic_hash": ""
+  },
+  "specs/035-ai-helpdesk-architecture/checklists/requirements.md": {
+    "mtime": 1794365599.4567044,
+    "seen": 1794367542.1070833,
+    "ast_hash": "67a18a7dd12c6793d9c69e81e3741b0a",
+    "semantic_hash": ""
+  },
+  "specs/035-ai-helpdesk-architecture/contracts/README.md": {
+    "mtime": 1794365699.308042,
+    "seen": 1794367542.1071036,
+    "ast_hash": "9f1781db65e883608f1fd8cbc68697b5",
+    "semantic_hash": ""
+  },
+  "specs/035-ai-helpdesk-architecture/data-model.md": {
+    "mtime": 1794365684.2555406,
+    "seen": 1794367542.1071043,
+    "ast_hash": "7d905dbfe81985c33c0f3bb93b38a36c",
+    "semantic_hash": ""
+  },
+  "specs/035-ai-helpdesk-architecture/plan.md": {
+    "mtime": 1794365887.2812445,
+    "seen": 1794367542.107105,
+    "ast_hash": "c97d5ee68a823260c48588e5edf4ba62",
+    "semantic_hash": ""
+  },
+  "specs/035-ai-helpdesk-architecture/quickstart.md": {
+    "mtime": 1794365712.024486,
+    "seen": 1794367542.1071055,
+    "ast_hash": "882f8de64c92ecd990d5418af2c983eb",
+    "semantic_hash": ""
+  },
+  "specs/035-ai-helpdesk-architecture/research.md": {
+    "mtime": 1794365671.7631319,
+    "seen": 1794367542.107106,
+    "ast_hash": "6d6098050a2fee9a355ea20f79f800a8",
+    "semantic_hash": ""
+  },
+  "specs/035-ai-helpdesk-architecture/spec.md": {
+    "mtime": 1794365591.0164285,
+    "seen": 1794367542.1071064,
+    "ast_hash": "ea2d82ba3e5bacefd1571b4b0be1e786",
+    "semantic_hash": ""
+  },
+  "specs/035-ai-helpdesk-architecture/test-plan.md": {
+    "mtime": 1794365879.8850596,
+    "seen": 1794367542.1071072,
+    "ast_hash": "58e7abd27ca61aa0307ef389de45fb08",
+    "semantic_hash": ""
+  },
+  "specs/036-skill-manager/checklists/requirements.md": {
+    "mtime": 1794366026.8687909,
+    "seen": 1794367542.1071076,
+    "ast_hash": "e5e6c91fa8fc8bdbf5e989625340f62d",
+    "semantic_hash": ""
+  },
+  "specs/036-skill-manager/contracts/README.md": {
+    "mtime": 1794366283.4900131,
+    "seen": 1794367542.1071079,
+    "ast_hash": "e151d1f2be73504f4fa1e3cc1de11cf9",
+    "semantic_hash": ""
+  },
+  "specs/036-skill-manager/data-model.md": {
+    "mtime": 1794366269.9497488,
+    "seen": 1794367542.1071084,
+    "ast_hash": "1120c0bfe8426b6ea31f278e7da33894",
+    "semantic_hash": ""
+  },
+  "specs/036-skill-manager/plan.md": {
+    "mtime": 1794366231.3969898,
+    "seen": 1794367542.1071088,
+    "ast_hash": "50604168a6f761d46f33e389688748a3",
+    "semantic_hash": ""
+  },
+  "specs/036-skill-manager/quickstart.md": {
+    "mtime": 1794366293.6302114,
+    "seen": 1794367542.1071093,
+    "ast_hash": "edd6287dfca8aafdb306fccd51641408",
+    "semantic_hash": ""
+  },
+  "specs/036-skill-manager/research.md": {
+    "mtime": 1794366249.3653429,
+    "seen": 1794367542.1071098,
+    "ast_hash": "174c5093939d0c7b3b0fbc90ba794a0a",
+    "semantic_hash": ""
+  },
+  "specs/036-skill-manager/spec.md": {
+    "mtime": 1794366021.9886646,
+    "seen": 1794367542.1071105,
+    "ast_hash": "05b8ad50449062e65fc5a38f131ee0f0",
+    "semantic_hash": ""
+  },
+  "specs/036-skill-manager/tasks.md": {
+    "mtime": 1794366407.5042598,
+    "seen": 1794367542.1071107,
+    "ast_hash": "d1aa4264acf52cbbc813af3fde354f9f",
     "semantic_hash": ""
   }
 }
