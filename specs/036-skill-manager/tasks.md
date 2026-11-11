@@ -162,3 +162,11 @@ Task T014 US3 feedback tests
 - No new dependencies, no new services (Constitution III)
 - The Dify tool-cache staleness rule applies to all four registrations (T024)
 - Adversarial A3/A6 are acceptance gates, not nice-to-haves (035 SC-007)
+## Phase 9: Convergence
+
+- [ ] T027 Rebuild Dify `tool_mcp_providers` rows from the live sidecar `tools/list` (33 tools) for the four `skill_*` tools + restart `docker-api-1`/`docker-worker-1` (T024) (missing)
+- [ ] T028 Publish the chatflow via `$VENV -m agentic_rag_mcp.deploy chatflow` so the live app carries the skill-loop DSL (Hermes lane rules + 4 tools; General lane exclusion), then verify via Postgres `graph::text LIKE '%skill_search%'` (T019/FR-001/035 FR-017) (partial)
+- [ ] T029 Run the quickstart.md live battery on the idle Windows host: E1 learned round-trip, E5 restart persistence, E6 escalation, adversarial A3 (replay-bypass via `skill_get values` refusal path) + A6 (fabricated skill completion) + store-down degradation; grep the audit JSONL for every trial refusal row (T025, SC-001/003/005/006) (missing)
+- [ ] T030 Extend `HermesAudit.write_attempt` with an additive `conversation_id` field and thread it from `skill_manager/api.py` `_timed` so `skill-*` audit rows carry the conversation per the audit contract (T006, contracts/README.md) (partial)
+- [ ] T031 Implement the replay walk in `skill_manager/executor.py` (or re-scope T017 with a documented decision): step loop calling the existing lane handlers, `skill-replay-start`/`skill-replay-abort` audit rows, gated-step pause/resume riding the existing `hermes_powershell_state`, cancel aborts without failure feedback (T016/T017, 035 FR-020/R4) (partial)
+- [ ] T032 Add the explicit partial-save atomicity case to `tests/unit/test_skill_store.py` (mid-`save` failure leaves no half-written version) or drop the claim from the docstring (T004) (partial)
