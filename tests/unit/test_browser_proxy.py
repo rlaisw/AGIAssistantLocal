@@ -84,17 +84,41 @@ class TestTrimmedPrimitives:
         assert out["status"] == "ok"
         assert len(out["text"]) == 4000  # TRIMMED — not the full tree
 
-    def test_navigate_passes_url(self):
+    def test_navigate_passes_url_then_maximizes(self):
+        seen_tools = []
+
         def handler(request):
             body = json.loads(request.content)
-            assert body["params"]["arguments"] == {"url": "https://x"}
+            args = body["params"]["arguments"]
+            seen_tools.append(body["params"]["name"])
+            if body["params"]["name"] == "browser_navigate":
+                assert args == {"url": "https://x"}
+                return _sse({"result": {"content": [
+                    {"type": "text", "text": "Page loaded"}]}})
             return _sse({"result": {"content": [
-                {"type": "text", "text": "Page loaded"}]}})
+                {"type": "text", "text": "maximized 1"}]}})
 
         px = PlaywrightProxy(BASE)
         px._session_id = "sess-1"
         px._client = httpx.Client(transport=httpx.MockTransport(handler))
-        assert px.navigate("https://x")["status"] == "ok"
+        out = px.navigate("https://x")
+        assert out["status"] == "ok"
+        # navigation first, then the best-effort CDP maximize
+        assert seen_tools == ["browser_navigate", "browser_run_code_unsafe"]
+
+    def test_maximize_failure_never_fails_navigation(self):
+        def handler(request):
+            body = json.loads(request.content)
+            if body["params"]["name"] == "browser_navigate":
+                return _sse({"result": {"content": [
+                    {"type": "text", "text": "Page loaded"}]}})
+            raise httpx.ConnectError("maximize call died")
+
+        px = PlaywrightProxy(BASE)
+        px._session_id = "sess-1"
+        px._client = httpx.Client(transport=httpx.MockTransport(handler))
+        out = px.navigate("https://x")
+        assert out["status"] == "ok"  # cosmetic failure swallowed
 
     def test_click_text_builds_js_with_needle(self):
         def handler(request):

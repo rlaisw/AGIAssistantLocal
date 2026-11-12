@@ -124,8 +124,24 @@ class PlaywrightProxy:
 
     # -- the trimmed primitives (B) ---------------------------------------
 
+    # cosmetic-but-requested (2026-11-12): windows spawned from the hidden
+    # scheduled-task session come up minimized; CDP maximizes them. Best-
+    # effort ONLY — a maximize failure never fails the navigation.
+    _MAXIMIZE_JS = (
+        "(async () => { const cd = await page.context().newCDPSession(page);"
+        " const {windowId} = await cd.send('Browser.getWindowForTarget');"
+        " await cd.send('Browser.setWindowBounds', {windowId, bounds: "
+        "{windowState: 'maximized'}}); return 'maximized ' + windowId; })()")
+
     def navigate(self, url: str) -> dict:
-        return self.call("browser_navigate", {"url": url})
+        out = self.call("browser_navigate", {"url": url})
+        if out.get("status") == "ok":
+            try:
+                self.call("browser_run_code_unsafe",
+                          {"code": self._MAXIMIZE_JS})
+            except ConnectionError:
+                pass  # cosmetic — never fail a navigation over it
+        return out
 
     def read_text(self, max_chars: int = 4000) -> dict:
         """Trimmed read (the B lever): the page's innerText via evaluate —
