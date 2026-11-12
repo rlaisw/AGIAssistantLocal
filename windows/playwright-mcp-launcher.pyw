@@ -34,8 +34,12 @@ CMD = [
 CREATE_NO_WINDOW = 0x08000000
 SW_RESTORE = 9
 SW_MAXIMIZE = 3
+VK_MENU = 0x12
+KEYEVENTF_KEYUP = 0x0002
+ACTIVE_WINDOW_S = 20  # keep it front this long after each navigation
 
 user32 = ctypes.WinDLL("user32", use_last_error=True)
+kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
 
 _ENUM_PROC = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND,
                                  wintypes.LPARAM)
@@ -48,9 +52,38 @@ def _title(hwnd) -> str:
     return buf.value
 
 
+def _bring_to_front(hwnd) -> None:
+    """Foreground activation. The ALT tap clears Windows' foreground lock
+    (needed here because the RDP client commonly holds focus), then
+    SetForegroundWindow lands reliably; AttachThreadInput is the fallback."""
+    if user32.IsIconic(hwnd):
+        user32.ShowWindow(hwnd, SW_RESTORE)
+    user32.ShowWindow(hwnd, SW_MAXIMIZE)
+    if user32.GetForegroundWindow() == hwnd:
+        return
+    user32.keybd_event(VK_MENU, 0, 0, 0)          # ALT down
+    user32.keybd_event(VK_MENU, 0, KEYEVENTF_KEYUP, 0)
+    if user32.SetForegroundWindow(hwnd):
+        return
+    fg = user32.GetForegroundWindow()
+    fg_thread = user32.GetWindowThreadProcessId(fg, None)
+    t_thread = user32.GetWindowThreadProcessId(hwnd, None)
+    attached = False
+    if fg_thread and t_thread and fg_thread != t_thread:
+        attached = bool(user32.AttachThreadInput(fg_thread, t_thread, True))
+    user32.BringWindowToTop(hwnd)
+    user32.SetForegroundWindow(hwnd)
+    if attached:
+        user32.AttachThreadInput(fg_thread, t_thread, False)
+
+
 def _watch_forever() -> None:
-    """Restore+maximize our Chromium windows (title-tagged, ours only)."""
+    """Restore+maximize our Chromium windows (title-tagged, ours only), and
+    bring them to the FRONT when they first appear or on each navigation
+    (title change) — never every cycle, so it does not fight the user."""
     hits: list[int] = []
+    seen: dict[int, str] = {}
+    changed: dict[int, float] = {}
 
     def _cb(hwnd, _lparam):
         if "Chrome for Testing" in _title(hwnd):
@@ -62,9 +95,20 @@ def _watch_forever() -> None:
         hits.clear()
         user32.EnumWindows(callback, 0)
         for hwnd in hits:
+            t = _title(hwnd)
             if user32.IsIconic(hwnd):
                 user32.ShowWindow(hwnd, SW_RESTORE)
             user32.ShowWindow(hwnd, SW_MAXIMIZE)
+            if seen.get(hwnd) != t:  # new window or a new page navigation
+                changed[hwnd] = time.time()
+            # front during active navigation (title changed recently), so
+            # the user watches the browsing; never fight them afterwards
+            if time.time() - changed.get(hwnd, 0.0) < ACTIVE_WINDOW_S:
+                _bring_to_front(hwnd)
+            seen[hwnd] = t
+        for gone in [h for h in seen if h not in hits]:
+            seen.pop(gone, None)
+            changed.pop(gone, None)
         time.sleep(2)
 
 
