@@ -51,6 +51,23 @@ _COMPOUND_APPS = {
     "task manager": "taskmgr",
     "device manager": "devmgmt",
     "registry editor": "regedit",
+    # the-launch-was-blocked... (2026-11-12): "MS Word" parsed as TWO apps
+    # (names ['MS','Word']) -> honest-but-pointless MULTI ask-back; the
+    # whole Microsoft family was missing from the compound map
+    "ms word": "word",
+    "ms excel": "excel",
+    "ms powerpoint": "powerpoint",
+    "ms outlook": "outlook",
+    "ms access": "access",
+    "ms edge": "edge",
+    "ms teams": "teams",
+    "ms paint": "mspaint",
+    "microsoft word": "word",
+    "microsoft excel": "excel",
+    "microsoft powerpoint": "powerpoint",
+    "microsoft outlook": "outlook",
+    "microsoft edge": "edge",
+    "microsoft teams": "teams",
 }
 # secondary imperative clauses that are desktop actions, not launch targets
 # ("open a new tab" after the real launch target) — routed to the followup

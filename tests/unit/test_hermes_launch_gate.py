@@ -9,6 +9,8 @@ reason strings the chat relays verbatim.
 
 from __future__ import annotations
 
+import pytest
+
 from agentic_rag_mcp.hermes_launch_gate import gate_launch
 
 # ---------------------------------------------------------------- name targets
@@ -385,3 +387,35 @@ class TestBrowserFollowupRefusal:
         v = gate_launch("open notepad and type hello world")
         assert v.decision == "ok"
         assert v.desktop_followup and "type" in v.desktop_followup.lower()
+
+
+class TestMicrosoftFamilyCompounds:
+    """the-launch-was-blocked-by-the-local-agent (2026-11-12): 'MS Word'
+    parsed as TWO applications (names ['MS','Word']) -> MULTI ask-back on
+    the most natural phrasing there is. The compound map now merges the
+    Microsoft family; two REAL apps still block."""
+
+    def test_ms_word_with_typing_followup_launches(self):
+        v = gate_launch("open MS Word, type Hello")
+        assert v.decision == "ok"
+        assert v.target == "word"
+        assert v.desktop_followup == "type Hello"
+
+    @pytest.mark.parametrize("task,target", [
+        ("open MS Word", "word"),
+        ("open Microsoft Word", "word"),
+        ("open Microsoft Excel", "excel"),
+        ("open MS PowerPoint", "powerpoint"),
+        ("open ms outlook", "outlook"),
+        ("open ms edge", "edge"),
+        ("open microsoft teams", "teams"),
+        ("open ms paint", "mspaint"),
+    ])
+    def test_family_phrasings_merge_to_one_app(self, task, target):
+        v = gate_launch(task)
+        assert v.decision == "ok" and v.target == target
+
+    def test_two_real_apps_still_multi_block(self):
+        v = gate_launch("open chrome and firefox")
+        assert v.decision == "blocked"
+        assert "more than one application" in v.reason
