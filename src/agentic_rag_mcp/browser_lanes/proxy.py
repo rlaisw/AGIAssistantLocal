@@ -92,28 +92,35 @@ class PlaywrightProxy:
 
     def call(self, tool: str, args: dict) -> dict:
         """One tools/call. Returns {status, text} — text is the concatenated
-        tool content, trimmed by the caller as needed."""
-        try:
-            self.open()
-            with self._lock:
-                r = self._post({"jsonrpc": "2.0", "id": 1,
-                                "method": "tools/call",
-                                "params": {"name": tool,
-                                            "arguments": args or {}}})
-            r.raise_for_status()
-            out = self._parse_sse(r.text)
-            if "error" in out:
-                return {"status": "error",
-                        "reason": str(out["error"])[:300]}
-            content = (out.get("result") or {}).get("content") or []
-            text = "\n".join(c.get("text", "") for c in content
-                             if c.get("type") == "text")
-            err = (out.get("result") or {}).get("isError")
-            return {"status": "error" if err else "ok", "text": text}
-        except (httpx.HTTPError, ValueError, ConnectionError) as exc:
-            if isinstance(exc, ConnectionError):
-                raise
-            raise ConnectionError(_unavailable(exc, self.base)) from exc
+        tool content, trimmed by the caller as needed. A session rejected
+        by the server (restart/invalidated) is recovered ONCE by re-opening
+        the session and retrying — never fail a turn over a stale id."""
+        for attempt in (1, 2):
+            try:
+                self.open()
+                with self._lock:
+                    r = self._post({"jsonrpc": "2.0", "id": 1,
+                                    "method": "tools/call",
+                                    "params": {"name": tool,
+                                                "arguments": args or {}}})
+                if r.status_code in (400, 404, 410) and attempt == 1:
+                    # stale session (server restarted under us) — re-open
+                    self._session_id = None
+                    continue
+                r.raise_for_status()
+                out = self._parse_sse(r.text)
+                if "error" in out:
+                    return {"status": "error",
+                            "reason": str(out["error"])[:300]}
+                content = (out.get("result") or {}).get("content") or []
+                text = "\n".join(c.get("text", "") for c in content
+                                 if c.get("type") == "text")
+                err = (out.get("result") or {}).get("isError")
+                return {"status": "error" if err else "ok", "text": text}
+            except (httpx.HTTPError, ValueError) as exc:
+                raise ConnectionError(_unavailable(exc, self.base)) from exc
+        raise ConnectionError(_unavailable(
+            ValueError("session rejected twice"), self.base))
 
     # -- the trimmed primitives (B) ---------------------------------------
 

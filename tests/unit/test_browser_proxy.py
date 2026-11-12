@@ -134,3 +134,27 @@ class TestErrorShapes:
         px._client = httpx.Client(transport=httpx.MockTransport(handler))
         out = px.call("browser_navigate", {"url": "https://x"})
         assert out["status"] == "error"
+
+class TestSessionRecovery:
+    """stale session (server restarted) -> re-open once, retry, succeed."""
+
+    def test_stale_session_reopens_and_retries(self):
+        calls = {"n": 0}
+
+        def handler(request):
+            calls["n"] += 1
+            if request.headers.get("mcp-session-id") == "old-sess":
+                return httpx.Response(404, text="session not found")
+            if request.headers.get("mcp-session-id"):
+                return _sse({"result": {"content": [
+                    {"type": "text", "text": "recovered page"}]}})
+            return httpx.Response(200, text="event: message\ndata: "
+                                      '{"result": {"protocolVersion": "x"}}',
+                                  headers={"mcp-session-id": "new-sess"})
+
+        px = PlaywrightProxy(BASE)
+        px._session_id = "old-sess"  # the server died; id is stale
+        px._client = httpx.Client(transport=httpx.MockTransport(handler))
+        out = px.call("browser_navigate", {"url": "https://x"})
+        assert out["status"] == "ok" and "recovered page" in out["text"]
+        assert px._session_id == "new-sess"  # re-opened, retried once
