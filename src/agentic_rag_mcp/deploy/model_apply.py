@@ -1,13 +1,18 @@
 """Spec 026: apply a cloud LLM to the chatflow — export → patch → overwrite → publish.
 
 Bug fix not-saved-in-outlook-drafts-folder-and-not-send-email (2026-11-05, owner
-decision "Option B"): the four lane LLM nodes are PINNED to kimi-k3 — the model the
-Hermes lanes were tuned and verified on (office-routing-flake, 2026-11-02). A
-blanket model swap to deepseek (this bug) had the office lane narrate its plan and
+decision "Option B"): the DESKTOP lane LLM nodes are PINNED to kimi-k3 — the model
+the Hermes lanes were tuned and verified on (office-routing-flake, 2026-11-02). A
+blanket model swap to deepseek (that bug) had the office lane narrate its plan and
 fabricate the tool result — "email sent" with no tool call and no audit entry.
-patch_dsl therefore ignores model_id and always pins PINNED_MODEL; the Chat UI's
-model dropdown and the apply-model CLI keep working but can no longer swap a lane
-node. The cycle still reconfigures the published app itself (contracts §4): the
+
+Owner decision 2026-11-12 (revised scope, question answered "Chat answers + UI
+chip only"): the pin is narrowed to the DESKTOP nodes only (hermes_agent,
+ppt_master). The two CHAT nodes — intent_router (the classifier, and the model
+the Chat UI reads for its default chip) and agentic_strategy (general chat
+answers) — now take the SELECTED cloud model (default deepseek-v4.1-flash). The
+fabrication class lived in the desktop lanes; chat answers never exhibited it.
+The cycle still reconfigures the published app itself (contracts §4): the
 published app is untouched until the publish step, so any failure leaves the
 previous configuration serving (FR-004).
 """
@@ -23,9 +28,15 @@ from .config import REPO_ROOT
 from .dify_console import DifyConsole
 
 CLOUD_PROVIDER = "langgenius/openrouter/openrouter"
-# The lanes are pinned; every apply cycle writes this model regardless of selection.
+# The DESKTOP lanes are pinned; every apply cycle writes this model to them
+# regardless of selection (2026-11-05 fabrication incident — desktop lanes only).
 PINNED_MODEL = "moonshotai/kimi-k3"
-MAIN_NODE_IDS = ("intent_router", "agentic_strategy", "ppt_master", "hermes_agent")
+# The CHAT nodes take the selected cloud model (owner decision 2026-11-12);
+# absent a selection the apply default is Deepseek (the UI's DEFAULT_MODEL_ID).
+DEFAULT_CHAT_MODEL = "deepseek/deepseek-v4.1-flash"
+CHAT_NODE_IDS = ("intent_router", "agentic_strategy")
+DESKTOP_NODE_IDS = ("ppt_master", "hermes_agent")
+MAIN_NODE_IDS = CHAT_NODE_IDS + DESKTOP_NODE_IDS
 START_NODE_ID = "1776072202913"
 REMOVE_NODE_SUFFIXES = ("_kimi", "_glm", "_qwen38")
 REMOVE_CASE_IDS = {"kimi", "glm", "qwen38"}
@@ -70,21 +81,26 @@ def strip_null_variable_params(doc: dict) -> None:
 
 
 def patch_dsl(yaml_text: str, model_id: str) -> str:
-    """Pin the four lane LLM nodes to PINNED_MODEL + idempotent FR-005 cleanup.
+    """Assign node models + idempotent FR-005 cleanup.
 
-    model_id is accepted (CLI/UI compatibility) but ignored — the lane nodes
-    are pinned (owner decision 2026-11-05), so no selection can swap them.
+    CHAT nodes (intent_router, agentic_strategy) take `model_id`
+    (default DEFAULT_CHAT_MODEL); DESKTOP nodes (ppt_master, hermes_agent)
+    stay pinned to PINNED_MODEL (2026-11-05 incident). Owner decision
+    2026-11-12: "Chat answers + UI chip only".
     """
     doc = yaml.safe_load(yaml_text)
     graph = doc["workflow"]["graph"]
     nodes, edges = graph["nodes"], graph["edges"]
     by_id = {n["id"]: n for n in nodes}
 
-    for nid in MAIN_NODE_IDS:
+    chat_model = model_id or DEFAULT_CHAT_MODEL
+    per_node = {**{nid: chat_model for nid in CHAT_NODE_IDS},
+                **{nid: PINNED_MODEL for nid in DESKTOP_NODE_IDS}}
+    for nid, chosen in per_node.items():
         if nid not in by_id:
             raise ValueError(f"main node missing from DSL: {nid}")
         n = by_id[nid]
-        block = _model_block(PINNED_MODEL)
+        block = _model_block(chosen)
         if n["data"]["type"] == "question-classifier":
             n["data"]["model"] = block
         else:
@@ -144,8 +160,9 @@ def apply_model(dcfg, report, model_id: str) -> None:
     report.add(
         "patch",
         evidence=(
-            f"pinned model={PINNED_MODEL} on {', '.join(MAIN_NODE_IDS)} "
-            f"(selection '{model_id}' ignored — lane nodes are pinned) "
+            f"chat nodes {', '.join(CHAT_NODE_IDS)} = "
+            f"{model_id or DEFAULT_CHAT_MODEL}; desktop nodes "
+            f"{', '.join(DESKTOP_NODE_IDS)} pinned to {PINNED_MODEL} "
             f"→ {os.path.relpath(ARTIFACT, REPO_ROOT)}"
         ),
     )
@@ -154,4 +171,6 @@ def apply_model(dcfg, report, model_id: str) -> None:
     report.add("overwrite", evidence="draft replaced (published app untouched)")
 
     console.publish(app["id"])
-    report.add("publish", evidence=f"pinned {PINNED_MODEL}")
+    report.add("publish",
+               evidence=(f"chat={model_id or DEFAULT_CHAT_MODEL}, "
+                         f"desktop pinned={PINNED_MODEL}"))

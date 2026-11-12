@@ -138,28 +138,45 @@ workflow:
 NEW_MODEL = "moonshotai/kimi-k3"
 
 
-def test_pins_the_four_lane_nodes_regardless_of_selection():
-    """not-saved-in-outlook-drafts-folder-and-not-send-email (2026-11-05):
-    the lane nodes are pinned to kimi-k3 — the requested model (dropdown or
-    CLI) must be ignored, or a blanket swap re-introduces the fabrication."""
-    doc = yaml.safe_load(patch_dsl(MINIMAL_DSL, "deepseek/deepseek-v4.1-flash"))
+def test_chat_nodes_take_selection_desktop_nodes_stay_pinned():
+    """owner decision 2026-11-12 ("Chat answers + UI chip only"): the CHAT
+    nodes (intent_router = the UI's default chip, agentic_strategy = general
+    answers) take the selected cloud model; the DESKTOP nodes (ppt_master,
+    hermes_agent) stay pinned to kimi-k3 — the 2026-11-05 fabrication class
+    lived in the desktop lanes only."""
+    requested = "deepseek/deepseek-v4.1-flash"
+    doc = yaml.safe_load(patch_dsl(MINIMAL_DSL, requested))
     by_id = {n["id"]: n for n in doc["workflow"]["graph"]["nodes"]}
-    for nid, get_block in (
-        ("intent_router", lambda n: n["data"]["model"]),
-        ("agentic_strategy", lambda n: n["data"]["agent_parameters"]["model"]["value"]),
-        ("ppt_master", lambda n: n["data"]["agent_parameters"]["model"]["value"]),
-        ("hermes_agent", lambda n: n["data"]["agent_parameters"]["model"]["value"]),
-    ):
-        block = get_block(by_id[nid])
-        assert block["model"] == NEW_MODEL
-        assert block["name"] == NEW_MODEL
+    chat_blocks = {
+        "intent_router": by_id["intent_router"]["data"]["model"],
+        "agentic_strategy": by_id["agentic_strategy"]["data"][
+            "agent_parameters"]["model"]["value"],
+    }
+    for nid, block in chat_blocks.items():
+        assert block["model"] == requested, nid
+        assert block["name"] == requested
         assert block["provider"] == CLOUD_PROVIDER
         assert block["mode"] == "chat"
         assert block["completion_params"] == {}
+    for nid in ("ppt_master", "hermes_agent"):
+        block = by_id[nid]["data"]["agent_parameters"]["model"]["value"]
+        assert block["model"] == PINNED_MODEL, nid
+        assert block["provider"] == CLOUD_PROVIDER
     local_block = by_id["intent_router_local"]["data"]["model"]
     assert local_block["model"] == "qwen3-8b-nothink"
     assert local_block["provider"] == "langgenius/ollama/ollama"
     assert local_block["completion_params"] == {"think": False}
+
+
+def test_empty_selection_defaults_chat_nodes_to_deepseek():
+    """the apply default (no explicit selection) is Deepseek — matching the
+    UI's DEFAULT_MODEL_ID."""
+    doc = yaml.safe_load(patch_dsl(MINIMAL_DSL, ""))
+    by_id = {n["id"]: n for n in doc["workflow"]["graph"]["nodes"]}
+    assert (by_id["intent_router"]["data"]["model"]["model"]
+            == "deepseek/deepseek-v4.1-flash")
+    assert (by_id["hermes_agent"]["data"]["agent_parameters"]["model"]["value"]
+            ["model"] == PINNED_MODEL)
 
 
 def test_cleanup_removes_routing_era_branches_cases_and_input():
