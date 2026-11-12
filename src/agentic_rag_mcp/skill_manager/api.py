@@ -116,6 +116,11 @@ class SkillManager:
                 name, version = self.store.save(skill)
             except ValueError as exc:
                 return {"status": "blocked", "reason": str(exc)}
+            if version > 1:
+                # trust bootstrap (whole-process-is-slow, 2026-11-12): the
+                # same-name save follows a successful manual solve of the
+                # same intent — count it toward the >=3 reuse threshold
+                self.store.record_repeat_solve(name)
             self.intent.upsert(name, self.store.get(name)["description"])
             return {"status": "ok", "name": name, "version": version}
 

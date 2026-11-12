@@ -922,11 +922,15 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
         home = str(Path.home())
         verdict = gate_launch(task, home=home)
         audit = HermesAudit(cfg.hermes_audit_path)
+        # whole-process-is-slow (2026-11-12): launch rows carry the
+        # conversation — without cid the turn's audit is unqueryable
+        cid = conversation_id or ""
 
         if verdict.decision == "blocked":
             audit.write_attempt(decision="blocked", operation=verdict.operation,
                                 normalized_path=verdict.target, allowed_root="",
-                                reason=verdict.reason)
+                                reason=verdict.reason,
+                                conversation_id=cid or None)
             return {"status": "blocked", "decision": "blocked",
                     "reason": verdict.reason}
 
@@ -951,7 +955,7 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
             error = outcome.get("error", "error:unknown Hermes failure")
             audit.write_attempt(decision="error", operation=verdict.operation,
                                 normalized_path=verdict.target, allowed_root="",
-                                reason=error,
+                                reason=error, conversation_id=cid or None,
                                 duration_s=timing.get("total_s"),
                                 timing=timing or None)
             return {"status": "error", "reason": error}
@@ -966,13 +970,13 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
                       f"{output.strip()[-300:]}")
             audit.write_attempt(decision="error", operation=verdict.operation,
                                 normalized_path=verdict.target, allowed_root="",
-                                reason=reason,
+                                reason=reason, conversation_id=cid or None,
                                 duration_s=timing.get("total_s"),
                                 timing=timing or None)
             return {"status": "error", "reason": reason}
         audit.write_attempt(decision="executed", operation=verdict.operation,
                             normalized_path=verdict.target, allowed_root="",
-                            outcome=output[:200],
+                            outcome=output[:200], conversation_id=cid or None,
                             duration_s=timing.get("total_s"),
                             timing=timing or None)
         return {"status": "ok", "decision": "executed",
@@ -1418,7 +1422,7 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
         skills include a Tier-1 pre-check as step 1. Same name = update,
         version increments. Returns {name, version}. This tool creates data
         only — it never executes anything. A rejection names EVERY invalid
-        field at once — fix them all in the next call, do not retry field by
+        field at once — fix them all in the next call, do not retry field by COPY the example record's shape exactly; never construct fields one at a time.
         field. Example: {"name":"launch_and_type","description":"Launch an app and type text into it (use for open X and type Y)","tier":1,"workflow":[{"step":1,"tool":"hermes_launch_app","service":"hermes","params_template":{"task":"open {{application}} and type {{text}}"},"expect":"application launched and text typed"}]}.
         """
         return get_skill_manager().save(skill, conversation_id)

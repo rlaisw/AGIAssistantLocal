@@ -92,3 +92,39 @@ class TestSaveAuditHonesty:
             rows = [_json.loads(l) for l in f.read().splitlines()]
         save_rows = [r for r in rows if r["operation"] == "skill-save"]
         assert save_rows[-1]["decision"] == "executed"
+
+
+class TestTrustBootstrap:
+    """whole-process-is-slow (2026-11-12): the trust deadlock — reusable
+    needs >=3 successes, successes came only from post-replay feedback,
+    and replay needs reusable. A same-name save after a successful manual
+    repeat now counts as a success: 3 repeats -> reusable."""
+
+    def test_third_repeat_solve_makes_skill_reusable(self, tmp_path):
+        from agentic_rag_mcp.hermes_audit import HermesAudit
+        from agentic_rag_mcp.skill_manager.api import SkillManager
+        from agentic_rag_mcp.skill_manager.store import reusable
+        m = SkillManager(tmp_path / "s.db", tmp_path / "v",
+                         HermesAudit(tmp_path / "a.jsonl"))
+        # save #1 (fresh, v1) — no increment
+        out1 = m.save(dict(SKILL), cid="c1")
+        assert out1["version"] == 1
+        # repeats: same-name saves (v2, v3, v4) — each counts one success
+        m.save(dict(SKILL), cid="c2")
+        m.save(dict(SKILL), cid="c3")
+        out4 = m.save(dict(SKILL), cid="c4")
+        assert out4["version"] == 4
+        # 3 repeat-solves -> success_count 3 -> reusable per the rule
+        counts = m.store.counts(SKILL["name"])
+        assert counts[0] == 3
+        assert reusable(counts) is True
+
+    def test_fresh_save_does_not_inflate(self, tmp_path):
+        from agentic_rag_mcp.hermes_audit import HermesAudit
+        from agentic_rag_mcp.skill_manager.api import SkillManager
+        m = SkillManager(tmp_path / "s.db", tmp_path / "v",
+                         HermesAudit(tmp_path / "a.jsonl"))
+        out = m.save(dict(SKILL), cid="c-new")
+        assert out["version"] == 1
+        counts = m.store.counts(SKILL["name"])
+        assert counts[0] == 0  # v1 of a NEW intent is not a repeat

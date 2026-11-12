@@ -183,6 +183,22 @@ class SkillStore:
                                  (name,)).fetchone()
         return self._row_to_skill(row) if row else None
 
+    def record_repeat_solve(self, name: str) -> bool:
+        """whole-process-is-slow (2026-11-12): the trust bootstrap. A same-
+        name save after a successful MANUAL solve of the same intent is
+        genuine evidence — increment success_count so 3 manual repeats make
+        the skill reusable. Without this, reusable(>=3 successes) could only
+        be fed by replays, and replays require reusable — a deadlock that
+        left every saved skill at 0 successes forever.
+        Guarded: called ONLY on an update-in-place (fresh saves are v1 of a
+        NEW intent, not a repeat), and ONLY by the api save path."""
+        with self._lock:
+            cur = self._conn.execute(
+                "UPDATE skills SET success_count=success_count+1 "
+                "WHERE name=? AND version > 1", (name,))
+            self._conn.commit()
+            return cur.rowcount > 0
+
     def counts(self, name: str) -> tuple[int, int] | None:
         row = self._conn.execute(
             "SELECT success_count, failure_count FROM skills WHERE name=?",
