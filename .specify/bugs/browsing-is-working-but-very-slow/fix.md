@@ -66,3 +66,35 @@ The search-and-report fast path is fully wired: a deterministic `search_and_repo
 - **Test the fast path when the desktop is idle** — expected wall-time ≈ 30–60 s (agent overhead + 15 s script), well under the ceiling.
 - If consent-waits prove annoying for read-only browsing, the design lever is a **WSL-side headless script runner** (no Windows desktop consent at all) — a scope decision, not a patch.
 - The gateway arg-strip lifecycle (`gateway-arg-strip-persistent`) remains open for the dynamic lane.
+
+
+---
+
+# Fix Pass 3: dynamic-lane v2 — single-hop steering + trimmed reads (2026-11-12, owner: "implement the revision")
+
+## Summary
+
+The dynamic lane now runs ONE LLM in the loop: the sidecar holds a streamable-HTTP MCP session to the Playwright server (via the WSL bridge, Host-allowlist override, session id, SSE frames) and exposes `browser_navigate_v2` / `browser_read_v2` / `browser_click_v2` as direct sidecar tools. The double-LLM hop and the gateway arg-path are structurally gone; reads are trimmed to the page text (~4 KB via evaluate) instead of the full accessibility tree.
+
+## Live proof (audit rows)
+
+| Call | Duration |
+|------|----------|
+| `browser_navigate_v2` — full Bing search URL, visible Chromium session launch included | **15.9 s** |
+| `browser_read_v2` — trimmed page text (real weather: HK 22°C Sunny H26/L22) | **0.6 s** |
+
+Dynamic turns drop from 37–230 s to ≈ 20–40 s total (navigate + read + the Dify agent's two reasoning rounds). Multi-step browsing costs ~1 s per additional step (read/click).
+
+## Changes
+
+| File | Change |
+|------|--------|
+| `src/agentic_rag_mcp/browser_lanes/proxy.py` | NEW — the single-session MCP client: lazy handshake (Host override, mcp-session-id, SSE parsing), navigate/read_text (evaluate innerText, trimmed)/click_text (JS-located, no snapshot refs), honest-unavailable envelopes with the recovery hint |
+| `src/agentic_rag_mcp/server.py` | 3 new tools (browser_navigate_v2 / browser_read_v2 / browser_click_v2), audit rows per call; `browser_dynamic_task` kept as the full-agent fallback |
+| `dify/AGIAssistant/AGI_Assistant.yml` | dynamic-lane instruction: the Dify agent steers itself via the v2 tools (direct-URL, navigate+read, untrusted-content law, minimized steps); 3 tools on the lane list; published |
+| `tests/unit/test_browser_proxy.py` | NEW — 8 pins: handshake (Host/session/initialized), SSE parsing, dead-server envelope with recovery hint, trimmed read, navigate passthrough, click JS needle, tool-error and isError shapes |
+| `tests/integration/test_browser_a2.py` | the v2 tools join the A2 allowed scope |
+
+## Status
+
+**applied + verified live** — 573 unit tests green, 43 tools synced, chatflow published, navigate 15.9 s / read 0.6 s recorded in the audit log. The dynamic and scripted lanes are now the same order of magnitude.
