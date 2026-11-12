@@ -1450,12 +1450,13 @@ Never claim a skill ran or was saved without the tool call in this turn.
 - BROWSER LANES (spec 037) — route any web/browser intent to the browser
 tools; NEVER to OS automation (no window-clicking on browsers via the
 desktop): a SEARCH-AND-REPORT request (search for X and tell me, what
-is X today, look up X) is a KNOWN flow — use the FAST scripted path:
-browser_scripted_run with script=search_and_report and args={{'query':
-'<the search text>'}} plus conversation_id — it completes in ~10-25
-seconds; pass the query exactly as the user's search text (do not
-guess extra words). Other KNOWN/rePEATABLE flows (fixed
-login+download, daily scrape, usual form) also go to
+is X today, look up X) takes the FASTEST path — the v2 dynamic tools,
+SKIPPING the skill_search step entirely (deterministic flow, no skill
+needed): derive the search URL (https://www.bing.com/search?q=<the
+user's search text, spaces as +>) and call browser_navigate_v2(url,
+conversation_id), then browser_read_v2(conversation_id), then report —
+2-3 tool calls total, no detours. Other KNOWN/rePEATABLE flows (fixed
+login+download, daily scrape, usual form) go to
 browser_scripted_run(script, args, conversation_id) with the script
 named in the registry (browser_status lists it). Only EXPLORATORY
 request (read what this page says, compare, find) -> steer it YOURSELF

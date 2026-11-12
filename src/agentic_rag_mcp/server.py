@@ -1511,7 +1511,10 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
                      f"$env:PLAYWRIGHT_BROWSERS_PATH="
                      f"'C:\\Users\\RLWC145\\AppData\\Local\\ms-playwright'; "
                      f"python \"{win_script}\" \"{query}\" "
-                     f"— report the script's JSON step lines verbatim.")
+                     f"— copy the script's COMPLETE output: EVERY JSON step line it "
+                     f"prints, in order, unchanged. Omitting or paraphrasing "
+                     f"a line fails the run's verification. Do not run the "
+                     f"script more than once.")
         outcome = await _await_with_keepalive(
             lambda: _run_hermes(cfg, directive,
                                _BROWSER_RUN_INSTRUCTIONS, conversation_id),

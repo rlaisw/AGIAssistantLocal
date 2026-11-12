@@ -63,14 +63,13 @@ class TestMixedBrowserTyping:
         assert verdict.lane != "os"
 
     def test_verbatim_weather_prompt_takes_the_fast_path(self):
-        # browsing-is-working-but-very-slow (2026-11-11): the original
-        # no-response prompt is a SEARCH-AND-REPORT shape — the scripted
-        # fast path (~10-25s, arg-strip-immune) supersedes the dynamic
-        # lane; the launch gate still refuses the launch+GUI route
+        # routing fix 2026-11-12: the original no-response prompt is a
+        # SEARCH-AND-REPORT shape -> the v2 dynamic lane (navigate+read);
+        # the launch gate still refuses the launch+GUI route
         verdict = gate_browser_intent(
             "open chrome browser, type what is hong kong weather today at "
             "search bar, display hong kong weather")
-        assert verdict.lane == "scripted"
+        assert verdict.lane == "dynamic"
 
     def test_non_browser_typing_is_not_browser(self):
         # "open notepad and type hello" has no browser hint — not ours
@@ -79,9 +78,10 @@ class TestMixedBrowserTyping:
 
 
 class TestSearchAndReportFastPath:
-    """browsing-is-working-but-very-slow (2026-11-11): search-and-report
-    intents are KNOWN flows — the scripted fast path (~10-25s, immune to the
-    gateway arg-strip), not the dynamic lane."""
+    """not-meet-expected-response-time (2026-11-12 routing fix): search-
+    and-report intents take the V2 DYNAMIC lane — navigate+read is
+    deterministic and consent-free; the scripted lane's delivery rides a
+    full agent turn + USER_CONTROL (325s measured)."""
 
     @pytest.mark.parametrize("task", [
         "search for what is hong kong weather today and report the results",
@@ -89,8 +89,8 @@ class TestSearchAndReportFastPath:
         "look up the Hang Seng index and tell me",
         "search the news about typhoons",
     ])
-    def test_search_intents_route_scripted(self, task):
+    def test_search_intents_route_dynamic_v2(self, task):
         verdict = gate_browser_intent(task)
-        assert verdict.lane == "scripted", (
-            f"{task[:40]!r} -> {verdict.lane} (search-and-report is a known "
-            f"flow — scripted fast path)")
+        assert verdict.lane == "dynamic", (
+            f"{task[:40]!r} -> {verdict.lane} (search-and-report is the v2 "
+            f"navigate+read fast path)")

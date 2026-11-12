@@ -16,15 +16,11 @@ _REPEATABLE = re.compile(
     r"|\b(download|save)\b.*\b(file|statement|invoice|report)\b"
     r"|\b(fill ?in|fill out|submit)\b.*\b(form)\b"
     r"|\blike\s+(yesterday|usual|before|last time)\b"
-    r"|\b(as always|the usual|every (day|morning))\b"
-    # browsing-is-working-but-very-slow (2026-11-11): search-and-report is
-    # a KNOWN flow — the scripted search_and_report fast path (~10-25s)
-    r"|\bsearch( for|ing)?\b.*\b(report|tell|show|display|find out)\b"
-    r"|\bsearch (for|the)\b"
-    r"|\bwhat is\b.*\b(today|now|current)\b"
-    r"|\blook up\b.*\b(tell|show|and)\b"
-    r"|\b(find|check)\b.*\b(today'?s?|current)\b"
-    r"|\bsearch the\b",
+    r"|\b(as always|the usual|every (day|morning))\b",
+    # (search-and-report patterns removed 2026-11-12, routing fix: they
+    # now route to the v2 DYNAMIC lane — navigate+read is deterministic
+    # and consent-free; the scripted lane's delivery rides a full agent
+    # turn + USER_CONTROL — .specify/bugs/not-meet-expected-response-time-*)
     re.IGNORECASE)
 # exploratory phrasing: open-ended reading/comparison/discovery
 _EXPLORATORY = re.compile(
