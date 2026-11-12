@@ -67,3 +67,28 @@ class TestEscalation:
     def test_no_delete_in_api(self):
         for forbidden in ("delete", "remove", "skill_delete"):
             assert not hasattr(SkillManager, forbidden)
+
+class TestSaveAuditHonesty:
+    """no-reusable-skill-on-file-do-not-open-word (2026-11-12): a rejected
+    save must audit as BLOCKED with its reason — never as 'executed'."""
+
+    def test_rejected_save_audits_blocked_with_reason(self, mgr, tmp_path):
+        import json as _json
+        bad = {"name": "Bad Name", "description": "d", "tier": 1,
+               "workflow": []}
+        out = mgr.save(bad, cid="c-audit")
+        assert out["status"] == "blocked"
+        with open(mgr.audit.path) as f:
+            rows = [_json.loads(l) for l in f.read().splitlines()]
+        save_rows = [r for r in rows if r["operation"] == "skill-save"]
+        assert save_rows and save_rows[-1]["decision"] == "blocked"
+        assert "name" in (save_rows[-1].get("reason") or "")
+
+    def test_successful_save_audits_executed(self, mgr):
+        import json as _json
+        out = mgr.save(dict(SKILL), cid="c-ok")
+        assert out["status"] == "ok"
+        with open(mgr.audit.path) as f:
+            rows = [_json.loads(l) for l in f.read().splitlines()]
+        save_rows = [r for r in rows if r["operation"] == "skill-save"]
+        assert save_rows[-1]["decision"] == "executed"

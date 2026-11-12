@@ -53,9 +53,17 @@ class SkillManager:
                 conversation_id=conversation_id,
                 duration_s=time.monotonic() - t0)
             return _unavailable(exc)
+        # no-reusable-skill-on-file-do-not-open-word (2026-11-12): audit the
+        # TRUE decision — a blocked/error envelope must not read as executed,
+        # and its reason must survive (the retry storm was invisible before).
+        status = out.get("status") if isinstance(out, dict) else None
+        decision = {"blocked": "blocked", "error": "error"}.get(status,
+                                                               "executed")
         self.audit.write_attempt(
-            decision="executed", operation=operation, normalized_path=None,
+            decision=decision, operation=operation, normalized_path=None,
             allowed_root="", outcome=ok_outcome[:200],
+            reason=(str(out.get("reason"))[:300]
+                    if decision != "executed" else None),
             conversation_id=conversation_id,
             duration_s=time.monotonic() - t0)
         return out

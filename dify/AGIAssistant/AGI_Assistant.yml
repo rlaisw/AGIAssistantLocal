@@ -308,9 +308,9 @@ workflow:
             value:
               completion_params: {}
               mode: chat
-              model: deepseek/deepseek-v4.1-flash
+              model: qwen/qwen3.8-flash
               model_type: llm
-              name: deepseek/deepseek-v4.1-flash
+              name: qwen/qwen3.8-flash
               provider: langgenius/openrouter/openrouter
               type: model-selector
           query:
@@ -584,9 +584,9 @@ workflow:
         model:
           completion_params: {}
           mode: chat
-          model: deepseek/deepseek-v4.1-flash
+          model: qwen/qwen3.8-flash
           model_type: llm
-          name: deepseek/deepseek-v4.1-flash
+          name: qwen/qwen3.8-flash
           provider: langgenius/openrouter/openrouter
           type: model-selector
         query_variable_selector:
@@ -1521,7 +1521,7 @@ workflow:
               parameters: {}
               provider_name: agentic-rag
               settings: {}
-              tool_description: Save a reusable SKILL after a successful operational task with no matching skill. skill = {name (snake_case), description (trigger keywords), tier (1|2), workflow:[{step, tool, service, params_template, expect}]} — params_template carries {{snake_case}} placeholder slots (machine-specific literals are REJECTED); every step carries expect; tier-2 skills include a Tier-1 pre-check as step 1. Same name = update, version increments. Creates data only — never executes anything. conversation_id required.
+              tool_description: Save a reusable SKILL after a successful operational task with no matching skill. skill = {name (snake_case), description (trigger keywords), tier (1|2), workflow:[{step, tool, service, params_template, expect}]} — params_template carries {{snake_case}} placeholder slots (machine-specific literals are REJECTED); every step carries expect; tier-2 skills include a Tier-1 pre-check as step 1. Same name = update, version increments. A rejection names EVERY invalid field at once — fix all in the next call, never retry field by field. Example record = {{"name":"launch_and_type","description":"Launch an app and type text (use for open X and type Y)","tier":1,"workflow":[{{"step":1,"tool":"hermes_launch_app","service":"hermes","params_template":{{"task":"open {{{{application}}}} and type {{{{text}}}}"}},"expect":"launched and typed"}}]}}. Creates data only — never executes anything. conversation_id required.
               tool_label: skill_save
               tool_name: skill_save
               type: mcp

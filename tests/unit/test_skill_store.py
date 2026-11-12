@@ -184,3 +184,27 @@ class TestReusable:
     ])
     def test_matrix(self, s, f, reusable_):
         assert reusable((s, f)) is reusable_
+
+class TestAggregatedValidation:
+    """no-reusable-skill-on-file-do-not-open-word (2026-11-12): one message
+    names EVERY violation — no field-by-field drip (which cost 4 extra LLM
+    rounds per save)."""
+
+    def test_all_violations_in_one_message(self):
+        bad = {"name": "Bad Name", "description": "",
+               "tier": 3,
+               "workflow": [{"step": 1, "params_template": {}}]}
+        msg = validate_skill(bad)
+        # every defect appears in the SINGLE message
+        for needle in ("name", "description", "tier", "step 1", "'tool'",
+                       "'service'", "expect"):
+            assert needle in msg, needle
+
+    def test_valid_record_still_passes(self):
+        assert validate_skill(_skill()) is None
+
+    def test_message_is_bounded(self):
+        steps = [{"step": i, "params_template": {}} for i in range(1, 20)]
+        msg = validate_skill({"name": "x", "description": "d", "tier": 1,
+                              "workflow": steps})
+        assert msg.count(";") <= 5  # capped list

@@ -1417,7 +1417,9 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
         like profile paths are REJECTED); every step carries expect; tier-2
         skills include a Tier-1 pre-check as step 1. Same name = update,
         version increments. Returns {name, version}. This tool creates data
-        only — it never executes anything.
+        only — it never executes anything. A rejection names EVERY invalid
+        field at once — fix them all in the next call, do not retry field by
+        field. Example: {"name":"launch_and_type","description":"Launch an app and type text into it (use for open X and type Y)","tier":1,"workflow":[{"step":1,"tool":"hermes_launch_app","service":"hermes","params_template":{"task":"open {{application}} and type {{text}}"},"expect":"application launched and text typed"}]}.
         """
         return get_skill_manager().save(skill, conversation_id)
 

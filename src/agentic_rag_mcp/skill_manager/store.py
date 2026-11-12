@@ -73,38 +73,49 @@ def _param_strings(params) -> list[str]:
 
 
 def validate_skill(skill: dict) -> str | None:
-    """Boundary validation (FR-004/005/006): returns the rejection reason
-    naming the offending field, or None when the skill is storable."""
+    """Boundary validation (FR-004/005/006): returns ONE rejection message
+    naming EVERY violated field (aggregated — no-reusable-skill-on-file-do-
+    not-open-word, 2026-11-12: first-fail-only drip-fed the agent one field
+    per retry, costing 4 extra LLM rounds per save), or None when storable."""
+    problems: list[str] = []
     name = skill.get("name") or ""
     if not isinstance(name, str) or not _NAME_RE.match(name):
-        return f"rejected: name — must be snake_case (^[a-z][a-z0-9_]*$), got {name!r}"
+        problems.append(
+            f"name — must be snake_case (^[a-z][a-z0-9_]*$), got {name!r}")
     description = (skill.get("description") or "").strip()
     if not description:
-        return "rejected: description — must be a non-empty trigger-keyword description"
+        problems.append(
+            "description — must be a non-empty trigger-keyword description")
     tier = skill.get("tier")
     if tier not in (1, 2):
-        return f"rejected: tier — must be 1 or 2, got {tier!r}"
+        problems.append(f"tier — must be 1 or 2, got {tier!r}")
     workflow = skill.get("workflow")
     if not isinstance(workflow, list) or not workflow:
-        return "rejected: workflow — must be a non-empty list of steps"
+        problems.append("workflow — must be a non-empty list of steps")
+        workflow = []  # per-step checks are moot without steps
     for i, step in enumerate(workflow):
         if not isinstance(step, dict):
-            return f"rejected: workflow step {i + 1} — must be an object"
-        if not str(step.get("expect") or "").strip():
-            return (f"rejected: workflow step {i + 1} — every step must carry an "
-                    "'expect' field (FR-006)")
+            problems.append(f"workflow step {i + 1} — must be an object")
+            continue
         for key in ("tool", "service"):
             if not str(step.get(key) or "").strip():
-                return f"rejected: workflow step {i + 1} — missing '{key}'"
+                problems.append(f"workflow step {i + 1} — missing '{key}'")
+        if not str(step.get("expect") or "").strip():
+            problems.append(f"workflow step {i + 1} — every step must carry "
+                            "an 'expect' field (FR-006)")
         for value in _param_strings(step.get("params_template")):
             for lit in _MACHINE_LITERALS:
                 if lit.search(value):
-                    return (f"rejected: workflow step {i + 1} params_template — "
-                            f"machine-specific literal {lit.pattern!r} found in "
-                            f"{value!r}; use {{placeholders}} (SC-005)")
-    if tier == 2 and "tier1" not in str(workflow[0].get("tool", "")).lower():
-        return ("rejected: tier-2 skills must include a Tier-1 pre-check as "
-                "workflow step 1 (FR-006)")
+                    problems.append(
+                        f"workflow step {i + 1} params_template — "
+                        f"machine-specific literal {lit.pattern!r} found in "
+                        f"{value!r}; use {{placeholders}} (SC-005)")
+    if tier == 2 and workflow and \
+            "tier1" not in str(workflow[0].get("tool", "")).lower():
+        problems.append("tier-2 skills must include a Tier-1 pre-check as "
+                        "workflow step 1 (FR-006)")
+    if problems:
+        return "rejected: " + "; ".join(problems[:6])
     return None
 
 
