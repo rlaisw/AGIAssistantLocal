@@ -395,11 +395,15 @@ class TestMicrosoftFamilyCompounds:
     the most natural phrasing there is. The compound map now merges the
     Microsoft family; two REAL apps still block."""
 
-    def test_ms_word_with_typing_followup_launches(self):
+    def test_ms_word_with_typing_followup_merges_then_reroutes(self):
+        # why-not-officemcp (2026-11-12): the compound merge still applies
+        # ('MS Word' -> ONE name 'word'), but Office+typing now REFUSES with
+        # the office-lane re-route instead of GUI typing (supersedes the
+        # earlier 'launches' pin)
         v = gate_launch("open MS Word, type Hello")
-        assert v.decision == "ok"
-        assert v.target == "word"
-        assert v.desktop_followup == "type Hello"
+        assert v.target == "word"  # the merge worked
+        assert v.decision == "blocked"
+        assert "hermes_office_task" in v.reason
 
     @pytest.mark.parametrize("task,target", [
         ("open MS Word", "word"),
@@ -419,3 +423,32 @@ class TestMicrosoftFamilyCompounds:
         v = gate_launch("open chrome and firefox")
         assert v.decision == "blocked"
         assert "more than one application" in v.reason
+
+
+class TestOfficeFollowupReroute:
+    """why-not-officemcp (2026-11-12): Office + typing/clicking is a DOCUMENT
+    task — the office lane (OfficeMCP COM) serves it with no GUI automation
+    and no consent waits (the launch+GUI path measured 196 s). The launch
+    lane refuses with the re-route; bare launches and Notepad-class
+    followups keep their behavior."""
+
+    @pytest.mark.parametrize("task", [
+        "open ms word and type abc hello",
+        "open Word, type hello",
+        "open excel and click cell A1",
+        "open Microsoft PowerPoint and type title",
+        "open MS Word, type Hello",
+    ])
+    def test_office_plus_followup_refused_with_reroute(self, task):
+        v = gate_launch(task)
+        assert v.decision == "blocked"
+        assert "hermes_office_task" in v.reason
+
+    def test_bare_office_launch_still_ok(self):
+        v = gate_launch("open word")
+        assert v.decision == "ok" and v.target == "word"
+        assert v.desktop_followup is None
+
+    def test_notepad_typing_keeps_desktop_followup(self):
+        v = gate_launch("open notepad and type hello")
+        assert v.decision == "ok" and v.desktop_followup

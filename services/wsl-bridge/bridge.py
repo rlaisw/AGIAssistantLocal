@@ -27,6 +27,8 @@ DOCKER0 = "172.17.0.1"
 FORWARDS = [
     (DOCKER0, 13002, "127.0.0.1", 3002),  # playwright-mcp (spec 037 probe)
     (DOCKER0, 18080, "127.0.0.1", 8080),  # task-gateway (spec 038 client)
+    # desktop v2 (2026-11-12): WindowsMCP — single-hop desktop primitives
+    (DOCKER0, 18800, "127.0.0.1", 8800),  # windows-mcp (launch/focus/type)
 ]
 
 

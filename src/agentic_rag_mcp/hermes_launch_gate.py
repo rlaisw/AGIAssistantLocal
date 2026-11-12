@@ -146,6 +146,25 @@ def _is_arg_token(tok: str) -> bool:
 _BROWSER_PROGRAMS = {"chrome", "msedge", "edge", "firefox", "brave",
                       "browser", "safari", "opera", "vivaldi",
                       "default browser"}
+
+# why-not-officemcp (2026-11-12): a typing/writing/clicking followup on an
+# OFFICE program is a DOCUMENT operation, not desktop automation — the
+# office lane (hermes_office_task -> OfficeMCP COM) serves it directly with
+# no GUI automation and no USER_CONTROL consent waits (the measured launch+
+# GUI-typing path: 196 s; the office gate accepts the same task as
+# document-write). The launch lane refuses with an honest re-route.
+_OFFICE_PROGRAMS = {"word", "excel", "powerpoint", "outlook", "access",
+                     "onenote", "ms word", "ms excel", "ms powerpoint",
+                     "ms outlook", "microsoft word", "microsoft excel",
+                     "microsoft powerpoint", "microsoft outlook"}
+_OFFICE_FOLLOWUP_REFUSAL = (
+    "Blocked: '{app}' is an Office application — typing, writing, or "
+    "clicking in it is a DOCUMENT task (the office lane controls Word, "
+    "Excel, PowerPoint, and Outlook directly via COM: faster, no desktop "
+    "automation, no consent waits). Re-route: call "
+    "hermes_office_task(task, conversation_id) with the full task text "
+    "unchanged. The launch lane only starts the bare program; document "
+    "work in Office apps never rides GUI typing.")
 _BROWSER_FOLLOWUP_REFUSAL = (
     "Blocked: '{app}' is a browser — typing, searching, or reading in it is a "
     "web/browser task (spec 037), not a program launch or desktop automation; "
@@ -257,6 +276,9 @@ def gate_launch(task: str, home: str = "/home/administrator") -> LaunchVerdict:
         if low in _BROWSER_PROGRAMS and followup:
             return _blocked(_BROWSER_FOLLOWUP_REFUSAL.format(app=target),
                             target=target)
+        if low in _OFFICE_PROGRAMS and followup:
+            return _blocked(_OFFICE_FOLLOWUP_REFUSAL.format(app=target),
+                            target=target)
         if "." in low and not low.endswith(".exe"):
             return _blocked(_EXE_ONLY, target=target)
         return LaunchVerdict("ok", None, OP_LAUNCH_APP, target, "name",
@@ -290,6 +312,9 @@ def gate_launch(task: str, home: str = "/home/administrator") -> LaunchVerdict:
     # intent — refuse with the re-route, never a stalled silent GUI attempt
     if low in _BROWSER_PROGRAMS and followup:
         return _blocked(_BROWSER_FOLLOWUP_REFUSAL.format(app=target),
+                        target=target)
+    if low in _OFFICE_PROGRAMS and followup:
+        return _blocked(_OFFICE_FOLLOWUP_REFUSAL.format(app=target),
                         target=target)
     if "." in low and not low.endswith(".exe"):
         return _blocked(_EXE_ONLY, target=target)
