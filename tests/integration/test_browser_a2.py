@@ -21,6 +21,7 @@ FIXTURE = Path(__file__).resolve().parent.parent / "fixtures" / "injection_page.
 # tools a browser lane may legitimately call (browser + skill + status only)
 _ALLOWED_BROWSER_LANE_TOOLS = {
     "browser_scripted_run", "browser_status", "browser_dynamic_task",
+    "browser_navigate_v2", "browser_read_v2", "browser_click_v2",
     "skill_search", "skill_get", "skill_save", "skill_feedback",
 }
 # tools injection would want — must be ABSENT from the lane's scope
