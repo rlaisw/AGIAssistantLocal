@@ -452,3 +452,25 @@ class TestOfficeFollowupReroute:
     def test_notepad_typing_keeps_desktop_followup(self):
         v = gate_launch("open notepad and type hello")
         assert v.decision == "ok" and v.desktop_followup
+
+
+class TestPhaseScopeOneNoteAccess:
+    """owner decision 2026-11-12 ('at this phase ignore OneNote and others'):
+    the office lane routes ONLY Word/Excel/PowerPoint/Outlook — OneNote and
+    Access stay ORDINARY desktop apps (launch + followup), never refused
+    with the office re-route (which would dead-end: the office lane does
+    not serve them)."""
+
+    @pytest.mark.parametrize("task", [
+        "open OneNote and type hello",
+        "open MS OneNote and type notes",
+        "open microsoft onenote and type x",
+    ])
+    def test_onenote_typing_stays_desktop(self, task):
+        v = gate_launch(task)
+        assert v.decision == "ok" and v.desktop_followup
+
+    def test_access_not_office_refused(self):
+        v = gate_launch("open access")
+        assert v.decision == "ok" and v.target == "access"
+        assert "hermes_office_task" not in (v.reason or "")

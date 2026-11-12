@@ -62,6 +62,8 @@ _COMPOUND_APPS = {
     "ms edge": "edge",
     "ms teams": "teams",
     "ms paint": "mspaint",
+    "ms onenote": "onenote",
+    "microsoft onenote": "onenote",
     "microsoft word": "word",
     "microsoft excel": "excel",
     "microsoft powerpoint": "powerpoint",
@@ -153,8 +155,12 @@ _BROWSER_PROGRAMS = {"chrome", "msedge", "edge", "firefox", "brave",
 # no GUI automation and no USER_CONTROL consent waits (the measured launch+
 # GUI-typing path: 196 s; the office gate accepts the same task as
 # document-write). The launch lane refuses with an honest re-route.
-_OFFICE_PROGRAMS = {"word", "excel", "powerpoint", "outlook", "access",
-                     "onenote", "ms word", "ms excel", "ms powerpoint",
+# owner decision 2026-11-12 ("at this phase ignore OneNote and others"):
+# the office lane routes ONLY Word/Excel/PowerPoint/Outlook — Access and
+# OneNote stay ORDINARY desktop apps (launch + followup) until a later
+# phase routes them, so they must NOT be refused here
+_OFFICE_PROGRAMS = {"word", "excel", "powerpoint", "outlook",
+                     "ms word", "ms excel", "ms powerpoint",
                      "ms outlook", "microsoft word", "microsoft excel",
                      "microsoft powerpoint", "microsoft outlook"}
 _OFFICE_FOLLOWUP_REFUSAL = (
