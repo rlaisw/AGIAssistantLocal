@@ -9,7 +9,6 @@ from agentic_rag_mcp.deploy.model_apply import (
     CLOUD_PROVIDER,
     DEFAULT_CHAT_MODEL,
     PINNED_MODEL,
-    ROUTER_MODEL,
     patch_dsl,
 )
 
@@ -144,44 +143,45 @@ workflow:
 NEW_MODEL = "moonshotai/kimi-k3"
 
 
-def test_answer_takes_selection_router_pinned_desktop_pinned():
-    """owner 2026-11-12 ("Chat answers + UI chip only") + dont-have-a-
-    browser-control-tool (2026-11-13): agentic_strategy (the ANSWERS) takes
-    the selected cloud model; intent_router (the ROUTER) is pinned to
-    kimi-k3 — topic anchoring proved too weak for flash-class classifiers,
-    so routing correctness needs the tuned model; the DESKTOP nodes stay
-    pinned (2026-11-05 fabrication class, desktop lanes only)."""
+def test_selection_applies_to_all_nodes_no_pins():
+    """owner 2026-11-13 ("lift the pins"): the selected cloud model applies
+    to ALL four LLM nodes — no pins anywhere. The 2026-11-05 fabrication
+    class is defended structurally (honesty guards in code), not by model
+    pinning; each apply is validated by the live battery on the model."""
     requested = "deepseek/deepseek-v4.1-flash"
     doc = yaml.safe_load(patch_dsl(MINIMAL_DSL, requested))
     by_id = {n["id"]: n for n in doc["workflow"]["graph"]["nodes"]}
     answer_block = by_id["agentic_strategy"]["data"][
         "agent_parameters"]["model"]["value"]
     assert answer_block["model"] == requested
-    assert answer_block["name"] == requested
     assert answer_block["provider"] == CLOUD_PROVIDER
     assert answer_block["mode"] == "chat"
     assert answer_block["completion_params"] == {}
     router_block = by_id["intent_router"]["data"]["model"]
-    assert router_block["model"] == ROUTER_MODEL  # pinned, not the selection
+    assert router_block["model"] == requested  # the selection, no pin
     assert router_block["provider"] == CLOUD_PROVIDER
     for nid in ("ppt_master", "hermes_agent"):
         block = by_id[nid]["data"]["agent_parameters"]["model"]["value"]
-        assert block["model"] == PINNED_MODEL, nid
+        assert block["model"] == requested, nid  # the selection, no pin
         assert block["provider"] == CLOUD_PROVIDER
     local_block = by_id["intent_router_local"]["data"]["model"]
-    assert local_block["model"] == "qwen3-8b-nothink"
+    assert local_block["model"] == "qwen3-8b-nothink"  # the Ollama lane stays local
     assert local_block["provider"] == "langgenius/ollama/ollama"
     assert local_block["completion_params"] == {"think": False}
 
 
-def test_router_pin_survives_any_selection():
-    """whatever the UI selects (even qwen3.8-flash), the router stays kimi."""
+def test_any_selection_reaches_every_node():
+    """every selectable cloud model lands on all four nodes identically."""
     for requested in ("qwen/qwen3.8-flash", "moonshotai/kimi-k3",
                        "z-ai/glm-5.3-flash"):
         doc = yaml.safe_load(patch_dsl(MINIMAL_DSL, requested))
         by_id = {n["id"]: n for n in doc["workflow"]["graph"]["nodes"]}
-        assert by_id["intent_router"]["data"]["model"]["model"] == ROUTER_MODEL
+        assert by_id["intent_router"]["data"]["model"]["model"] == requested
         assert (by_id["agentic_strategy"]["data"]
+                ["agent_parameters"]["model"]["value"]["model"] == requested)
+        assert (by_id["ppt_master"]["data"]
+                ["agent_parameters"]["model"]["value"]["model"] == requested)
+        assert (by_id["hermes_agent"]["data"]
                 ["agent_parameters"]["model"]["value"]["model"] == requested)
 
 
@@ -190,8 +190,8 @@ def test_empty_selection_defaults_chat_nodes_to_deepseek():
     UI's DEFAULT_MODEL_ID."""
     doc = yaml.safe_load(patch_dsl(MINIMAL_DSL, ""))
     by_id = {n["id"]: n for n in doc["workflow"]["graph"]["nodes"]}
-    assert (by_id["intent_router"]["data"]["model"]["model"]
-            == ROUTER_MODEL)  # router stays kimi even with no selection
+    for nid in ("intent_router",):
+        assert (by_id[nid]["data"]["model"]["model"] == DEFAULT_CHAT_MODEL)
     assert (by_id["agentic_strategy"]["data"]
             ["agent_parameters"]["model"]["value"]["model"] == DEFAULT_CHAT_MODEL)
     assert (by_id["hermes_agent"]["data"]["agent_parameters"]["model"]["value"]

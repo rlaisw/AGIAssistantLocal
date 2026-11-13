@@ -585,9 +585,9 @@ workflow:
         model:
           completion_params: {}
           mode: chat
-          model: moonshotai/kimi-k3
+          model: deepseek/deepseek-v4.1-flash
           model_type: llm
-          name: moonshotai/kimi-k3
+          name: deepseek/deepseek-v4.1-flash
           provider: langgenius/openrouter/openrouter
           type: model-selector
         query_variable_selector:
@@ -726,9 +726,9 @@ workflow:
             value:
               completion_params: {}
               mode: chat
-              model: moonshotai/kimi-k3
+              model: deepseek/deepseek-v4.1-flash
               model_type: llm
-              name: moonshotai/kimi-k3
+              name: deepseek/deepseek-v4.1-flash
               provider: langgenius/openrouter/openrouter
               type: model-selector
           query:
@@ -1435,9 +1435,9 @@ workflow:
             value:
               completion_params: {}
               mode: chat
-              model: moonshotai/kimi-k3
+              model: deepseek/deepseek-v4.1-flash
               model_type: llm
-              name: moonshotai/kimi-k3
+              name: deepseek/deepseek-v4.1-flash
               provider: langgenius/openrouter/openrouter
               type: model-selector
           query:
