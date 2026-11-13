@@ -21,6 +21,11 @@ from ctypes import wintypes
 
 CMD = [
     r"C:\Users\RLWC145\AppData\Roaming\npm\playwright-mcp.cmd",
+    # 039 (2026-11-13): --isolated — every MCP session gets its own browser
+    # instance. The engine otherwise latches 'Browser is already in use'
+    # when a second session attaches while any instance lives (upstream
+    # session-latch bug), which wedged the lane during testing.
+    "--isolated",
     "--port", "3002", "--host", "127.0.0.1",
     "--executable-path",
     r"C:\Users\RLWC145\AppData\Local\ms-playwright\chromium-1254\chrome-win64\chrome.exe",

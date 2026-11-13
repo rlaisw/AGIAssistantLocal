@@ -1986,6 +1986,147 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
                          else "created a new presentation"),
                 "fronted": out.get("fronted")}
 
+    # ---- spec 039: Browser Control v2 — the six per-verb tools ---------
+    # One tool per verb (clarified 2026-11-13); each: honest ask-backs on
+    # not-found, read-back verification, screenshot-after-action best-effort,
+    # sensitive values excluded from audit/summary/errors (FR-010/R5).
+    def _bc2_audit(operation, cid, out, t0):
+        HermesAudit(cfg.hermes_audit_path).write_attempt(
+            decision="executed" if out.get("status") == "ok" else "error",
+            operation=operation, normalized_path=None, allowed_root="",
+            outcome=str(out.get("summary", ""))[:200],
+            reason=None if out.get("status") in ("ok", "ask-back") else out.get("reason"),
+            conversation_id=cid,
+            duration_s=time.monotonic() - t0)
+
+    def _bc2_probe():
+        from .browser_lanes.dynamic_health import probe_dynamic
+        probe = probe_dynamic(
+            host=getattr(cfg, "browser_mcp_host", "172.17.0.1"),
+            port=getattr(cfg, "browser_mcp_port", 13002))
+        return None if probe["status"] == "ok" else probe
+
+    @mcp.tool()
+    async def browser_select_v2(target: str, option: str,
+                                conversation_id: str,
+                                ctx: Context = None) -> dict:
+        """Select an option in a dropdown by its VISIBLE label (office v2
+        discipline): the engine picks the select control matching `target`
+        (the field the user named), chooses `option` by label with
+        value-match fallback, and verifies the DISPLAYED selection. No
+        match -> ask the user with the available options listed. Never a
+        best-guess selection. A screenshot is captured after the action.
+        conversation_id required (audited).
+        """
+        t0 = time.monotonic()
+        dead = _bc2_probe()
+        if dead:
+            _bc2_audit("browser-select-v2", conversation_id,
+                       {"summary": dead["reason"]}, t0)
+            return {"status": "error", "reason": dead["reason"]}
+        out = get_pw_proxy().select(target, option)
+        _bc2_audit("browser-select-v2", conversation_id, out, t0)
+        return out
+
+    @mcp.tool()
+    async def browser_type_v2(target: str, text: str,
+                               conversation_id: str,
+                               ctx: Context = None) -> dict:
+        """Type the user-provided literal text into the named field — ANY
+        field the user names including passwords (the user's request is the
+        authority; typed values are EXCLUDED from summaries, audit, and
+        error text). The typed value is verified by the DISPLAYED field
+        content. Field not found -> honest ask-back listing what the page
+        offers. A screenshot is captured after the action (masked for
+        password fields by the browser itself). conversation_id required
+        (audited).
+        """
+        t0 = time.monotonic()
+        dead = _bc2_probe()
+        if dead:
+            _bc2_audit("browser-type-v2", conversation_id,
+                       {"summary": dead["reason"]}, t0)
+            return {"status": "error", "reason": dead["reason"]}
+        out = get_pw_proxy().type(target, text)
+        _bc2_audit("browser-type-v2", conversation_id, out, t0)
+        return out
+
+    @mcp.tool()
+    async def browser_form_v2(fields: dict, conversation_id: str,
+                              ctx: Context = None) -> dict:
+        """Fill multiple fields in ONE call: `fields` is a {target: literal
+        value} map (at least one field; text values only; sensitive values
+        excluded from logs). Per-field honest results on partial failure.
+        A screenshot is captured after the action. conversation_id
+        required (audited).
+        """
+        t0 = time.monotonic()
+        dead = _bc2_probe()
+        if dead:
+            _bc2_audit("browser-form-v2", conversation_id,
+                       {"summary": dead["reason"]}, t0)
+            return {"status": "error", "reason": dead["reason"]}
+        out = get_pw_proxy().form(fields or {})
+        _bc2_audit("browser-form-v2", conversation_id, out, t0)
+        return out
+
+    @mcp.tool()
+    async def browser_press_key_v2(key: str, conversation_id: str,
+                                    ctx: Context = None) -> dict:
+        """Press a single key on the current page: allowlist Enter, Escape,
+        Tab, ArrowUp/Down/Left/Right — anything else is rejected naming the
+        allowlist (boundary enforced). A screenshot is captured after the
+        action. conversation_id required (audited).
+        """
+        t0 = time.monotonic()
+        dead = _bc2_probe()
+        if dead:
+            _bc2_audit("browser-press-key-v2", conversation_id,
+                       {"summary": dead["reason"]}, t0)
+            return {"status": "error", "reason": dead["reason"]}
+        out = get_pw_proxy().press_key(key)
+        _bc2_audit("browser-press-key-v2", conversation_id, out, t0)
+        return out
+
+    @mcp.tool()
+    async def browser_tabs_v2(action: str, target: str = "",
+                               conversation_id: str = "",
+                               ctx: Context = None) -> dict:
+        """Manage browser tabs: `action` is one of list, switch, open, close
+        (one action per call; `target` names the tab to switch to or the
+        URL to open). Not-found lists the open tabs honestly. A screenshot
+        is captured after the action. conversation_id required (audited).
+        """
+        t0 = time.monotonic()
+        dead = _bc2_probe()
+        if dead:
+            _bc2_audit("browser-tabs-v2", conversation_id,
+                       {"summary": dead["reason"]}, t0)
+            return {"status": "error", "reason": dead["reason"]}
+        out = get_pw_proxy().tabs(action, target)
+        _bc2_audit("browser-tabs-v2", conversation_id, out, t0)
+        return out
+
+    @mcp.tool()
+    async def browser_wait_v2(condition: str, text: str = "",
+                               bound_s: int = 10,
+                               conversation_id: str = "",
+                               ctx: Context = None) -> dict:
+        """Wait for a page state, bounded: `condition` is text-appears (with
+        `text`) or navigation; `bound_s` 1..30 seconds (default 10).
+        Timeout -> honest error naming the awaited condition — never a
+        fabricated success. conversation_id required (audited).
+        """
+        t0 = time.monotonic()
+        dead = _bc2_probe()
+        if dead:
+            _bc2_audit("browser-wait-v2", conversation_id,
+                       {"summary": dead["reason"]}, t0)
+            return {"status": "error", "reason": dead["reason"]}
+        out = get_pw_proxy().wait(condition, text, bound_s)
+        _bc2_audit("browser-wait-v2", conversation_id, out, t0)
+        return out
+
     # ---- spec 038: the Task-API Gateway lane (tier protocol, jobs) -------
     _task_lane: list = []  # at most one entry (lazy singleton)
 

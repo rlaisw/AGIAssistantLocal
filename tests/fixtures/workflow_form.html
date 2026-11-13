@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head><title>Workflow Form</title></head>
+<body>
+  <h1>Account Setup</h1>
+  <form id="f">
+    <label>Name: <input id="name" name="name" type="text" placeholder="your name"></label><br>
+    <label>Country:
+      <select id="country" name="country">
+        <option value="">-- choose --</option>
+        <option value="hk">Hong Kong</option>
+        <option value="jp">Japan</option>
+        <option value="us">United States</option>
+      </select>
+    </label><br>
+    <label>Password: <input id="pw" name="pw" type="password"></label><br>
+    <button id="submit" type="button" onclick="showResult()">Submit</button>
+  </form>
+  <div id="result"></div>
+  <div id="delayed" style="display:none">Delayed text appeared</div>
+  <script>
+    function showResult() {
+      var n = document.getElementById('name').value || '(empty)';
+      var c = document.getElementById('country').selectedOptions[0].label;
+      document.getElementById('result').textContent =
+        'SUBMITTED name=' + n + ' country=' + c;
+    }
+    setTimeout(function () {
+      document.getElementById('delayed').style.display = 'block';
+    }, 1500);
+  </script>
+</body>
+</html>
