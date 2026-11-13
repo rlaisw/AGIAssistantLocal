@@ -95,10 +95,10 @@ The chatbot can open/switch/close tabs, accept or dismiss dialogs (alerts/confir
 
 ### Functional Requirements
 
-**Core verbs (single-hop control tools)**
+**Core verbs (single-hop control tools — one tool per verb, clarified 2026-11-13: each verb ships as its OWN tool with its own description, ask-back text, and audit operation name)**
 
 - **FR-001**: The system MUST provide a select action choosing an option in a dropdown/listbox by visible label (value-match fallback), verified by read-back.
-- **FR-002**: The system MUST provide a type action entering literal text into a named field, verified by read-back; live-validation sites must see real typing semantics.
+- **FR-002**: The system MUST provide a type action entering literal text into a named field, verified by read-back; live-validation sites must see real typing semantics. User-provided values go into ANY field the user names — including password/secret fields (clarified 2026-11-13: the user's request is the authority; password fields display masked, so the step screenshot never shows the secret).
 - **FR-003**: The system MUST provide a form-fill action (multiple fields in one call) with per-field literal values.
 - **FR-004**: The system MUST provide a press-key action (Enter, Escape, arrows) for search boxes and keyboard-driven pages.
 - **FR-005**: The system MUST provide tab management: list open tabs, switch, open, and close.
@@ -137,6 +137,8 @@ The chatbot can open/switch/close tabs, accept or dismiss dialogs (alerts/confir
 ### Session 2026-11-13
 
 - Q: Extend the existing browser v2 proxy surface, or a new parallel lane? → A: Extend the v2 proxy — the pattern (single-hop sidecar tools over the browser engine, honest envelopes, audit) is proven three times (browser navigate/read/click, office v2); the browser engine already exposes the full tool set; this spec surfaces it.
+- Q: One tool per verb, or a compact combined tool with an action picker? → A: Option A — one tool per verb (~6 new: select, type, form, press-key, tabs, wait); each with its own description, ask-back text, and audit operation name, mirroring the proven navigate/read/click pattern.
+- Q: Type into sensitive fields (passwords/secrets) with user-provided values, or refuse with a manual hand-off? → A: Option A — type user-provided values into any field including passwords (the user's request is the authority; screenshots naturally show masked dots for password fields).
 
 ## Assumptions
 
