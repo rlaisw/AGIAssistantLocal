@@ -29,6 +29,8 @@ FORWARDS = [
     (DOCKER0, 18080, "127.0.0.1", 8080),  # task-gateway (spec 038 client)
     # desktop v2 (2026-11-12): WindowsMCP — single-hop desktop primitives
     (DOCKER0, 18800, "127.0.0.1", 8800),  # windows-mcp (launch/focus/type)
+    # office v2 (2026-11-13): OfficeMCP — single-hop document primitives
+    (DOCKER0, 18888, "127.0.0.1", 8888),  # officemcp (doc write/read/verify)
 ]
 
 

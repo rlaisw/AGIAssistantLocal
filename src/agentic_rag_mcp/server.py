@@ -1755,6 +1755,113 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
         "invent results. If python or playwright is missing, say so "
         "honestly. End with: SCRIPT: COMPLETED or SCRIPT: FAILED: <reason>.")
 
+    # ---- office v2 (2026-11-13): single-hop document primitives -----------
+    # slow-total-time-75-6-seconds: the office lane's 5 narrated steps paid
+    # an LLM round each inside a second agent turn (75.6 s measured); these
+    # tools run the FIXED templates deterministically with verification IN
+    # CODE — one sidecar call. hermes_office_task stays for the complex
+    # class (email compose->confirm->send, overwrite attestations, edits).
+    _office_proxy: list = []
+
+    def get_office_proxy():
+        from .office_lanes.proxy import OfficeProxy
+        if not _office_proxy:
+            _office_proxy.append(OfficeProxy(
+                base_url="http://" +
+                         str(getattr(cfg, "office_mcp_host", "172.17.0.1")) +
+                         ":" + str(getattr(cfg, "office_mcp_port", 18888))))
+        return _office_proxy[0]
+
+    def _doc_name(name: str | None, text: str) -> str:
+        """Sanitize a user document name: basename only (no separators,
+        no traversal), .docx enforced; default derives from the text."""
+        import re as _re
+        if not name or not name.strip():
+            words = _re.sub(r"[^a-z0-9 ]", "", text.lower()).split()[:4]
+            stem = "_".join(words) if words else "document"
+            return stem[:50] + ".docx"
+        clean = name.strip().replace("\\", "/").split("/")[-1]  # basename
+        clean = _re.sub(r"[^A-Za-z0-9._ -]", "_", clean)
+        if clean in ("..", ".", "") or ".." in clean:
+            clean = "document.docx"
+        return clean if clean.lower().endswith(".docx") else clean + ".docx"
+
+    @mcp.tool()
+    async def doc_write_v2(text: str, name: str = "",
+                           conversation_id: str = "",
+                           ctx: Context = None) -> dict:
+        """FAST document write (office v2, single-hop): create a Word
+        document containing the EXACT literal `text`, save it to the
+        default Office work folder (C:\\OfficeMCP) as `name` (sanitized; a
+        path is never accepted — basename only), and VERIFY in code that
+        the file exists, its size, and the content matches — all in one
+        deterministic call. If the named file already exists it is
+        OVERWRITTEN and the result says so honestly (existed/replaced). Use
+        for simple 'open Word and type X' / 'create a Word document with X'
+        requests; for document EDITS, multi-step work, or email
+        compose->confirm->send use hermes_office_task instead. Returns
+        {status, path, size, existed, text_ok} — relay honestly.
+        conversation_id required (audited).
+        """
+        audit = HermesAudit(cfg.hermes_audit_path)
+        t0 = time.monotonic()
+        docname = _doc_name(name, text)
+        root = "C:\\OfficeMCP"
+        try:
+            out = get_office_proxy().write_doc(text, docname, root)
+        except Exception as exc:  # noqa: BLE001 — honest envelope on every failure
+            out = {"status": "error",
+                   "reason": f"error:office-lane-unavailable — OfficeMCP is "
+                             f"unreachable ({exc.__class__.__name__}); the "
+                             f"documents cannot be written until the "
+                             f"officemcp-server service runs"}
+        audit.write_attempt(
+            decision="executed" if out.get("status") == "ok" else "error",
+            operation="doc-write-v2", normalized_path=None, allowed_root="",
+            outcome=f"{docname}: " + str(out)[:250],
+            reason=None if out.get("status") == "ok" else out.get("reason"),
+            conversation_id=conversation_id,
+            duration_s=time.monotonic() - t0)
+        if out.get("status") != "ok":
+            return {"status": "error", "reason": out.get("reason")}
+        replaced = bool(out.get("existed"))
+        return {"status": "ok", "path": out.get("path"),
+                "size": out.get("size"),
+                "existed": replaced,
+                "note": ("replaced the existing document at this path" if replaced
+                         else "created a new document"),
+                "text_ok": out.get("text_ok")}
+
+    @mcp.tool()
+    async def doc_read_v2(name: str, conversation_id: str = "",
+                           ctx: Context = None) -> dict:
+        """Read a document's text back (office v2, read-only): open the named
+        .docx from the default Office work folder, return its text (up to
+        ~4000 chars) and size — no modification, nothing left open. Unknown
+        name -> honest not-found. Use to verify or report a document's
+        content. conversation_id required (audited).
+        """
+        audit = HermesAudit(cfg.hermes_audit_path)
+        t0 = time.monotonic()
+        docname = _doc_name(name, "read")
+        try:
+            out = get_office_proxy().read_doc(docname, "C:\\OfficeMCP")
+        except Exception as exc:  # noqa: BLE001
+            out = {"status": "error",
+                   "reason": f"error:office-lane-unavailable — OfficeMCP is "
+                             f"unreachable ({exc.__class__.__name__})"}
+        audit.write_attempt(
+            decision="executed" if out.get("status") == "ok" else "error",
+            operation="doc-read-v2", normalized_path=None, allowed_root="",
+            outcome=f"{docname}: {str(out)[:200]}",
+            reason=None if out.get("status") == "ok" else out.get("reason"),
+            conversation_id=conversation_id,
+            duration_s=time.monotonic() - t0)
+        if out.get("status") != "ok":
+            return {"status": "error", "reason": out.get("reason")}
+        return {"status": "ok", "name": docname, "size": out.get("size"),
+                "text": out.get("text")}
+
     # ---- spec 038: the Task-API Gateway lane (tier protocol, jobs) -------
     _task_lane: list = []  # at most one entry (lazy singleton)
 
