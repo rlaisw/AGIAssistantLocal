@@ -69,6 +69,12 @@ class TestTemplates:
         assert "FullName" in _WRITE_TEMPLATE       # same-path pre-close
         assert "normcase" in _WRITE_TEMPLATE      # Windows-path-safe compare
         assert "open_docs" in _WRITE_TEMPLATE     # honest on-screen report
+        # owner request 2026-11-13: maximize + front on completion
+        # (the playwright lesson — the ALT tap beats the RDP foreground lock)
+        assert "ActiveWindow.Hwnd" in _WRITE_TEMPLATE  # THIS instance's window (not FindWindow's topmost)
+        assert "keybd_event" in _WRITE_TEMPLATE    # the ALT-tap
+        assert "ShowWindow(hwnd, 3)" in _WRITE_TEMPLATE  # SW_MAXIMIZE
+        assert "fronted" in _WRITE_TEMPLATE        # honest front report
 
     def test_write_template_never_closes_after_save(self):
         # the post-save Close (the screen-empty bug) must NOT return

@@ -52,8 +52,31 @@ doc.Content.Text = d['text']
 doc.SaveAs2(path)
 size = os.path.getsize(path)
 ok = d['text'].strip() in doc.Content.Text.strip()
+# owner request 2026-11-13: when the write completes, Word goes FULL-SCREEN
+# and comes to the FRONT (the playwright lesson: the ALT tap clears the
+# foreground lock the RDP client holds). Best-effort — never fails the write.
+fronted = False
+try:
+    import time as _t
+    import ctypes
+    # THIS instance's own window handle (FindWindow can grab another Word
+    # instance's window when several are running — probed live)
+    hwnd = int(word.ActiveWindow.Hwnd)
+    if hwnd:
+        u32 = ctypes.windll.user32
+        if u32.IsIconic(hwnd):
+            u32.ShowWindow(hwnd, 9)
+        u32.ShowWindow(hwnd, 3)
+        u32.keybd_event(0x12, 0, 0, 0)
+        u32.keybd_event(0x12, 0, 2, 0)
+        u32.SetForegroundWindow(hwnd)
+        _t.sleep(0.3)  # the foreground change lands asynchronously
+        fronted = bool(u32.GetForegroundWindow() == hwnd)
+except Exception:
+    fronted = False
 output = json.dumps({'path': path, 'size': size, 'existed': bool(existed),
-                     'text_ok': bool(ok), 'open_docs': int(word.Documents.Count)})
+                     'text_ok': bool(ok), 'open_docs': int(word.Documents.Count),
+                     'fronted': bool(fronted)})
 """
 
 _READ_TEMPLATE = """
