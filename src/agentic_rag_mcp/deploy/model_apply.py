@@ -31,10 +31,17 @@ CLOUD_PROVIDER = "langgenius/openrouter/openrouter"
 # The DESKTOP lanes are pinned; every apply cycle writes this model to them
 # regardless of selection (2026-11-05 fabrication incident — desktop lanes only).
 PINNED_MODEL = "moonshotai/kimi-k3"
-# The CHAT nodes take the selected cloud model (owner decision 2026-11-12);
-# absent a selection the apply default is Deepseek (the UI's DEFAULT_MODEL_ID).
+# The router is ALSO pinned (dont-have-a-browser-control-tool,
+# 2026-11-13): topic anchoring proved too weak for flash-class
+# classifiers — routing correctness needs the model the lane was tuned
+# and verified on. The UI selection keeps applying to agentic_strategy.
+ROUTER_MODEL = "moonshotai/kimi-k3"
+# The ANSWER node takes the selected cloud model (owner decision
+# 2026-11-12); absent a selection the apply default is Deepseek.
 DEFAULT_CHAT_MODEL = "deepseek/deepseek-v4.1-flash"
-CHAT_NODE_IDS = ("intent_router", "agentic_strategy")
+ANSWER_NODE_IDS = ("agentic_strategy",)
+CHAT_NODE_IDS = ("intent_router", "agentic_strategy")  # compat alias
+ROUTER_NODE_IDS = ("intent_router",)
 DESKTOP_NODE_IDS = ("ppt_master", "hermes_agent")
 MAIN_NODE_IDS = CHAT_NODE_IDS + DESKTOP_NODE_IDS
 START_NODE_ID = "1776072202913"
@@ -94,7 +101,8 @@ def patch_dsl(yaml_text: str, model_id: str) -> str:
     by_id = {n["id"]: n for n in nodes}
 
     chat_model = model_id or DEFAULT_CHAT_MODEL
-    per_node = {**{nid: chat_model for nid in CHAT_NODE_IDS},
+    per_node = {**{nid: chat_model for nid in ANSWER_NODE_IDS},
+                **{nid: ROUTER_MODEL for nid in ROUTER_NODE_IDS},
                 **{nid: PINNED_MODEL for nid in DESKTOP_NODE_IDS}}
     for nid, chosen in per_node.items():
         if nid not in by_id:
@@ -160,10 +168,11 @@ def apply_model(dcfg, report, model_id: str) -> None:
     report.add(
         "patch",
         evidence=(
-            f"chat nodes {', '.join(CHAT_NODE_IDS)} = "
-            f"{model_id or DEFAULT_CHAT_MODEL}; desktop nodes "
-            f"{', '.join(DESKTOP_NODE_IDS)} pinned to {PINNED_MODEL} "
-            f"→ {os.path.relpath(ARTIFACT, REPO_ROOT)}"
+            f"answer node {', '.join(ANSWER_NODE_IDS)} = "
+            f"{model_id or DEFAULT_CHAT_MODEL}; router node "
+            f"{', '.join(ROUTER_NODE_IDS)} pinned to {ROUTER_MODEL}; "
+            f"desktop nodes {', '.join(DESKTOP_NODE_IDS)} pinned to "
+            f"{PINNED_MODEL} → {os.path.relpath(ARTIFACT, REPO_ROOT)}"
         ),
     )
 
