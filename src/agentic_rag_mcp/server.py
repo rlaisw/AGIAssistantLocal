@@ -1862,6 +1862,130 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
         return {"status": "ok", "name": docname, "size": out.get("size"),
                 "text": out.get("text")}
 
+    import re as _re2
+
+    def _xls_name(name: str | None) -> str:
+        """Sanitize an xlsx name: basename only, .xlsx enforced, default
+        from 'workbook'."""
+        clean = (name or "workbook").strip().replace("\\", "/").split("/")[-1]
+        clean = _re2.sub(r"[^A-Za-z0-9._ -]", "_", clean)
+        if clean in ("..", ".", "") or ".." in clean:
+            clean = "workbook.xlsx"
+        return clean if clean.lower().endswith(".xlsx") else clean + ".xlsx"
+
+    def _cell_addr_ok(addr: str) -> bool:
+        """Excel address validation: A1..XFD1048576, letters-then-digits,
+        and the VALUE must stay literal text (no formulas: an '=' prefix is
+        rejected — data, never code, in this surface)."""
+        return bool(_re2.match(r"^[A-Za-z]{1,3}[1-9][0-9]{0,6}$", addr or ""))
+
+    @mcp.tool()
+    async def xls_write_v2(cells: dict, name: str = "",
+                           conversation_id: str = "",
+                           ctx: Context = None) -> dict:
+        """FAST Excel write (office v2, single-hop): create a workbook and
+        write the EXACT literal cell map ({"A1": "hello", "B2": "123"} —
+        text values only; '=' formula strings are REJECTED: data, never
+        formulas), save to the default Office work folder (C:\\OfficeMCP) as
+        the sanitized `name`, verify every cell read-back IN CODE, leave the
+        workbook open, and bring Excel FULL-SCREEN to the FRONT — all in one
+        deterministic call. Overwrites reported honestly (created/REPLACED).
+        Use for simple 'open Excel and write X in cell Y' requests; for
+        formulas, edits, or existing-file surgery use hermes_office_task.
+        conversation_id required (audited).
+        """
+        audit = HermesAudit(cfg.hermes_audit_path)
+        t0 = time.monotonic()
+        bad_cells = [a for a in (cells or {})
+                     if not _cell_addr_ok(str(a))
+                     or str((cells or {})[a]).lstrip().startswith("=")]
+        if bad_cells:
+            audit.write_attempt(
+                decision="blocked", operation="xls-write-v2",
+                normalized_path=None, allowed_root="",
+                reason=f"invalid cells rejected: {bad_cells[:5]}",
+                conversation_id=conversation_id,
+                duration_s=time.monotonic() - t0)
+            return {"status": "blocked",
+                    "reason": (f"rejected: cells must be A1-style addresses "
+                               f"with literal text values (no '=' formulas); "
+                               f"invalid: {bad_cells[:5]}")}
+        docname = _xls_name(name)
+        try:
+            out = get_office_proxy().write_xls(
+                {str(k): str(v) for k, v in (cells or {}).items()},
+                docname, "C:\\OfficeMCP")
+        except Exception as exc:  # noqa: BLE001
+            out = {"status": "error",
+                   "reason": f"error:office-lane-unavailable — OfficeMCP is "
+                             f"unreachable ({exc.__class__.__name__})"}
+        audit.write_attempt(
+            decision="executed" if out.get("status") == "ok" else "error",
+            operation="xls-write-v2", normalized_path=None, allowed_root="",
+            outcome=f"{docname}: {str(out)[:250]}",
+            reason=None if out.get("status") == "ok" else out.get("reason"),
+            conversation_id=conversation_id,
+            duration_s=time.monotonic() - t0)
+        if out.get("status") != "ok":
+            return {"status": "error", "reason": out.get("reason")}
+        replaced = bool(out.get("existed"))
+        return {"status": "ok", "path": out.get("path"),
+                "size": out.get("size"), "existed": replaced,
+                "note": ("replaced the existing workbook at this path" if replaced
+                         else "created a new workbook"),
+                "fronted": out.get("fronted")}
+
+    def _ppt_name(name: str | None, title: str) -> str:
+        clean = (name or "workbook").strip().replace("\\", "/").split("/")[-1] \
+            if (name or "").strip() else ""
+        if not clean:
+            words = _re2.sub(r"[^a-z0-9 ]", "", title.lower()).split()[:4]
+            clean = "_".join(words) if words else "presentation"
+        clean = _re2.sub(r"[^A-Za-z0-9._ -]", "_", clean)
+        if clean in ("..", ".", "") or ".." in clean:
+            clean = "presentation.pptx"
+        return clean if clean.lower().endswith(".pptx") else clean + ".pptx"
+
+    @mcp.tool()
+    async def ppt_write_v2(title: str, text: str = "", name: str = "",
+                           conversation_id: str = "",
+                           ctx: Context = None) -> dict:
+        """FAST PowerPoint write (office v2, single-hop): create a one-slide
+        presentation with the EXACT literal `title` (plus optional body
+        `text`), save to the default Office work folder (C:\\OfficeMCP) as
+        the sanitized `name`, verify the title read-back IN CODE, leave the
+        presentation open, and bring PowerPoint FULL-SCREEN to the FRONT —
+        one deterministic call. Overwrites reported honestly. Use for simple
+        'open PowerPoint and make a slide titled X' requests; multi-slide
+        decks or edits use hermes_office_task. conversation_id required
+        (audited).
+        """
+        audit = HermesAudit(cfg.hermes_audit_path)
+        t0 = time.monotonic()
+        docname = _ppt_name(name, title)
+        try:
+            out = get_office_proxy().write_ppt(title, text, docname,
+                                                 "C:\\OfficeMCP")
+        except Exception as exc:  # noqa: BLE001
+            out = {"status": "error",
+                   "reason": f"error:office-lane-unavailable — OfficeMCP is "
+                             f"unreachable ({exc.__class__.__name__})"}
+        audit.write_attempt(
+            decision="executed" if out.get("status") == "ok" else "error",
+            operation="ppt-write-v2", normalized_path=None, allowed_root="",
+            outcome=f"{docname}: {str(out)[:250]}",
+            reason=None if out.get("status") == "ok" else out.get("reason"),
+            conversation_id=conversation_id,
+            duration_s=time.monotonic() - t0)
+        if out.get("status") != "ok":
+            return {"status": "error", "reason": out.get("reason")}
+        replaced = bool(out.get("existed"))
+        return {"status": "ok", "path": out.get("path"),
+                "size": out.get("size"), "existed": replaced,
+                "note": ("replaced the existing presentation at this path" if replaced
+                         else "created a new presentation"),
+                "fronted": out.get("fronted")}
+
     # ---- spec 038: the Task-API Gateway lane (tier protocol, jobs) -------
     _task_lane: list = []  # at most one entry (lazy singleton)
 

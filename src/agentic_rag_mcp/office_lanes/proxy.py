@@ -97,6 +97,105 @@ else:
 """
 
 
+_XLS_WRITE_TEMPLATE = """
+import json, os
+d = json.loads(data)
+import win32com.client
+xl = win32com.client.Dispatch('Excel.Application')
+xl.Visible = True
+root = d['root']
+os.makedirs(root, exist_ok=True)
+path = os.path.join(root, d['name'])
+# lock-free repeats (the Word lesson): close ONLY a same-path workbook
+for wb in list(xl.Workbooks):
+    try:
+        if os.path.normcase(wb.FullName) == os.path.normcase(path):
+            wb.Close(False)
+    except Exception:
+        pass
+existed = os.path.exists(path)
+wb = xl.Workbooks.Add()
+ok = True
+for addr, val in d['cells'].items():
+    col = 0; row = 0
+    for ch in addr:
+        if ch.isalpha():
+            col = col * 26 + (ord(ch.upper()) - 64)
+        else:
+            row = int(ch)
+    wb.ActiveSheet.Cells(row, col).Value = val
+    if str(wb.ActiveSheet.Cells(row, col).Value) != str(val):
+        ok = False
+wb.SaveAs(path)
+size = os.path.getsize(path)
+fronted = False
+try:
+    import ctypes
+    u32 = ctypes.windll.user32
+    hwnd = int(xl.ActiveWindow.Hwnd)
+    if u32.IsIconic(hwnd):
+        u32.ShowWindow(hwnd, 9)
+    u32.ShowWindow(hwnd, 3)
+    u32.keybd_event(0x12, 0, 0, 0)
+    u32.keybd_event(0x12, 0, 2, 0)
+    u32.SetForegroundWindow(hwnd)
+    import time as _t
+    _t.sleep(0.3)
+    fronted = bool(u32.GetForegroundWindow() == hwnd)
+except Exception:
+    fronted = False
+output = json.dumps({'path': path, 'size': size, 'existed': bool(existed),
+                     'text_ok': bool(ok), 'fronted': bool(fronted)})
+"""
+
+_PPT_WRITE_TEMPLATE = """
+import json, os
+d = json.loads(data)
+import win32com.client
+ppt = win32com.client.Dispatch('Powerpoint.Application')
+ppt.Visible = True
+root = d['root']
+os.makedirs(root, exist_ok=True)
+path = os.path.join(root, d['name'])
+for p in list(ppt.Presentations):
+    try:
+        if os.path.normcase(p.FullName) == os.path.normcase(path):
+            p.Close()
+    except Exception:
+        pass
+existed = os.path.exists(path)
+pres = ppt.Presentations.Add()
+slide = pres.Slides.Add(1, 2)  # ppLayoutText
+slide.Shapes.Placeholders(1).TextFrame.TextRange.Text = d['title']
+if d.get('text'):
+    slide.Shapes.Placeholders(2).TextFrame.TextRange.Text = d['text']
+pres.SaveAs(path)
+size = os.path.getsize(path)
+ok = (slide.Shapes.Placeholders(1).TextFrame.TextRange.Text == d['title'])
+fronted = False
+try:
+    # PowerPoint quirk (probed 2026-11-13): ActiveWindow.HWND is not usable
+    # via dynamic dispatch — the PPTFrameClass window is the reliable handle
+    import win32gui, ctypes
+    u32 = ctypes.windll.user32
+    hwnd = win32gui.FindWindow('PPTFrameClass', None)
+    if hwnd:
+        if u32.IsIconic(hwnd):
+            u32.ShowWindow(hwnd, 9)
+        u32.ShowWindow(hwnd, 3)
+        u32.keybd_event(0x12, 0, 0, 0)
+        u32.keybd_event(0x12, 0, 2, 0)
+        u32.SetForegroundWindow(hwnd)
+        import time as _t
+        _t.sleep(0.3)
+        fronted = bool(u32.GetForegroundWindow() == hwnd)
+except Exception:
+    fronted = False
+output = json.dumps({'path': path, 'size': size, 'existed': bool(existed),
+                     'text_ok': bool(ok), 'fronted': bool(fronted)})
+"""
+
+
 class OfficeProxy:
     """One persistent legacy-SSE MCP session to OfficeMCP (via the docker0
     bridge). A background reader thread feeds a queue; calls correlate by
@@ -238,6 +337,45 @@ class OfficeProxy:
             return {"status": "error",
                     "reason": "error:office-v2 verification failed — the "
                               "saved document does not contain the literal text"}
+        return {"status": "ok", **payload}
+
+    def write_xls(self, cells: dict, name: str, root: str) -> dict:
+        """Create a workbook, write the literal cell map {addr: text},
+        save, verify in code, leave open + fronted (the doc_write_v2
+        discipline, extended per this bug)."""
+        out = self.call("RunPython",
+                        {"code": _XLS_WRITE_TEMPLATE,
+                         "data": json.dumps({"cells": cells, "name": name,
+                                             "root": root})})
+        if out.get("status") != "ok":
+            return out
+        payload = self._payload_json(out["text"])
+        if payload is None or "path" not in payload:
+            return {"status": "error",
+                    "reason": f"error:office-v2 malformed result — {out['text'][:200]}"}
+        if not payload.get("text_ok"):
+            return {"status": "error",
+                    "reason": "error:office-v2 verification failed — a cell "
+                              "did not read back the literal value"}
+        return {"status": "ok", **payload}
+
+    def write_ppt(self, title: str, text: str, name: str, root: str) -> dict:
+        """Create a one-slide presentation (title + optional body text),
+        save, verify, leave open + fronted."""
+        out = self.call("RunPython",
+                        {"code": _PPT_WRITE_TEMPLATE,
+                         "data": json.dumps({"title": title, "text": text,
+                                             "name": name, "root": root})})
+        if out.get("status") != "ok":
+            return out
+        payload = self._payload_json(out["text"])
+        if payload is None or "path" not in payload:
+            return {"status": "error",
+                    "reason": f"error:office-v2 malformed result — {out['text'][:200]}"}
+        if not payload.get("text_ok"):
+            return {"status": "error",
+                    "reason": "error:office-v2 verification failed — the "
+                              "slide title did not read back the literal text"}
         return {"status": "ok", **payload}
 
     def read_doc(self, name: str, root: str) -> dict:

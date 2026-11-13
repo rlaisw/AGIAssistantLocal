@@ -85,3 +85,28 @@ class TestTemplates:
         # never agent-composed (no injection surface)
         assert "json.loads(data)" in _WRITE_TEMPLATE
         assert "d['text']" in _WRITE_TEMPLATE
+
+
+class TestXlsPptV2:
+    """word-is-fast-but-excel... (2026-11-13): the v2 discipline extended to
+    Excel and PowerPoint — literal-only cells (no formulas), same-path
+    pre-close, verification in code, front+maximize, honest existed."""
+
+    def test_xls_template_discipline(self):
+        from agentic_rag_mcp.office_lanes.proxy import _XLS_WRITE_TEMPLATE as T
+        assert "Workbooks.Add" in T and "SaveAs" in T
+        assert "FullName" in T and "normcase" in T   # same-path pre-close
+        assert "text_ok" in T                         # verify in code
+        assert "ActiveWindow.Hwnd" in T                # Excel fronting
+        assert "keybd_event" in T                      # the ALT-tap
+
+    def test_ppt_template_discipline(self):
+        from agentic_rag_mcp.office_lanes.proxy import _PPT_WRITE_TEMPLATE as T
+        assert "Presentations.Add" in T and "Slides.Add(1, 2)" in T
+        assert "PPTFrameClass" in T                    # HWND quirk bypass
+        assert "text_ok" in T
+        assert "FullName" in T and "normcase" in T
+
+    def test_xls_template_has_no_formula_support(self):
+        from agentic_rag_mcp.office_lanes.proxy import _XLS_WRITE_TEMPLATE as T
+        assert "Formula" not in T   # .Value writes only — data, never code
