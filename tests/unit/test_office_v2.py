@@ -110,3 +110,11 @@ class TestXlsPptV2:
     def test_xls_template_has_no_formula_support(self):
         from agentic_rag_mcp.office_lanes.proxy import _XLS_WRITE_TEMPLATE as T
         assert "Formula" not in T   # .Value writes only — data, never code
+
+    def test_xls_verify_uses_displayed_literal(self):
+        # still-little-bit-slow (2026-11-13): Excel coerces '12345' to
+        # 12345.0 — str(.Value) verification rejected every numeric write;
+        # .Text returns the displayed literal, which is what 'type X' means
+        from agentic_rag_mcp.office_lanes.proxy import _XLS_WRITE_TEMPLATE as T
+        assert ".Text) != str(val)" in T
+        assert ".Value) != str(val)" not in T

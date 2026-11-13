@@ -124,7 +124,10 @@ for addr, val in d['cells'].items():
         else:
             row = int(ch)
     wb.ActiveSheet.Cells(row, col).Value = val
-    if str(wb.ActiveSheet.Cells(row, col).Value) != str(val):
+    # still-little-bit-slow (2026-11-13): verify the DISPLAYED literal
+    # (.Text) — Excel coerces numeric strings to float ('12345' -> 12345.0)
+    # and str(.Value) != '12345', but .Text returns the literal '12345'
+    if str(wb.ActiveSheet.Cells(row, col).Text) != str(val):
         ok = False
 wb.SaveAs(path)
 size = os.path.getsize(path)
