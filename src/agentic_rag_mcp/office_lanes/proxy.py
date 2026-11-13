@@ -32,18 +32,28 @@ d = json.loads(data)
 import win32com.client
 word = win32com.client.Dispatch('Word.Application')
 word.Visible = True
-doc = word.Documents.Add()
-doc.Content.Text = d['text']
 root = d['root']
 os.makedirs(root, exist_ok=True)
 path = os.path.join(root, d['name'])
+# lock-free repeats WITHOUT hiding the result (faile-to-write-context-
+# to-word, 2026-11-13): close ONLY an already-open doc at the SAME path
+# (never the user's other documents), then write fresh and LEAVE THE NEW
+# DOCUMENT OPEN AND VISIBLE — "open Word and type X" means the text is on
+# screen, not just in the file.
+for doc in list(word.Documents):
+    try:
+        if os.path.normcase(doc.FullName) == os.path.normcase(path):
+            doc.Close(False)
+    except Exception:
+        pass
 existed = os.path.exists(path)
+doc = word.Documents.Add()
+doc.Content.Text = d['text']
 doc.SaveAs2(path)
 size = os.path.getsize(path)
 ok = d['text'].strip() in doc.Content.Text.strip()
-doc.Close()
 output = json.dumps({'path': path, 'size': size, 'existed': bool(existed),
-                     'text_ok': bool(ok)})
+                     'text_ok': bool(ok), 'open_docs': int(word.Documents.Count)})
 """
 
 _READ_TEMPLATE = """

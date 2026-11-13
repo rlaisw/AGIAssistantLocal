@@ -1787,8 +1787,8 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
         return clean if clean.lower().endswith(".docx") else clean + ".docx"
 
     @mcp.tool()
-    async def doc_write_v2(text: str, name: str = "",
-                           conversation_id: str = "",
+    async def doc_write_v2(text: str, conversation_id: str,
+                           name: str = "",
                            ctx: Context = None) -> dict:
         """FAST document write (office v2, single-hop): create a Word
         document containing the EXACT literal `text`, save it to the
@@ -1833,7 +1833,7 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
                 "text_ok": out.get("text_ok")}
 
     @mcp.tool()
-    async def doc_read_v2(name: str, conversation_id: str = "",
+    async def doc_read_v2(name: str, conversation_id: str,
                            ctx: Context = None) -> dict:
         """Read a document's text back (office v2, read-only): open the named
         .docx from the default Office work folder, return its text (up to

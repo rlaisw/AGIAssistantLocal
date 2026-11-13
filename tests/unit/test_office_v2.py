@@ -60,12 +60,19 @@ class TestPayloadParsing:
 
 
 class TestTemplates:
-    def test_write_template_verifies_and_closes(self):
-        # the verification discipline moved INTO code; the doc is closed
-        # after save (no Word locks on repeat writes — probed live)
+    def test_write_template_verifies_and_keeps_visible(self):
+        # faile-to-write-context-to-word (2026-11-13): verification IN code
+        # AND the document stays OPEN (the user asked for text IN Word);
+        # repeat-writes stay lock-free via a same-path pre-close
         assert "text_ok" in _WRITE_TEMPLATE
-        assert "doc.Close()" in _WRITE_TEMPLATE
         assert "SaveAs2" in _WRITE_TEMPLATE
+        assert "FullName" in _WRITE_TEMPLATE       # same-path pre-close
+        assert "normcase" in _WRITE_TEMPLATE      # Windows-path-safe compare
+        assert "open_docs" in _WRITE_TEMPLATE     # honest on-screen report
+
+    def test_write_template_never_closes_after_save(self):
+        # the post-save Close (the screen-empty bug) must NOT return
+        assert "doc.Close()\noutput" not in _WRITE_TEMPLATE
 
     def test_data_parameterization(self):
         # the literal text/name ride the `data` argument — the code is OURS,
