@@ -15,6 +15,8 @@ import threading
 from datetime import UTC, datetime
 from pathlib import Path
 
+from .loop_gate import record as _loop_gate_record
+
 _LOCK = threading.Lock()
 _DECISIONS = ("executed", "blocked", "error")
 
@@ -36,6 +38,11 @@ class HermesAudit:
                       conversation_id: str | None = None) -> None:
         if decision not in _DECISIONS:
             raise ValueError(f"decision must be one of {_DECISIONS}, got {decision!r}")
+        # after-the-task-was-done (2026-11-14): the single funnel every lane
+        # audits through also classifies the conversation for the loop gate —
+        # v2 fast-path ops make the skill loop refuse until real loop-lane
+        # work runs in the conversation
+        _loop_gate_record(operation, conversation_id)
         entry = {
             "ts": _now(),
             "decision": decision,

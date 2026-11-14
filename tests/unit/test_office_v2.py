@@ -118,3 +118,64 @@ class TestXlsPptV2:
         from agentic_rag_mcp.office_lanes.proxy import _XLS_WRITE_TEMPLATE as T
         assert ".Text) != str(val)" in T
         assert ".Value) != str(val)" not in T
+
+    def test_templates_init_com_apartment_before_dispatch(self):
+        # slow-respone-come-back-again (2026-11-14): some OfficeMCP RunPython
+        # workers execute scripts on a COM-uninitialized thread (-2147221008)
+        # — every v2 template must CoInitialize before it Dispatches
+        from agentic_rag_mcp.office_lanes.proxy import (
+            _PPT_WRITE_TEMPLATE,
+            _READ_TEMPLATE,
+            _WRITE_TEMPLATE,
+            _XLS_WRITE_TEMPLATE,
+        )
+        for T in (_WRITE_TEMPLATE, _READ_TEMPLATE, _XLS_WRITE_TEMPLATE,
+                  _PPT_WRITE_TEMPLATE):
+            assert "pythoncom.CoInitialize()" in T
+            assert T.index("pythoncom.CoInitialize()") < T.index("win32com.client.Dispatch(")
+
+    def test_write_templates_attach_to_running_app_first(self):
+        # xls-saveas-method-failed (2026-11-14): a bare Dispatch can spawn a
+        # second app instance that holds none of the user's open files —
+        # every write template attaches to the RUNNING app first
+        from agentic_rag_mcp.office_lanes.proxy import (
+            _PPT_WRITE_TEMPLATE,
+            _WRITE_TEMPLATE,
+            _XLS_WRITE_TEMPLATE,
+        )
+        for T in (_WRITE_TEMPLATE, _XLS_WRITE_TEMPLATE, _PPT_WRITE_TEMPLATE):
+            assert T.index("GetActiveObject(") < T.index("Dispatch(")
+
+    def test_write_templates_pre_close_is_verified_and_honest(self):
+        # xls-saveas-method-failed (2026-11-14): the office apps refuse
+        # SaveAs onto an already-open file — the same-path pre-close must
+        # record close failures (never a silent except:pass), verify the
+        # file actually closed, and refuse with the situation named BEFORE
+        # the SaveAs call instead of surfacing the raw COM error
+        from agentic_rag_mcp.office_lanes.proxy import (
+            _PPT_WRITE_TEMPLATE,
+            _WRITE_TEMPLATE,
+            _XLS_WRITE_TEMPLATE,
+        )
+        for T in (_WRITE_TEMPLATE, _XLS_WRITE_TEMPLATE, _PPT_WRITE_TEMPLATE):
+            assert "except Exception as _e" in T      # close failures recorded
+            assert "could not be" in T                # the honest refusal
+            assert "blocked: the target file" in T
+            assert T.index("blocked: the target file") < T.index(".SaveAs")
+            assert "for _attempt in range(2)" in T    # the retry
+            # the busy-app wrap: a modal/edit-mode app is named honestly,
+            # never surfaced as the raw property error
+            assert "refused" in T
+            assert "automation" in T
+
+    def test_xls_saveas_silences_the_overwrite_prompt(self):
+        # xls-saveas-method-failed round 2 (2026-11-14): Excel's SaveAs onto
+        # an existing path raises the "replace file?" dialog, which headless
+        # COM cannot show — 0x800A03EC. DisplayAlerts must be off before
+        # the SaveAs call and restored after; a failure raises the honest
+        # recovered-twin envelope instead of the raw COM tuple.
+        from agentic_rag_mcp.office_lanes.proxy import _XLS_WRITE_TEMPLATE as T
+        assert T.index("xl.DisplayAlerts = False") < T.index("wb.SaveAs(")
+        assert "finally:" in T
+        assert T.index("xl.DisplayAlerts = True") > T.index("wb.SaveAs(")
+        assert "recovered or temporary name" in T   # the honest wrap

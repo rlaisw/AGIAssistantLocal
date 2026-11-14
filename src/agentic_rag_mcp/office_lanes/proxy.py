@@ -30,8 +30,30 @@ _WRITE_TEMPLATE = """
 import json, os
 d = json.loads(data)
 import win32com.client
-word = win32com.client.Dispatch('Word.Application')
-word.Visible = True
+# COM apartment guard (2026-11-14): some RunPython workers execute scripts
+# on a COM-uninitialized thread (-2147221008); failures here must not block
+# a healthy apartment, a broken one still surfaces its real error
+import pythoncom
+try:
+    pythoncom.CoInitialize()
+except Exception:
+    pass
+# xls-saveas-method-failed (2026-11-14): attach to the RUNNING Word when
+# one exists — a bare Dispatch can spawn a second instance that holds no
+# documents while the user's Word locks the target file
+try:
+    word = win32com.client.GetActiveObject('Word.Application')
+except Exception:
+    word = win32com.client.Dispatch('Word.Application')
+# xls-saveas-method-failed (live follow-up): a busy Word refuses COM calls
+# until its pump timeout — name the situation honestly
+try:
+    word.Visible = True
+except Exception as _e:
+    raise RuntimeError(
+        'blocked: Word is busy or showing a dialog and refused '
+        'automation (press ESC in Word or close its dialog, then ask '
+        'again) [%s]' % str(_e)[:150])
 root = d['root']
 os.makedirs(root, exist_ok=True)
 path = os.path.join(root, d['name'])
@@ -40,12 +62,31 @@ path = os.path.join(root, d['name'])
 # (never the user's other documents), then write fresh and LEAVE THE NEW
 # DOCUMENT OPEN AND VISIBLE — "open Word and type X" means the text is on
 # screen, not just in the file.
-for doc in list(word.Documents):
+# (xls-saveas-method-failed, 2026-11-14): the close is verified and honest
+# — Word refuses SaveAs2 onto an open document, so retry once, record
+# close failures, and refuse with the situation named instead of letting
+# SaveAs2 surface the raw COM error
+def _same_path(doc):
     try:
-        if os.path.normcase(doc.FullName) == os.path.normcase(path):
-            doc.Close(False)
+        return os.path.normcase(doc.FullName) == os.path.normcase(path)
     except Exception:
-        pass
+        return False
+_close_errors = []
+for _attempt in range(2):
+    if not any(_same_path(doc) for doc in word.Documents):
+        break
+    for doc in list(word.Documents):
+        if _same_path(doc):
+            try:
+                doc.Close(False)
+            except Exception as _e:
+                _close_errors.append(str(_e))
+if any(_same_path(doc) for doc in word.Documents):
+    raise RuntimeError(
+        'blocked: the target file %s is open in Word and could not be '
+        'closed automatically (%s); save it or close it in Word, or '
+        'choose a different name, then ask again'
+        % (d['name'], '; '.join(_close_errors)[:200] or 'close failed'))
 existed = os.path.exists(path)
 doc = word.Documents.Add()
 doc.Content.Text = d['text']
@@ -83,6 +124,14 @@ _READ_TEMPLATE = """
 import json, os
 d = json.loads(data)
 import win32com.client
+# COM apartment guard (2026-11-14): some RunPython workers execute scripts
+# on a COM-uninitialized thread (-2147221008); failures here must not block
+# a healthy apartment, a broken one still surfaces its real error
+import pythoncom
+try:
+    pythoncom.CoInitialize()
+except Exception:
+    pass
 word = win32com.client.Dispatch('Word.Application')
 word.Visible = True
 path = os.path.join(d['root'], d['name'])
@@ -101,18 +150,59 @@ _XLS_WRITE_TEMPLATE = """
 import json, os
 d = json.loads(data)
 import win32com.client
-xl = win32com.client.Dispatch('Excel.Application')
-xl.Visible = True
+# COM apartment guard (2026-11-14): see the Word template note
+import pythoncom
+try:
+    pythoncom.CoInitialize()
+except Exception:
+    pass
+# xls-saveas-method-failed (2026-11-14): attach to the RUNNING Excel when
+# one exists (the v1 lane's proven pattern) — a bare Dispatch can spawn a
+# second instance that holds no workbooks while the user's Excel locks
+# the target file
+try:
+    xl = win32com.client.GetActiveObject('Excel.Application')
+except Exception:
+    xl = win32com.client.Dispatch('Excel.Application')
+# xls-saveas-method-failed (live follow-up): a busy Excel (cell edit mode
+# or a dialog) refuses COM calls until its ~180 s pump timeout — name the
+# situation honestly instead of surfacing the raw property error
+try:
+    xl.Visible = True
+except Exception as _e:
+    raise RuntimeError(
+        'blocked: Excel is busy or showing a dialog and refused '
+        'automation (press ESC in Excel or close its dialog, then ask '
+        'again) [%s]' % str(_e)[:150])
 root = d['root']
 os.makedirs(root, exist_ok=True)
 path = os.path.join(root, d['name'])
-# lock-free repeats (the Word lesson): close ONLY a same-path workbook
-for wb in list(xl.Workbooks):
+# lock-free repeats (the Word lesson): close ONLY a same-path workbook —
+# but honestly (xls-saveas-method-failed, 2026-11-14): Excel refuses
+# SaveAs onto an open workbook, so verify the close worked, retry once,
+# record close failures, and refuse with the situation named instead of
+# surfacing the raw COM error from SaveAs
+def _same_path(w):
     try:
-        if os.path.normcase(wb.FullName) == os.path.normcase(path):
-            wb.Close(False)
+        return os.path.normcase(w.FullName) == os.path.normcase(path)
     except Exception:
-        pass
+        return False
+_close_errors = []
+for _attempt in range(2):
+    if not any(_same_path(w) for w in xl.Workbooks):
+        break
+    for w in list(xl.Workbooks):
+        if _same_path(w):
+            try:
+                w.Close(False)
+            except Exception as _e:
+                _close_errors.append(str(_e))
+if any(_same_path(w) for w in xl.Workbooks):
+    raise RuntimeError(
+        'blocked: the target file %s is open in Excel and could not be '
+        'closed automatically (%s); save it or close it in Excel, or '
+        'choose a different name, then ask again'
+        % (d['name'], '; '.join(_close_errors)[:200] or 'close failed'))
 existed = os.path.exists(path)
 wb = xl.Workbooks.Add()
 ok = True
@@ -129,7 +219,23 @@ for addr, val in d['cells'].items():
     # and str(.Value) != '12345', but .Text returns the literal '12345'
     if str(wb.ActiveSheet.Cells(row, col).Text) != str(val):
         ok = False
-wb.SaveAs(path)
+# xls-saveas-method-failed round 2 (2026-11-14): Excel — alone of the
+# three apps — asks "replace existing file?" via a dialog on SaveAs; in
+# headless COM the dialog cannot be shown and the call dies with
+# 0x800A03EC. DisplayAlerts=False makes the overwrite silent; it is
+# scoped to this call and restored, so the user's Excel keeps its normal
+# prompts.
+xl.DisplayAlerts = False
+try:
+    wb.SaveAs(path)
+except Exception as _e:
+    raise RuntimeError(
+        'blocked: saving %s failed (%s); the file may be open in Excel '
+        'under a recovered or temporary name (close the recovered copies '
+        'in Excel or choose a different name), then ask again'
+        % (d['name'], str(_e)[:200]))
+finally:
+    xl.DisplayAlerts = True
 size = os.path.getsize(path)
 fronted = False
 try:
@@ -155,17 +261,53 @@ _PPT_WRITE_TEMPLATE = """
 import json, os
 d = json.loads(data)
 import win32com.client
-ppt = win32com.client.Dispatch('Powerpoint.Application')
-ppt.Visible = True
+# COM apartment guard (2026-11-14): see the Word template note
+import pythoncom
+try:
+    pythoncom.CoInitialize()
+except Exception:
+    pass
+# xls-saveas-method-failed (2026-11-14): attach to the RUNNING PowerPoint
+# when one exists, and make the same-path pre-close verified and honest —
+# PowerPoint refuses SaveAs onto an open presentation the same way Excel
+# and Word do
+try:
+    ppt = win32com.client.GetActiveObject('Powerpoint.Application')
+except Exception:
+    ppt = win32com.client.Dispatch('Powerpoint.Application')
+# xls-saveas-method-failed (live follow-up): a busy PowerPoint refuses COM
+# calls until its pump timeout — name the situation honestly
+try:
+    ppt.Visible = True
+except Exception as _e:
+    raise RuntimeError(
+        'blocked: PowerPoint is busy or showing a dialog and refused '
+        'automation (press ESC in PowerPoint or close its dialog, then '
+        'ask again) [%s]' % str(_e)[:150])
 root = d['root']
 os.makedirs(root, exist_ok=True)
 path = os.path.join(root, d['name'])
-for p in list(ppt.Presentations):
+def _same_path(p):
     try:
-        if os.path.normcase(p.FullName) == os.path.normcase(path):
-            p.Close()
+        return os.path.normcase(p.FullName) == os.path.normcase(path)
     except Exception:
-        pass
+        return False
+_close_errors = []
+for _attempt in range(2):
+    if not any(_same_path(p) for p in ppt.Presentations):
+        break
+    for p in list(ppt.Presentations):
+        if _same_path(p):
+            try:
+                p.Close()
+            except Exception as _e:
+                _close_errors.append(str(_e))
+if any(_same_path(p) for p in ppt.Presentations):
+    raise RuntimeError(
+        'blocked: the target file %s is open in PowerPoint and '
+        'could not be closed automatically (%s); save it or close it in '
+        'PowerPoint, or choose a different name, then ask again'
+        % (d['name'], '; '.join(_close_errors)[:200] or 'close failed'))
 existed = os.path.exists(path)
 pres = ppt.Presentations.Add()
 slide = pres.Slides.Add(1, 2)  # ppLayoutText

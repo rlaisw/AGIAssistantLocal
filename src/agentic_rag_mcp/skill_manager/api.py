@@ -8,6 +8,7 @@ from __future__ import annotations
 import time
 
 from ..hermes_audit import HermesAudit
+from ..loop_gate import SKIP_REASON, exempt_active
 from .executor import prepare_replay
 from .intent import SkillIntent
 from .store import SkillNotFound, SkillStore, reusable
@@ -87,6 +88,11 @@ class SkillManager:
 
     def search(self, intent: str, cid: str, limit: int = 5) -> dict:
         def _fn():
+            # after-the-task-was-done (2026-11-14): structural v2 exemption —
+            # the published rule is advisory; the gate is not
+            if exempt_active(cid):
+                return {"status": "blocked", "found": False, "skills": [],
+                        "reason": SKIP_REASON}
             names = self.intent.search(intent, limit=limit)
             rows = [r for r in (self._trust_row(n) for n in names) if r]
             if not rows:
@@ -112,6 +118,9 @@ class SkillManager:
 
     def save(self, skill: dict, cid: str) -> dict:
         def _fn():
+            # after-the-task-was-done (2026-11-14): structural v2 exemption
+            if exempt_active(cid):
+                return {"status": "blocked", "reason": SKIP_REASON}
             try:
                 name, version = self.store.save(skill)
             except ValueError as exc:
