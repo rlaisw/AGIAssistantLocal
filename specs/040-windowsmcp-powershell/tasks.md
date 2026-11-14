@@ -158,8 +158,19 @@ Task: "T008 tool-call wrappers in src/agentic_rag_mcp/windows_mcp/client.py"
 
 ## Notes
 
+- Provenance (T021, convergence 2026-11-14): `windows/safe-shutdown.ps1` is an owner-requested session artifact (WSL-only safe shutdown, 2026-11-14) that ships alongside this feature but is outside spec 040's scope.
+
 - The transport fix (canonical Host header) is the feature's core — verified live during planning; every test layer pins it.
 - No new chat tool, no DSL change, no host-side change (clarified Option A).
 - The live E2E harness cases touch the real Windows host service — run on demand (house pattern: integration harnesses are not CI gate).
 - E2E-2 must restore the `windows-mcp-server` task after stopping it — never leave the lane down.
 - Commit after each task or logical group; keep the audit trail's integrity rule (append-only, never rewritten).
+
+---
+
+## Phase 7: Convergence
+
+- [x] T019 Live-verify the declined-consent refusal per FR-003 (partial): run one privileged lane call live (e.g. a scratch Registry write) while the owner clicks Decline on the host prompt; expect the `blocked: the host did not approve execution` envelope and an audit row `decision: blocked`
+  - **Finding (2026-11-14)**: verified live with three privileged shapes (Registry set, process kill of a sacrificial notepad, registry delete) — **this WindowsMCP build does not consent-gate any operation** (all executed directly, no prompt); the USER_CONTROL consent flow belongs to the agent's gateway path (spec 034), not this service. The lane's refusal handling (classification → blocked envelope → audit blocked) remains unit-pinned and correct for service builds that do gate. Probe key cleaned (deleted), sacrificial process terminated by the lane itself.
+- [ ] T020 Verify post-reboot durability per SC-003/FR-005 (partial): after the next natural Windows reboot + logon, run the quickstart.md battery (E2E-5) from the container vantage and record the result in this file's Notes section
+- [x] T021 Add a one-line provenance note for windows/safe-shutdown.ps1 (unrequested): document it in this file's Notes section as an owner-requested session artifact (2026-11-14) outside spec 040 scope
