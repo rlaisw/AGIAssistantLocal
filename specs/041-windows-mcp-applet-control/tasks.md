@@ -182,3 +182,10 @@ Task: "T008 live E2E-1/EH-1 harness"
 - EH-8 (service down) and EH-9 (USER_CONTROL deferral) reuse the lane's existing honest envelopes — verify, do not rebuild.
 - The live E2E cases need the owner at the desktop for confirm-gated and UAC cases; read/open cases run unattended.
 - Commit after each task or logical group; append-only audit integrity rule throughout.
+
+---
+
+## Phase 8: Convergence
+
+- [ ] T021 Run one real-owner E2E-4 per SC-004/EH-6 (partial): a confirmed throwaway-app uninstall through windows_mcp_gui_flow in chat — draft relayed, owner confirms, steps execute, final state relayed; record the audit rows in this file's Notes
+- [ ] T022 Close the probe-residue windows on the desktop (unrequested): two Device Manager windows and two stray notepads from the routing/launcher probes — owner action, no code change

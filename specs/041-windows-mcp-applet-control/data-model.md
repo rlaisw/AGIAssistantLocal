@@ -40,7 +40,7 @@ Rules (inherited + extended): a confirm call carries no text — the stored reco
 | value | string \| null | typed text; credential/password fields are refused by the gate before any call |
 
 ### Audit row (all tiers, shared funnel)
-Unchanged contract: operation class per tier (`windows-mcp-open-*` / `windows-mcp-read-*` / `windows-mcp-gui-*` / the existing powershell classes for tier 3), decision executed/blocked/error, conversation, duration. Additions: tier-4 rows record each step's outcome; credential-field refusals audit the refusal without the field's value (masked per the sensitive rule).
+Unchanged contract: operation class per tier (`windows-mcp-open` / `windows-mcp-read` / `windows-mcp-gui` / the existing powershell classes for tier 3 — flat names, set during implementation so the loop gate's exact-name matching works; analysis finding F1, 2026-11-15), decision executed/blocked/error, conversation, duration. Additions: tier-4 rows record each step's outcome; credential-field refusals audit the refusal without the field's value (masked per the sensitive rule).
 
 ## State transitions
 
