@@ -40,6 +40,18 @@ ENTRIES: tuple[tuple[str, tuple[str, ...], str], ...] = (
      ("Get-ComputerInfo -Property OsName, OsVersion, OsArchitecture, "
       "CsManufacturer, CsModel, WindowsVersion | Format-List "
       "| Out-String")),
+    ("installed-programs",
+     ("installed programs", "installed software", "installed apps",
+      "what apps are installed", "programs list", "list programs",
+      "what programs", "which programs", "applications list",
+      "installed applications"),
+     ("Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion"
+      "\\Uninstall\\*',"
+      "'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion"
+      "\\Uninstall\\*' -ErrorAction SilentlyContinue "
+      "| Where-Object DisplayName | Select-Object DisplayName, "
+      "DisplayVersion, Publisher | Sort-Object DisplayName "
+      "| Format-Table -AutoSize | Out-String")),
     ("locale-settings",
      ("locale", "time zone", "timezone", "region setting", "language"),
      ("Get-TimeZone; Get-Culture | Select-Object Name, DisplayName | "

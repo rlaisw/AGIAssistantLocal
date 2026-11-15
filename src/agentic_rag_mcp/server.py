@@ -1656,7 +1656,8 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
                                          ctx: Context = None) -> dict:
         """Answer a Windows settings question read-only (spec 041, tier
         2): 'what network adapters do I have?', 'what's my current power
-        plan?', 'show firewall rules', 'disk space'. Strict fixed-shape
+        plan?', 'show firewall rules', 'disk space', 'list all installed
+        programs'. Strict fixed-shape
         allowlist — each question maps to ONE exact query; unmapped or
         write-shaped requests are refused with the list shown (changes
         go through the confirmed two-phase PowerShell flow); no

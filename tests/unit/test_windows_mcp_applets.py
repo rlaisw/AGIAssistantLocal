@@ -90,9 +90,19 @@ class TestReadTier:
                 ("which network adapters do I have", "network-adapters"),
                 ("what's my current power plan", "power-plan"),
                 ("show firewall rules", "firewall-rules"),
-                ("disk space", "volumes")):
+                ("disk space", "volumes"),
+                ("list all installed programs", "installed-programs"),
+                ("what apps are installed on my desktop", "installed-programs")):
             res = match_query(text)
             assert res["status"] == "ok" and res["name"] == name
+
+    def test_installed_programs_query_shape(self):
+        # no-saved-skill follow-up (2026-11-15): the proven Uninstall-tree
+        # listing (used by the confirmed run-powershell draft at 02:40Z) is
+        # now a first-class tier-2 read — read-only, fixed shape
+        res = match_query("list all installed programs")
+        assert "Uninstall" in res["command"]
+        assert res["command"].startswith("Get-ItemProperty")
 
     def test_fixed_command_shape(self):
         res = match_query("what network adapters do I have")
