@@ -29,6 +29,20 @@ _PPT_MOUNT = ("ppt-master", "/opt/ppt-master")  # repo-relative (spec 009)
 _BROWSER_SCRIPTS_MOUNT = ("scripts/browser", "/usr/local/scripts/browser")
 
 
+def _windows_logical_processors() -> int:
+    """The Windows host's logical-processor count via WSL interop — the
+    container's own cpu_count is the WSL VM's capped view (8 here vs the
+    host's 20), so it must never be used for whole-machine math."""
+    try:
+        proc = _run(["/mnt/c/Windows/System32/cmd.exe", "/c",
+                     "echo %NUMBER_OF_PROCESSORS%"], timeout=30)
+        digits = "".join(c for c in (proc.stdout or "") if c.isdigit())
+        n = int(digits) if digits else 0
+        return n if 0 < n <= 1024 else 0
+    except Exception:
+        return 0
+
+
 def _run(cmd: list[str], timeout: int = 900) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
 
@@ -62,6 +76,13 @@ def recreate_container(container: str, image: str, report) -> None:
          (os.path.join(REPO_ROOT, _BROWSER_SCRIPTS_MOUNT[0]),
           _BROWSER_SCRIPTS_MOUNT[1])]
     _run(["docker", "rm", "-f", container])
+    # the-value-of-cpu-is-impossibel (2026-11-14): the Windows host's real
+    # logical-processor count, read from the WSL host at redeploy time
+    # (interop is available here, not inside the container) — the lane
+    # uses it to present whole-machine CPU% alongside the raw per-core
+    # aggregate. Re-derived on every redeploy; absent/invalid -> the
+    # lane falls back to the raw+explanation presentation.
+    win_cpus = _windows_logical_processors()
     run_cmd = [
         "docker", "run", "-d", "--name", container,
         "--network", "docker_default",
@@ -70,7 +91,9 @@ def recreate_container(container: str, image: str, report) -> None:
             for host, dest in mounts
             for flag in ("-v", f"{host}:{dest}")
         ],
-        "-p", "28080:28080", "--restart", "always", image,
+        "-p", "28080:28080", "--restart", "always",
+        *([] if not win_cpus else ["-e", f"WINDOWS_LOGICAL_PROCESSORS={win_cpus}"]),
+        image,
     ]
     proc = _run(run_cmd)
     if proc.returncode != 0:

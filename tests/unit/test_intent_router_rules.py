@@ -12,6 +12,17 @@ def _hermes_topic() -> str:
     return s[i:i + 20000]
 
 
+def test_cpu_percent_scale_explained():
+    # the-value-of-cpu-is-impossibel (2026-11-14): the windows-mcp CPU%
+    # column aggregates across all logical processors — the lane must
+    # explain the scale in the fast-path instruction AND the tool
+    # description, so the agent appends the explanation to any
+    # CPU-sorted listing instead of relaying "impossible" numbers bare
+    s = YML.read_text(encoding="utf-8")
+    assert s.count("aggregates across ALL logical processors") == 2
+    assert "values above 100% are normal" in s
+
+
 def test_browser_action_beats_search_rule():
     topic = _hermes_topic()
     assert "ACTION-IN-BROWSER BEATS SEARCH-FOR-INFORMATION" in topic

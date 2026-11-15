@@ -18,7 +18,7 @@
 
 ### User Story 1 - Run a PowerShell command through the Windows-MCP lane (Priority: P1)
 
-The owner asks the assistant (in chat or via the stack) to run a read-only PowerShell command on the Windows host — e.g. "use PowerShell to list the top 5 processes by memory". The request travels through the Windows-MCP lane, the Windows host shows its consent prompt (the Windows-MCP user-control dialog), the owner approves once, and the assistant relays the genuine command output verbatim (e.g. the top-5 process table) — never a fabricated result. Today this exact request fails before reaching the host: the lane's endpoint answers with an HTTP error (observed 2026-11-14: 400 Bad Request on the bridged endpoint), so no PowerShell request can complete at all.
+The owner asks the assistant (through the agent stack's existing surfaces — no new chat tool, per the Option-A clarification) to run a read-only host command — e.g. "use PowerShell to list the top 5 processes by memory". The request travels through the Windows-MCP lane, and the assistant relays the genuine command output verbatim (e.g. the top-5 process table) — never a fabricated result; where the host service enforces its user-control prompt, the owner approves once before anything runs. Before the fix, this request failed before reaching the host: the lane's endpoint answered with an HTTP error (observed 2026-11-14: 400 Bad Request on the bridged endpoint), so no request could complete at all.
 
 **Why this priority**: This is the whole feature — the lane executing one real, consented PowerShell command with honest output. Everything else exists to make this reliable.
 
@@ -37,18 +37,18 @@ Every executed command is recorded in the stack's append-only audit trail (opera
 ### Edge Cases
 
 - The Windows-MCP service is not running (host rebooted, task not started): the lane fails fast with the honest unavailable envelope and the recovery action (start the Scheduled Task) — the recovery command named must actually exist, the same contract the browser lane learned (2026-11-14).
-- The owner declines or ignores the consent prompt: the command never runs; the assistant reports that execution was not approved — no retry loops, no executing without consent.
+- The owner declines or ignores the consent prompt (on service builds that gate): the command never runs; the assistant reports that execution was not approved — no retry loops, no executing without consent.
 - The command returns large output: the relay truncates and names the truncation (house rule).
 - The command fails (PowerShell error): the genuine error text is relayed verbatim; the assistant never masks a failure as success.
-- The lane is asked to run a command while another session holds the host service busy: behavior is honest (named busy/refused envelope), never a hang past the turn budget.
+- The lane is asked to run a command while another session holds the host service busy: behavior is honest (named busy/refused envelope), never a hang past the stack's ~300 s turn budget (the Dify tool-stream ceiling that bounds every lane turn).
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: The assistant can submit a PowerShell command to the Windows host through the Windows-MCP lane and receive its genuine output (or genuine error) for relay. Read-only diagnostics commands (process/task/service/system listings) are the first-class use case.
+- **FR-001**: The assistant can submit host-side operations to the Windows host through the Windows-MCP lane — the service's structured tools (process listing first-class; clipboard, notifications, registry) — and receive their genuine output (or genuine error) for relay. Read-only diagnostics (process/task/service/system listings) are the first-class use case. (The historical "PowerShell" naming refers to the owner's intent; this service build exposes structured tools, not a raw PowerShell tool — see research R2.)
 - **FR-002**: The lane is reachable from the container-side stack through the existing port bridge, and a health probe reports its state honestly (up = up, down = down with the named recovery), verified from the sidecar's vantage point — not a probe that a bridge can satisfy while the far side is dead (the browser-lane lesson, 2026-11-14).
-- **FR-003**: Execution requires the host-side user consent (the Windows-MCP user-control prompt); no command executes without the owner's approval, and a declined/ignored consent is reported honestly.
+- **FR-003**: Execution is consent-gated wherever the host service enforces its user-control prompt; the lane never executes past a declined or timed-out consent and reports it honestly as a named refusal (blocked envelope + audit row). Verified live 2026-11-14 (convergence task T019): this service build does not consent-gate its operations — the user-control flow belongs to the agent's gateway path — so the refusal handling is exercised by unit pins and remains in force for any service build that does gate.
 - **FR-004**: Every attempt (executed, blocked, error) is recorded in the shared append-only audit trail with the command's operation class, decision, and duration.
 - **FR-005**: The host-side service survives reboots via its logon auto-start, and the lane's recovery instructions name a recovery action that exists on the host.
 - **FR-006**: The current broken state is diagnosed and fixed as part of this feature — the lane's endpoint currently rejects connections with an HTTP error before any command can be attempted.

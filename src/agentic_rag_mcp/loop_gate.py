@@ -16,6 +16,13 @@ from __future__ import annotations
 EXEMPT_OPS = frozenset({
     "doc-write-v2", "doc-read-v2", "xls-write-v2", "ppt-write-v2",
     "browser-navigate-v2", "browser-read-v2", "browser-click-v2",
+    # does-not-have-a-powershell-windows-mcp-tool (2026-11-14): the
+    # read-only windows-mcp tools are the same deterministic sub-second
+    # class as the v2 fast path — no protocol rounds around them
+    "windows-mcp-process", "windows-mcp-status",
+    # spec 041 (2026-11-15): the tier-1/2 open+read wrappers are the same
+    # deterministic fast path; tier 3-4 (writes/GUI) keep the loop rules
+    "windows-mcp-open", "windows-mcp-read",
 })
 # loop machinery, status probes, and control rows never change the
 # conversation's class — only real operational work does

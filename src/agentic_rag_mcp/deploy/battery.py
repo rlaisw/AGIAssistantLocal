@@ -12,6 +12,7 @@ import pathlib
 import re
 import shutil
 import time
+from datetime import UTC
 
 import httpx
 
@@ -43,7 +44,7 @@ def mcp_call(name: str, arguments: dict) -> dict:
     )
     for line in resp.text.splitlines():
         if line.startswith("data:") and '"result"' in line:
-            content = json.loads(line[5:])["result"]["content"]  # noqa: F821
+            content = json.loads(line[5:])["result"]["content"]
             try:
                 return json.loads(content[0]["text"])
             except (json.JSONDecodeError, KeyError, IndexError):
@@ -116,8 +117,24 @@ def scenario_tools_surface(dcfg: DeployConfig) -> tuple[bool, str]:
 
     tools = fetch_live_tools()
     names = sorted(t["name"] for t in tools)
-    ppt = [n for n in names if n.startswith("ppt_")]
-    return len(ppt) == 5, f"tools={len(names)} ppt={len(ppt)} ({', '.join(ppt)})" if ppt else f"tools={len(names)}, no ppt tools"
+    # does-not-have-a-powershell-windows-mcp-tool (2026-11-14): assert the
+    # surfaces explicitly so every tool-count change is a deliberate
+    # battery edit — ppt (6 since ppt_write_v2, office v2 2026-11-13) and
+    # the read-only windows-mcp slice (spec 040)
+    ppt = {n for n in names if n.startswith("ppt_")}
+    wmcp = {n for n in names if n.startswith("windows_mcp_")}
+    expected_ppt = {"ppt_check", "ppt_export", "ppt_icon_sync",
+                    "ppt_project_init", "ppt_write_page", "ppt_write_v2"}
+    expected_wmcp = {"windows_mcp_process_list", "windows_mcp_status",
+                     "windows_mcp_open_settings", "windows_mcp_read_settings",
+                     "windows_mcp_gui_flow"}
+    # spec 041: the applet tiers are registered; the service's raw
+    # PowerShell tool is NEVER among them (no ungated passthrough — the
+    # wrappers are the only chat-facing path)
+    assert "PowerShell" not in wmcp
+    ok = ppt == expected_ppt and wmcp == expected_wmcp
+    return ok, (f"tools={len(names)} ppt={len(ppt)} ({', '.join(sorted(ppt))}) "
+                f"windows-mcp={len(wmcp)} ({', '.join(sorted(wmcp))})")
 
 
 def scenario_deck_roundtrip(dcfg: DeployConfig) -> tuple[bool, str]:
@@ -285,10 +302,10 @@ def scenario_hermes_file_task(dcfg: DeployConfig) -> tuple[bool, str]:
     allowed root (< 60 s, SC-001), B2 out-of-root block, B3 delete-in-root
     decline, B4 audit cross-check (SC-005). Runs against the sidecar MCP."""
     import subprocess
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     allowed_root = "/mnt/c/temp"
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    stamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     test_root = f"{allowed_root}/hermes_battery_{stamp}"
     checks: list[str] = []
 

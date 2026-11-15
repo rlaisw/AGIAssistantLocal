@@ -67,6 +67,7 @@ class TestSharedModuleIs034sSource:
         assert gate._NEVER_PATTERNS is neverlist.NEVER_PATTERNS
 
     def test_034_pattern_count_preserved(self):
-        # 034 shipped 10 (name, pattern) TUPLES; the shared module carries
-        # them byte-identical — count pinned so additions stay additive
-        assert len(NEVER_PATTERNS) == 10
+        # 034 shipped 10 (name, pattern) TUPLES; spec 041 (2026-11-15)
+        # added the 5-pattern remote-access-cutting class — count pinned
+        # so additions stay additive (10 + 5 = 15)
+        assert len(NEVER_PATTERNS) == 15

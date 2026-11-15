@@ -1588,6 +1588,109 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
         return probe
 
     @mcp.tool()
+    async def windows_mcp_process_list(limit: int = 5,
+                                       sort_by: str = "memory",
+                                       conversation_id: str = "",
+                                       ctx: Context = None) -> dict:
+        """FAST read-only Windows process listing (spec 040 windows-mcp
+        lane): the top processes by `sort_by` (memory or cpu) through the
+        Windows-MCP service — genuine output relayed verbatim (bounded at
+        4000 characters with the truncation named), no confirmation needed
+        (read-only, deterministic, sub-second). On an unreachable lane,
+        returns status error with the recovery hint (start the Scheduled
+        Task: schtasks /run /tn windows-mcp-server) — relay that honestly.
+        Use for 'list top N processes' / 'what's running' style requests;
+        arbitrary PowerShell still goes through hermes_run_powershell.
+        conversation_id required (audited)."""
+        from .windows_mcp import process_list as _wmcp_process_list
+        return await _wmcp_process_list(
+            sort_by=sort_by, limit=limit, conversation_id=conversation_id,
+            audit=HermesAudit(cfg.hermes_audit_path))
+
+    @mcp.tool()
+    async def windows_mcp_status(conversation_id: str,
+                                 ctx: Context = None) -> dict:
+        """Report the WINDOWS-MCP lane's health (spec 040): whether the
+        Windows-MCP service (bridged :18800 -> 127.0.0.1:8800) is
+        reachable, probed honestly at the HTTP level (a bridge answer with
+        the far side down still reports down). On unreachable, status
+        error with the recovery hint (start the Scheduled Task:
+        schtasks /run /tn windows-mcp-server) — relay that honestly; never
+        fabricates reachability. conversation_id required (audited)."""
+        from .windows_mcp import probe_windows_mcp
+        audit = HermesAudit(cfg.hermes_audit_path)
+        t0 = time.monotonic()
+        probe = probe_windows_mcp()
+        audit.write_attempt(
+            decision="executed" if probe["status"] == "ok" else "error",
+            operation="windows-mcp-status", normalized_path=None,
+            allowed_root="",
+            outcome="probe ok" if probe["status"] == "ok" else probe["reason"],
+            conversation_id=conversation_id,
+            duration_s=time.monotonic() - t0)
+        return probe
+
+    @mcp.tool()
+    async def windows_mcp_open_settings(target: str,
+                                        conversation_id: str,
+                                        ctx: Context = None) -> dict:
+        """Open a Windows settings surface by name (spec 041, tier 1):
+        a classic Control Panel applet ('open device manager', 'open
+        network connections') or a modern Settings page ('open apps and
+        features'). Bounded to the reviewed target list — unknown or
+        ambiguous names ask back with the list; one target per request;
+        nothing beyond the identifier is executed. Opening a window is
+        nondestructive — nothing changes until a human acts inside it.
+        Returns {status ok, target, command} or blocked with the
+        ask-back; on status error include the recovery hint (start the
+        Scheduled Task: schtasks /run /tn windows-mcp-server). Use for
+        'open X' settings requests; lists/inspections go to
+        windows_mcp_read_settings. conversation_id REQUIRED (audited)."""
+        from .windows_mcp.open import open_settings
+        return await open_settings(target, conversation_id,
+                                    audit=HermesAudit(cfg.hermes_audit_path))
+
+    @mcp.tool()
+    async def windows_mcp_read_settings(question: str,
+                                         conversation_id: str,
+                                         ctx: Context = None) -> dict:
+        """Answer a Windows settings question read-only (spec 041, tier
+        2): 'what network adapters do I have?', 'what's my current power
+        plan?', 'show firewall rules', 'disk space'. Strict fixed-shape
+        allowlist — each question maps to ONE exact query; unmapped or
+        write-shaped requests are refused with the list shown (changes
+        go through the confirmed two-phase PowerShell flow); no
+        confirmation needed (reads cannot change state). Returns
+        {status ok, query, text} with genuine values, or blocked with
+        the list. conversation_id REQUIRED (audited)."""
+        from .windows_mcp.read_gate import run_read
+        return await run_read(question, conversation_id,
+                              audit=HermesAudit(cfg.hermes_audit_path))
+
+    @mcp.tool()
+    async def windows_mcp_gui_flow(steps: list, description: str,
+                                   conversation_id: str,
+                                   confirm: bool = False,
+                                   ctx: Context = None) -> dict:
+        """Drive a GUI flow inside a settings applet (spec 041, tier 4) —
+        TWO-PHASE, safe-starter-set only (uninstall, power options,
+        display, sound, date/time applets). Phase 1 (draft): pass steps
+        [{action: click|type|wait, target, value?, expect?}] and a plain
+        description; the tool stores them and returns
+        pending-confirmation with the sequence in plain words — relay it
+        VERBATIM and ask the user to confirm. Phase 2 (confirm=true): the
+        STORED steps execute (a confirm carries no step text). Honest
+        stops, all audited: credential/password fields are never typed;
+        an elevation (UAC) prompt stops with the completed steps named;
+        an unexpected dialog stops and re-confirms; never-list actions
+        are refused like typed commands. conversation_id REQUIRED."""
+        from .windows_mcp import gui
+        if confirm:
+            return await gui.confirm_sequence(conversation_id)
+        return gui.draft_sequence(steps, description, conversation_id,
+                                  audit=HermesAudit(cfg.hermes_audit_path))
+
+    @mcp.tool()
     async def browser_dynamic_task(task: str, conversation_id: str,
                                     ctx: Context = None) -> dict:
         """Drive an EXPLORATORY BROWSING task through the dynamic Playwright

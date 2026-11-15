@@ -33,6 +33,29 @@ NEVER_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = tuple(
         ("disk wipe (cipher /w)", r"\bcipher\b[^;|&]*\s/w"),
         ("disk initialization/clear", r"\b(clear-disk|initialize-disk|restore-disk)\b"),
         ("secure-delete wiping", r"\bsdelete\b"),
+        # spec 041 (2026-11-15, FR-005 + clarification): the
+        # remote-access-cutting class — these can sever the owner's remote
+        # session (recovery may need physical access) or alter the
+        # machine's security boundary; refused ALWAYS, draft and confirm.
+        # Boundary per the 2026-11-15 clarification: individual firewall
+        # RULE additions/changes are confirmed-only tier-3 operations —
+        # only the PROFILE disable matches below.
+        ("network adapter disable/enable",
+         r"\b(disable|enable)-netadapter\b"),
+        ("IP/gateway/route changes",
+         (r"\b(new-netipaddress|set-netipaddress|remove-netipaddress"
+          r"|new-netroute|remove-netroute|set-netipinterface"
+          r"|set-dnsclientserveraddress)\b")),
+        ("firewall profile disable",
+         r"\bset-netfirewallprofile\b[^;|&]*-enabled\s*:?\s*false\b"),
+        ("remote-access configuration",
+         (r"\b(fdenytsconnections|set-item\b[^;|&]*terminal"
+          r"-?server[^;|&]*fdenytsconnections"
+          r"|(enable|disable)-remotedesktop)\b")),
+        ("user account changes",
+         (r"\b(net\s+user\b[^;|&]*(/add|/delete|/active|password)"
+          r"|new-localuser|remove-localuser|set-localuser\b"
+          r"[^;|&]*\b-password\b)")),
     ]
 )
 

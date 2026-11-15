@@ -23,7 +23,9 @@ from agentic_rag_mcp.windows_mcp.client import (
     bound_text,
     call_tool,
     classify_refusal,
+    machine_processors,
     process_list,
+    render_cpu_scale,
     validate_args,
 )
 from agentic_rag_mcp.windows_mcp.health import probe_windows_mcp
@@ -38,7 +40,10 @@ __all__ = [
     "bound_text",
     "call_tool",
     "classify_refusal",
+    "health",
+    "machine_processors",
     "probe_windows_mcp",
     "process_list",
+    "render_cpu_scale",
     "validate_args",
 ]
