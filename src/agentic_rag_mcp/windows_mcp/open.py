@@ -31,15 +31,22 @@ async def open_settings(target_text: str, conversation_id: str,
                                 duration_s=time.monotonic() - t0)
         return {"status": "blocked", "reason": res["reason"]}
     target = res["target"]
-    # Start-Process through cmd is the robust form on the service's
-    # executor (plain `control`/`start` resolve but don't spawn the
-    # window; verified live 2026-11-15 — mmc appears in session 2 only
-    # via this form)
-    command = (f"Start-Process cmd.exe -ArgumentList '/c','control',"
-               f"'{target['identifier']}'"
-               if target["kind"] == "cpl"
-               else f"Start-Process cmd.exe -ArgumentList '/c','start',"
-               f"'ms-settings:{target['identifier']}'")
+    # some-success-some-unsuccess (2026-11-16): three launch forms, one per
+    # host process, each proven live on the service's executor —
+    #   .msc  -> direct mmc.exe (the cmd/control indirection dies silently
+    #            on the console session; the direct form puts the window
+    #            in the visible session, verified live)
+    #   .cpl  -> cmd /c control (Explorer-hosted applets; proven)
+    #   page  -> cmd /c start ms-settings:<page> (Settings; proven)
+    identifier = target["identifier"]
+    if identifier.endswith(".msc"):
+        command = f"Start-Process mmc.exe -ArgumentList '{identifier}'"
+    elif target["kind"] == "cpl":
+        command = (f"Start-Process cmd.exe -ArgumentList '/c','control',"
+                   f"'{identifier}'")
+    else:
+        command = (f"Start-Process cmd.exe -ArgumentList '/c','start',"
+                   f"'ms-settings:{identifier}'")
     out = await call_tool("PowerShell", {"command": command, "timeout": 20},
                           conversation_id, audit=None)
     ok = out.get("status") == "ok"

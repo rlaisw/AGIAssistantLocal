@@ -57,7 +57,7 @@ class TestOpenTier:
             "device manager", "conv-open-test", audit=None))
         assert out["status"] == "ok"
         assert captured["tool"] == "PowerShell"
-        assert captured["args"]["command"] == ("Start-Process cmd.exe -ArgumentList '/c','control','devmgmt.msc'")
+        assert captured["args"]["command"] == "Start-Process mmc.exe -ArgumentList 'devmgmt.msc'"
         assert set(captured["args"]) <= {"command", "timeout"}  # nothing beyond
 
     def test_launcher_settings_page_identifier(self, monkeypatch):
