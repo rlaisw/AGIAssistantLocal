@@ -340,13 +340,13 @@ class TestUserControlDeferral:
         assert "schtasks" not in out["reason"]       # service is up
         assert '{"code"' not in out["reason"]        # no raw JSON payload
         assert "wait_seconds" not in out["reason"]
-        assert sess.calls == 4                        # the bounded retries
+        assert sess.calls == 8                        # the bounded retries (8 attempts, ~64 s of patience — 2026-11-16)
         row = json.loads(tmp_path.read_text().splitlines()[-1])
         assert row["decision"] == "blocked"
         assert row["operation"] == "windows-mcp-process"
 
     def test_explicit_decline_keeps_the_refusal_wording(self, monkeypatch):
-        sess = self._install(monkeypatch, lambda: (
+        self._install(monkeypatch, lambda: (
             "The request was declined by the user", True))
         out = asyncio.run(call_tool("Process", {"mode": "list"},
                                     "conv-decline", None))

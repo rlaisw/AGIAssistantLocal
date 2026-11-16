@@ -208,7 +208,13 @@ async def call_tool(tool: str, args: dict, conversation_id: str,
                 # refusal, never a hang
                 res = None
                 text = ""
-                for _consent_attempt in range(4):
+                # open-the-installed-programs-applet (2026-11-16): the
+                # service yields to the desktop user (USER_CONTROL) — a
+                # safety guard, but a chat user is ALWAYS active just after
+                # typing; 4 attempts (~32 s) often wasn't enough. 8 attempts
+                # (~64 s) within the 300 s turn budget lets a hands-off
+                # moment arrive while the turn is still open.
+                for _consent_attempt in range(8):
                     res = await session.call_tool(tool, args)
                     text = "\n".join(getattr(c, "text", "")
                                      for c in res.content
