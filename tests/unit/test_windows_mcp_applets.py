@@ -24,6 +24,16 @@ class TestOpenTier:
         assert res["status"] == "ok"
         assert res["target"]["identifier"] == "desk.cpl"
 
+    def test_owners_natural_phrasings_resolve(self):
+        # open-the-installed-programs-applet (2026-11-16): the natural
+        # phrasing maps to the same applet instead of asking back
+        for text in ("installed programs applet", "installed programs",
+                     "open the installed programs",
+                     "installed apps applet"):
+            res = resolve_target(text)
+            assert res["status"] == "ok", text
+            assert res["target"]["identifier"] == "appwiz.cpl", text
+
     def test_unknown_target_asks_back_with_the_list(self):
         res = resolve_target("open the flux capacitor panel")
         assert res["status"] == "ask-back"

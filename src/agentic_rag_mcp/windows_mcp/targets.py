@@ -20,6 +20,11 @@ TARGETS: dict[str, dict] = {
     "windows firewall advanced": {"kind": "cpl", "identifier": "wf.cpl"},
     "programs and features": {"kind": "cpl", "identifier": "appwiz.cpl"},
     "uninstall programs": {"kind": "cpl", "identifier": "appwiz.cpl"},
+    # open-the-installed-programs-applet (2026-11-16): the owner's natural
+    # phrasing — map it to the same applet instead of asking back
+    "installed programs": {"kind": "cpl", "identifier": "appwiz.cpl"},
+    "installed programs applet": {"kind": "cpl", "identifier": "appwiz.cpl"},
+    "installed apps applet": {"kind": "cpl", "identifier": "appwiz.cpl"},
     "sound settings": {"kind": "cpl", "identifier": "mmsys.cpl"},
     "speech recognition": {"kind": "cpl", "identifier": "speech.cpl"},
     "power options": {"kind": "cpl", "identifier": "powercfg.cpl"},
