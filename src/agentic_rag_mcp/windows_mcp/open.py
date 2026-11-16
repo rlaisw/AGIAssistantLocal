@@ -39,7 +39,12 @@ async def open_settings(target_text: str, conversation_id: str,
     #   .cpl  -> cmd /c control (Explorer-hosted applets; proven)
     #   page  -> cmd /c start ms-settings:<page> (Settings; proven)
     identifier = target["identifier"]
-    if identifier.endswith(".msc"):
+    if target["kind"] == "perfmon_rel":
+        # spec 042 (research R1): plain perfmon /rel silently exits from
+        # the service's context on this build — the mmc-hosted form is
+        # the live-verified launcher (window confirmed in session 1)
+        command = "Start-Process mmc.exe -ArgumentList 'perfmon.msc','/rel'"
+    elif identifier.endswith(".msc"):
         command = f"Start-Process mmc.exe -ArgumentList '{identifier}'"
     elif target["kind"] == "cpl":
         command = (f"Start-Process cmd.exe -ArgumentList '/c','control',"

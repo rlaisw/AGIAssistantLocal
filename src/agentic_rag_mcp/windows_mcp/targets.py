@@ -40,6 +40,13 @@ TARGETS: dict[str, dict] = {
     "odbc data sources": {"kind": "cpl", "identifier": "odbccp32.cpl"},
     "phone and modem": {"kind": "cpl", "identifier": "telephon.cpl"},
     "scanners and cameras": {"kind": "cpl", "identifier": "sticpl.cpl"},
+    # spec 042 (2026-11-16): the Reliability Monitor — perfmon.msc's /rel
+    # view; synonyms all resolve to the one entry (the installed-programs
+    # alias precedent). Launches via the mmc-hosted form (research R1):
+    # plain perfmon /rel silently exits from the service's context.
+    "reliability monitor": {"kind": "perfmon_rel", "identifier": "perfmon.msc"},
+    "reliability history": {"kind": "perfmon_rel", "identifier": "perfmon.msc"},
+    "stability monitor": {"kind": "perfmon_rel", "identifier": "perfmon.msc"},
     "bluetooth devices": {"kind": "cpl", "identifier": "bthprops.cpl"},
     # -- modern Settings pages (start ms-settings:<page>) ----------------
     "settings home": {"kind": "settings_page", "identifier": ""},

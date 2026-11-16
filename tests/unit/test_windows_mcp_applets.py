@@ -24,6 +24,34 @@ class TestOpenTier:
         assert res["status"] == "ok"
         assert res["target"]["identifier"] == "desk.cpl"
 
+    def test_reliability_monitor_resolves(self):
+        # spec 042 (2026-11-16): the Reliability Monitor — all phrasings
+        # resolve to the one target
+        for text in ("reliability monitor", "reliability history",
+                     "stability monitor"):
+            res = resolve_target(text)
+            assert res["status"] == "ok", text
+            assert res["target"]["identifier"] == "perfmon.msc", text
+
+    def test_reliability_monitor_launch_form(self, monkeypatch):
+        # spec 042 (research R1): plain perfmon /rel silently exits from
+        # the service's context — the mmc-hosted form is the only launch
+        # that must ever appear for this target
+        from agentic_rag_mcp.windows_mcp import open as _open_mod
+        captured = {}
+
+        async def fake_call(tool, args, cid, audit=None):
+            captured["args"] = args
+            return {"status": "ok", "tool": tool, "text": "launched",
+                    "truncated": False}
+
+        monkeypatch.setattr(_open_mod, "call_tool", fake_call)
+        out = asyncio.run(_open_mod.open_settings(
+            "reliability monitor", "conv-rel"))
+        assert out["status"] == "ok"
+        assert captured["args"]["command"] == (
+            "Start-Process mmc.exe -ArgumentList 'perfmon.msc','/rel'")
+
     def test_owners_natural_phrasings_resolve(self):
         # open-the-installed-programs-applet (2026-11-16): the natural
         # phrasing maps to the same applet instead of asking back
