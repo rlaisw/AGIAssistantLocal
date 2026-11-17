@@ -9,7 +9,7 @@ Rules:
 - Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
 - If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
-- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost). KNOWN BUG (2026-11-17): the watch-CLI `graphify update .` refuses with "saved semantic node(s) are missing: specs_036_skill_manager_contracts_readme" — its reconcile drops that still-alive label-era page node; the file, manifest, and scan are all fine. Do not re-diagnose and do not --force: follow the graphify skill's manual `--update` runbook instead (detect_incremental → AST + semantic subagent chunks → `build_merge` into graph.json → cluster → label (transfer saved names by member-majority) → guarded `to_json` → restore hyperedges from git HEAD → save manifest/cost). That path preserves the node and passes the guard.
 - A committed graphify-out/graph.json is rewritten whole on every build, so a large diff to it in a pull request is expected. Do not flag it as churn or suggest skipping the graph rebuild or its hooks.
 
 ## ai-chat-landing (Chat UI)

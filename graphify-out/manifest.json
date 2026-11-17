@@ -348,10 +348,10 @@
     "semantic_hash": "0351c98ec054f4bff086a5df3dcf735d"
   },
   "src/agentic_rag_mcp/server.py": {
-    "mtime": 1794549516.6479993,
-    "seen": 1794630864.473227,
-    "ast_hash": "54f4c194b3860bfd4eea320ae287caa6",
-    "semantic_hash": "54f4c194b3860bfd4eea320ae287caa6"
+    "mtime": 1794710858.6709445,
+    "seen": 1794899819.2768426,
+    "ast_hash": "eb4742536fae961e598a65f3752a7662",
+    "semantic_hash": "eb4742536fae961e598a65f3752a7662"
   },
   "src/agentic_rag_mcp/sources/__init__.py": {
     "mtime": 1793493790.3186617,
@@ -1122,10 +1122,10 @@
     "semantic_hash": "7e3332a78cec1722b4351c6bf52dfc51"
   },
   "AGENTS.md": {
-    "mtime": 1794377245.4772596,
-    "seen": 1794630864.4740837,
-    "ast_hash": "48cc7f914233ef215bf475064968c317",
-    "semantic_hash": "48cc7f914233ef215bf475064968c317"
+    "mtime": 1794900179.7992826,
+    "seen": 1794900659.0548933,
+    "ast_hash": "f09b17213482cbcc3ffaca6a3e6e4d4e",
+    "semantic_hash": "f09b17213482cbcc3ffaca6a3e6e4d4e"
   },
   "specs/003-web-search-scrape/tasks.md": {
     "mtime": 1793493790.30643,
@@ -1380,10 +1380,10 @@
     "semantic_hash": "649790c07fc6a5ad202e099254a59f31"
   },
   "ai-chat-landing/app/api/chat/route.ts": {
-    "mtime": 1794192962.4948826,
-    "seen": 1794630864.4724696,
-    "ast_hash": "f6454f689f8d801a3f225a14df4a4192",
-    "semantic_hash": "f6454f689f8d801a3f225a14df4a4192"
+    "mtime": 1794883713.432683,
+    "seen": 1794899819.2743697,
+    "ast_hash": "1d47dcc4f2004dc6ff5dcfc12152e335",
+    "semantic_hash": "1d47dcc4f2004dc6ff5dcfc12152e335"
   },
   "ai-chat-landing/app/layout.tsx": {
     "mtime": 1793493790.2801435,
@@ -1392,10 +1392,10 @@
     "semantic_hash": "551d5824743c488ead680fa865c1c8f4"
   },
   "ai-chat-landing/app/page.tsx": {
-    "mtime": 1794194750.076725,
-    "seen": 1794630864.4724858,
-    "ast_hash": "e748eb24b63dc2b0ef59cd1603ab6372",
-    "semantic_hash": "e748eb24b63dc2b0ef59cd1603ab6372"
+    "mtime": 1794884190.3874047,
+    "seen": 1794899819.274552,
+    "ast_hash": "40f5f4014d2dad37c030030d0056c42b",
+    "semantic_hash": "40f5f4014d2dad37c030030d0056c42b"
   },
   "ai-chat-landing/components.json": {
     "mtime": 1793493790.2801435,
@@ -1488,16 +1488,16 @@
     "semantic_hash": "0482d21cfeab8cfcfe44f94927e45afb"
   },
   "ai-chat-landing/next.config.ts": {
-    "mtime": 1793493790.2820592,
-    "seen": 1794630864.4725611,
-    "ast_hash": "7e59ac84515b72494e1d7a9c27c3a51b",
-    "semantic_hash": "7e59ac84515b72494e1d7a9c27c3a51b"
+    "mtime": 1794885142.5343926,
+    "seen": 1794899819.2755296,
+    "ast_hash": "068c8216be06339e062b096f115f2ccd",
+    "semantic_hash": "068c8216be06339e062b096f115f2ccd"
   },
   "ai-chat-landing/package.json": {
-    "mtime": 1793493790.2820592,
-    "seen": 1794630864.472562,
-    "ast_hash": "80c1e4f41dc352d1743c3673bb2b6b1d",
-    "semantic_hash": "80c1e4f41dc352d1743c3673bb2b6b1d"
+    "mtime": 1794885125.414805,
+    "seen": 1794899819.275531,
+    "ast_hash": "96dbd8f7f0694844d043a271551d526d",
+    "semantic_hash": "96dbd8f7f0694844d043a271551d526d"
   },
   "ai-chat-landing/postcss.config.mjs": {
     "mtime": 1793493790.2820592,
@@ -1674,152 +1674,152 @@
     "semantic_hash": "5c27369b226fcf2be8a6cfe52224e767"
   },
   "ai-chat-landing/README.md": {
-    "mtime": 1794361277.835292,
-    "seen": 1794630864.4741075,
-    "ast_hash": "babb7c67509d3bc999a0943f72bf8cd3",
-    "semantic_hash": "babb7c67509d3bc999a0943f72bf8cd3"
+    "mtime": 1794889583.8317668,
+    "seen": 1794899819.2817855,
+    "ast_hash": "085a634e9d4d91ef1cda8ddadd504879",
+    "semantic_hash": "085a634e9d4d91ef1cda8ddadd504879"
   },
   "ai-chat-landing/agent/skills/migrate-radix-to-base/SKILL.md": {
-    "mtime": 1794631725.4226472,
-    "seen": 1794631789.9604602,
+    "mtime": 1794632524.8800743,
+    "seen": 1794899819.2817864,
     "ast_hash": "382269d3bfb8247fac488add513dec76",
     "semantic_hash": "382269d3bfb8247fac488add513dec76"
   },
   "ai-chat-landing/agent/skills/migrate-radix-to-base/class-mapping.md": {
-    "mtime": 1793493790.2777271,
-    "seen": 1794630864.474109,
+    "mtime": 1794631725.4227004,
+    "seen": 1794899819.2817872,
     "ast_hash": "2dd2bdf6f6272178d5f5def7e0b756e0",
     "semantic_hash": "2dd2bdf6f6272178d5f5def7e0b756e0"
   },
   "ai-chat-landing/agent/skills/migrate-radix-to-base/consumer-props.md": {
-    "mtime": 1793493790.2777271,
-    "seen": 1794630864.4741096,
+    "mtime": 1794631725.422719,
+    "seen": 1794899819.2817876,
     "ast_hash": "ba77c7384da61102ac51a65b83bbe8c4",
     "semantic_hash": "ba77c7384da61102ac51a65b83bbe8c4"
   },
   "ai-chat-landing/agent/skills/migrate-radix-to-base/disclosure.md": {
-    "mtime": 1793493790.2777271,
-    "seen": 1794630864.4741104,
+    "mtime": 1794631725.4227366,
+    "seen": 1794899819.2817883,
     "ast_hash": "32040ece866b6e8f3b333b27f9453c35",
     "semantic_hash": "32040ece866b6e8f3b333b27f9453c35"
   },
   "ai-chat-landing/agent/skills/migrate-radix-to-base/display-misc.md": {
-    "mtime": 1793493790.2777271,
-    "seen": 1794630864.4741116,
+    "mtime": 1794631725.4227586,
+    "seen": 1794899819.2817888,
     "ast_hash": "d35fdf046ac9faf8d72be29601fc438c",
     "semantic_hash": "d35fdf046ac9faf8d72be29601fc438c"
   },
   "ai-chat-landing/agent/skills/migrate-radix-to-base/form-controls.md": {
-    "mtime": 1793493790.2777271,
-    "seen": 1794630864.474112,
+    "mtime": 1794631725.4227827,
+    "seen": 1794899819.2817895,
     "ast_hash": "2cd39a3de7a2dc70084b04c43ada34b3",
     "semantic_hash": "2cd39a3de7a2dc70084b04c43ada34b3"
   },
   "ai-chat-landing/agent/skills/migrate-radix-to-base/menus.md": {
-    "mtime": 1793493790.2777271,
-    "seen": 1794630864.4741127,
+    "mtime": 1794631725.4228077,
+    "seen": 1794899819.28179,
     "ast_hash": "bf42ef87a36caaa24d97a07a89ef1f20",
     "semantic_hash": "bf42ef87a36caaa24d97a07a89ef1f20"
   },
   "ai-chat-landing/agent/skills/migrate-radix-to-base/overlays.md": {
-    "mtime": 1793493790.2777271,
-    "seen": 1794630864.4741135,
+    "mtime": 1794631725.4228375,
+    "seen": 1794899819.2817907,
     "ast_hash": "04ef54d38ed3597ddbab77211b8044c0",
     "semantic_hash": "04ef54d38ed3597ddbab77211b8044c0"
   },
   "ai-chat-landing/agent/skills/migrate-radix-to-base/universal-patterns.md": {
-    "mtime": 1793493790.2777271,
-    "seen": 1794630864.474114,
+    "mtime": 1794631725.4228635,
+    "seen": 1794899819.2817912,
     "ast_hash": "872c98bfcd48b47646a0df7e725da223",
     "semantic_hash": "872c98bfcd48b47646a0df7e725da223"
   },
   "ai-chat-landing/agent/skills/migrate-radix-to-base/wrapper-shapes.md": {
-    "mtime": 1793493790.2777271,
-    "seen": 1794630864.4741151,
+    "mtime": 1794631725.422884,
+    "seen": 1794899819.2817917,
     "ast_hash": "534412c9379e8c9da9b95cd9915911ae",
     "semantic_hash": "534412c9379e8c9da9b95cd9915911ae"
   },
   "ai-chat-landing/agent/skills/shadcn/SKILL.md": {
-    "mtime": 1794631725.4206407,
-    "seen": 1794631789.9604616,
+    "mtime": 1794632524.8801773,
+    "seen": 1794899819.2817924,
     "ast_hash": "30c2a54a64d475ab8045c9f3130be408",
     "semantic_hash": "30c2a54a64d475ab8045c9f3130be408"
   },
   "ai-chat-landing/agent/skills/shadcn/agents/openai.yml": {
-    "mtime": 1793493790.2784967,
-    "seen": 1794630864.4741163,
+    "mtime": 1794631725.42073,
+    "seen": 1794899819.2817934,
     "ast_hash": "a8a6560dc8e671f75672be86a079af15",
     "semantic_hash": "a8a6560dc8e671f75672be86a079af15"
   },
   "ai-chat-landing/agent/skills/shadcn/cli.md": {
-    "mtime": 1793493790.2787027,
-    "seen": 1794630864.474117,
+    "mtime": 1794631725.4208646,
+    "seen": 1794899819.2817938,
     "ast_hash": "5eeb341a5865c3fd75e2a1717f34c668",
     "semantic_hash": "5eeb341a5865c3fd75e2a1717f34c668"
   },
   "ai-chat-landing/agent/skills/shadcn/customization.md": {
-    "mtime": 1793493790.2787027,
-    "seen": 1794630864.4741175,
+    "mtime": 1794631725.4208872,
+    "seen": 1794899819.2817943,
     "ast_hash": "2104f8be015b581d1d595201fa2d3a64",
     "semantic_hash": "2104f8be015b581d1d595201fa2d3a64"
   },
   "ai-chat-landing/agent/skills/shadcn/design-system-page.md": {
-    "mtime": 1793493790.2787027,
-    "seen": 1794630864.4741185,
+    "mtime": 1794631725.4209077,
+    "seen": 1794899819.2817948,
     "ast_hash": "d1030eefce3883f54032d625b53e512a",
     "semantic_hash": "d1030eefce3883f54032d625b53e512a"
   },
   "ai-chat-landing/agent/skills/shadcn/design-system.md": {
-    "mtime": 1793493790.2787027,
-    "seen": 1794630864.4741192,
+    "mtime": 1794631725.4209437,
+    "seen": 1794899819.281795,
     "ast_hash": "1314180af02636a01a0db88a3c03d3e6",
     "semantic_hash": "1314180af02636a01a0db88a3c03d3e6"
   },
   "ai-chat-landing/agent/skills/shadcn/mcp.md": {
-    "mtime": 1793493790.2787027,
-    "seen": 1794630864.4741197,
+    "mtime": 1794631725.4209898,
+    "seen": 1794899819.2817957,
     "ast_hash": "9e9e06615702b185d87e6713b5ceb464",
     "semantic_hash": "9e9e06615702b185d87e6713b5ceb464"
   },
   "ai-chat-landing/agent/skills/shadcn/registry.md": {
-    "mtime": 1793493790.2787027,
-    "seen": 1794630864.4741204,
+    "mtime": 1794631725.421006,
+    "seen": 1794899819.2817965,
     "ast_hash": "a693ab1e548de5a07cff192b802ddc3c",
     "semantic_hash": "a693ab1e548de5a07cff192b802ddc3c"
   },
   "ai-chat-landing/agent/skills/shadcn/rules/base-vs-radix.md": {
-    "mtime": 1793493790.2787027,
-    "seen": 1794630864.4741213,
+    "mtime": 1794631725.4210336,
+    "seen": 1794899819.2817972,
     "ast_hash": "4c692439c8df72ec0e93c997f82935ae",
     "semantic_hash": "4c692439c8df72ec0e93c997f82935ae"
   },
   "ai-chat-landing/agent/skills/shadcn/rules/chat.md": {
-    "mtime": 1793493790.279213,
-    "seen": 1794630864.4741218,
+    "mtime": 1794631725.4210513,
+    "seen": 1794899819.2817976,
     "ast_hash": "bc04034aa1066a2bac2dc8de9c154aad",
     "semantic_hash": "bc04034aa1066a2bac2dc8de9c154aad"
   },
   "ai-chat-landing/agent/skills/shadcn/rules/composition.md": {
-    "mtime": 1793493790.279213,
-    "seen": 1794630864.4741225,
+    "mtime": 1794631725.421077,
+    "seen": 1794899819.2817981,
     "ast_hash": "09c5910294d50e6061377d047379af65",
     "semantic_hash": "09c5910294d50e6061377d047379af65"
   },
   "ai-chat-landing/agent/skills/shadcn/rules/forms.md": {
-    "mtime": 1793493790.279213,
-    "seen": 1794630864.474123,
+    "mtime": 1794631725.4210994,
+    "seen": 1794899819.2817986,
     "ast_hash": "be26c2aade3ec3455ec07d3026e44789",
     "semantic_hash": "be26c2aade3ec3455ec07d3026e44789"
   },
   "ai-chat-landing/agent/skills/shadcn/rules/icons.md": {
-    "mtime": 1793493790.279213,
-    "seen": 1794630864.4741237,
+    "mtime": 1794631725.4211285,
+    "seen": 1794899819.281799,
     "ast_hash": "b56104107df95ef257fdf308b7ed4491",
     "semantic_hash": "b56104107df95ef257fdf308b7ed4491"
   },
   "ai-chat-landing/agent/skills/shadcn/rules/styling.md": {
-    "mtime": 1793493790.279213,
-    "seen": 1794630864.4741242,
+    "mtime": 1794631725.4211442,
+    "seen": 1794899819.2817998,
     "ast_hash": "b96334a06e8ed397c4dbc3f8a0c7303f",
     "semantic_hash": "b96334a06e8ed397c4dbc3f8a0c7303f"
   },
@@ -1842,14 +1842,14 @@
     "semantic_hash": "cb56bf002d36bb860c3d320a23bd871a"
   },
   "ai-chat-landing/agent/skills/shadcn/assets/shadcn-small.png": {
-    "mtime": 1793493790.2784967,
-    "seen": 1794630864.4743652,
+    "mtime": 1794631725.4207618,
+    "seen": 1794899819.2862763,
     "ast_hash": "72349c6b7f303e6be598a2196391291b",
     "semantic_hash": "72349c6b7f303e6be598a2196391291b"
   },
   "ai-chat-landing/agent/skills/shadcn/assets/shadcn.png": {
-    "mtime": 1793493790.2785916,
-    "seen": 1794630864.4743657,
+    "mtime": 1794631725.4207811,
+    "seen": 1794899819.2862859,
     "ast_hash": "cb56bf002d36bb860c3d320a23bd871a",
     "semantic_hash": "cb56bf002d36bb860c3d320a23bd871a"
   },
@@ -1872,10 +1872,10 @@
     "semantic_hash": "eeb38975b06b956fd67348aef3893b60"
   },
   "ai-chat-landing/vitest.config.ts": {
-    "mtime": 1794192983.5352135,
-    "seen": 1794630864.4725716,
-    "ast_hash": "7a110717f017d6f553331c9783b72b28",
-    "semantic_hash": "7a110717f017d6f553331c9783b72b28"
+    "mtime": 1794883808.2663462,
+    "seen": 1794899819.2756567,
+    "ast_hash": "e3ee49e2b21f994d91aab78d05a729d7",
+    "semantic_hash": "e3ee49e2b21f994d91aab78d05a729d7"
   },
   "src/agentic_rag_mcp/deploy/__init__.py": {
     "mtime": 1793493790.317382,
@@ -1890,10 +1890,10 @@
     "semantic_hash": "9b3dcca82168561ad9545ce07e904ea0"
   },
   "src/agentic_rag_mcp/deploy/battery.py": {
-    "mtime": 1793857056.6784942,
-    "seen": 1794630864.472798,
-    "ast_hash": "32cb56648af37e0a7fe1dc8b7a0825a8",
-    "semantic_hash": "32cb56648af37e0a7fe1dc8b7a0825a8"
+    "mtime": 1794709397.305279,
+    "seen": 1794899819.2761698,
+    "ast_hash": "38d3131e0bea31a76d7a7beafff95495",
+    "semantic_hash": "38d3131e0bea31a76d7a7beafff95495"
   },
   "src/agentic_rag_mcp/deploy/config.py": {
     "mtime": 1793493790.3175733,
@@ -1908,10 +1908,10 @@
     "semantic_hash": "49ce9e4b0261bab921009302e407c4d7"
   },
   "src/agentic_rag_mcp/deploy/docker_ops.py": {
-    "mtime": 1794388430.8956497,
-    "seen": 1794630864.472801,
-    "ast_hash": "962ad6fef848f44107d731c9eb212513",
-    "semantic_hash": "962ad6fef848f44107d731c9eb212513"
+    "mtime": 1794661668.05933,
+    "seen": 1794899819.2761977,
+    "ast_hash": "78fa36cf8e5c4aa29ca9dbc69cb05a38",
+    "semantic_hash": "78fa36cf8e5c4aa29ca9dbc69cb05a38"
   },
   "src/agentic_rag_mcp/deploy/report.py": {
     "mtime": 1793493790.3175733,
@@ -3120,10 +3120,10 @@
     "semantic_hash": "bd26199f7e6c3f5d1c0940550d6b84c9"
   },
   "dify/AGIAssistant/AGI_Assistant.yml": {
-    "mtime": 1794555460.7555566,
-    "seen": 1794630864.4741304,
-    "ast_hash": "72789881ab6fca95107ec3c3168ca5ee",
-    "semantic_hash": "72789881ab6fca95107ec3c3168ca5ee"
+    "mtime": 1794886621.9473503,
+    "seen": 1794899819.2818966,
+    "ast_hash": "55c5add914136fa43867594aa1e86d77",
+    "semantic_hash": "55c5add914136fa43867594aa1e86d77"
   },
   "specs/024-install-difyctl/checklists/requirements.md": {
     "mtime": 1793493790.3148267,
@@ -3636,10 +3636,10 @@
     "semantic_hash": "0778853e8d3f063a5ee96e379b5b11e5"
   },
   "ai-chat-landing/app/api/chat/route.test.ts": {
-    "mtime": 1794192991.1313405,
-    "seen": 1794630864.4724681,
-    "ast_hash": "d584b629f3335672ea40893937620946",
-    "semantic_hash": "d584b629f3335672ea40893937620946"
+    "mtime": 1794883730.3095129,
+    "seen": 1794899819.2743685,
+    "ast_hash": "c29afe8982e11ace251c25528b0b611a",
+    "semantic_hash": "c29afe8982e11ace251c25528b0b611a"
   },
   "reboot.sh": {
     "mtime": 1793957165.0896354,
@@ -4962,10 +4962,10 @@
     "semantic_hash": "4888b5dfaab47c82adac41eac425a842"
   },
   "src/agentic_rag_mcp/task_gateway/neverlist.py": {
-    "mtime": 1794376731.0179207,
-    "seen": 1794630864.473376,
-    "ast_hash": "695159ffeefd1ec22b46b1c7d0134ece",
-    "semantic_hash": "695159ffeefd1ec22b46b1c7d0134ece"
+    "mtime": 1794707248.7577085,
+    "seen": 1794899819.2770965,
+    "ast_hash": "7176c649a24d0886b0d75c35d8fc4516",
+    "semantic_hash": "7176c649a24d0886b0d75c35d8fc4516"
   },
   "src/agentic_rag_mcp/task_gateway/tier2_state.py": {
     "mtime": 1794376742.090024,
@@ -4980,10 +4980,10 @@
     "semantic_hash": "7e5ce3146cc83b172d83ce4a3840ffb8"
   },
   "tests/unit/test_neverlist_shared.py": {
-    "mtime": 1794377074.121133,
-    "seen": 1794630864.4737978,
-    "ast_hash": "96e9a8acca1abddc456cb0e31aba5b2c",
-    "semantic_hash": "96e9a8acca1abddc456cb0e31aba5b2c"
+    "mtime": 1794707059.2853272,
+    "seen": 1794899819.2779481,
+    "ast_hash": "c76f0f66cf60e7aa39279df5e165a70d",
+    "semantic_hash": "c76f0f66cf60e7aa39279df5e165a70d"
   },
   "tests/unit/test_task_gateway_client.py": {
     "mtime": 1794376801.6216543,
@@ -5094,10 +5094,10 @@
     "semantic_hash": "ba6167c42ae45929882fda0f546f3982"
   },
   "tests/unit/test_intent_router_rules.py": {
-    "mtime": 1794546875.2582586,
-    "seen": 1794630864.4737704,
-    "ast_hash": "b261fadcf549c01444ce1bb229f14548",
-    "semantic_hash": "b261fadcf549c01444ce1bb229f14548"
+    "mtime": 1794660921.3728704,
+    "seen": 1794899819.2778986,
+    "ast_hash": "32a225019399fc9557134bb64f453aab",
+    "semantic_hash": "32a225019399fc9557134bb64f453aab"
   },
   "tests/unit/test_office_v2.py": {
     "mtime": 1794639730.4059763,
@@ -5376,10 +5376,10 @@
     "semantic_hash": "2828ab356adad6e5dc5f29b2059d45b9"
   },
   "src/agentic_rag_mcp/loop_gate.py": {
-    "mtime": 1794635273.495844,
-    "seen": 1794641095.5556,
-    "ast_hash": "8d2021463d8075199afd4efda7ecabad",
-    "semantic_hash": "8d2021463d8075199afd4efda7ecabad"
+    "mtime": 1794706756.3571272,
+    "seen": 1794899819.276441,
+    "ast_hash": "30a80ce173b8a38e551b657eaab3f535",
+    "semantic_hash": "30a80ce173b8a38e551b657eaab3f535"
   },
   "tests/unit/test_dynamic_health.py": {
     "mtime": 1794633549.5977209,
@@ -5464,5 +5464,479 @@
     "seen": 1794641110.1487663,
     "ast_hash": "3bc00bdd0c9e8a670240adee2dc39d8f",
     "semantic_hash": "3bc00bdd0c9e8a670240adee2dc39d8f"
+  },
+  "ai-chat-landing/app/api/attach/route.ts": {
+    "mtime": 1794883627.816753,
+    "seen": 1794899819.2743661,
+    "ast_hash": "bbaa6241c985727f0ae92f895d2f048a",
+    "semantic_hash": "bbaa6241c985727f0ae92f895d2f048a"
+  },
+  "ai-chat-landing/lib/attach/extract.test.ts": {
+    "mtime": 1794892139.583664,
+    "seen": 1794899819.2748632,
+    "ast_hash": "84531433778afd265da49b201defdae3",
+    "semantic_hash": "84531433778afd265da49b201defdae3"
+  },
+  "ai-chat-landing/lib/attach/extract.ts": {
+    "mtime": 1794892155.5818162,
+    "seen": 1794899819.2748647,
+    "ast_hash": "879e8821c6a16cdd4693e117bfd109ef",
+    "semantic_hash": "879e8821c6a16cdd4693e117bfd109ef"
+  },
+  "ai-chat-landing/lib/attach/formats.test.ts": {
+    "mtime": 1794883314.6134439,
+    "seen": 1794899819.2748654,
+    "ast_hash": "92909c28177b75ad31fb33d39445ca1d",
+    "semantic_hash": "92909c28177b75ad31fb33d39445ca1d"
+  },
+  "ai-chat-landing/lib/attach/formats.ts": {
+    "mtime": 1794883508.371854,
+    "seen": 1794899819.2748659,
+    "ast_hash": "a83e8bc696c2a94bbe12deef2d74b4c1",
+    "semantic_hash": "a83e8bc696c2a94bbe12deef2d74b4c1"
+  },
+  "ai-chat-landing/lib/attach/preamble.test.ts": {
+    "mtime": 1794883344.2939482,
+    "seen": 1794899819.2748663,
+    "ast_hash": "7739d85f187d3d9d97f562949efb593d",
+    "semantic_hash": "7739d85f187d3d9d97f562949efb593d"
+  },
+  "ai-chat-landing/lib/attach/preamble.ts": {
+    "mtime": 1794883260.7525191,
+    "seen": 1794899819.274867,
+    "ast_hash": "49422d5043d820f12f675433103832f8",
+    "semantic_hash": "49422d5043d820f12f675433103832f8"
+  },
+  "ai-chat-landing/scripts/attachment-check.mjs": {
+    "mtime": 1794889967.3854108,
+    "seen": 1794899819.2755446,
+    "ast_hash": "fbd57b20540f03b0a5b4fb089910eb45",
+    "semantic_hash": "fbd57b20540f03b0a5b4fb089910eb45"
+  },
+  "ai-chat-landing/tests/fixtures/attach/broken.json": {
+    "mtime": 1794883229.1959798,
+    "seen": 1794899819.2756402,
+    "ast_hash": "882a55abc0583cd54c3c9e21f78a1dd7",
+    "semantic_hash": "882a55abc0583cd54c3c9e21f78a1dd7"
+  },
+  "ai-chat-landing/tests/fixtures/attach/generate.mjs": {
+    "mtime": 1794883213.4819438,
+    "seen": 1794899819.2756417,
+    "ast_hash": "874f1e42afac5da555f77e1a5412079f",
+    "semantic_hash": "874f1e42afac5da555f77e1a5412079f"
+  },
+  "ai-chat-landing/tests/fixtures/attach/sample.json": {
+    "mtime": 1794883229.1959798,
+    "seen": 1794899819.2756424,
+    "ast_hash": "07b4108ed8f3312926971e292004170d",
+    "semantic_hash": "07b4108ed8f3312926971e292004170d"
+  },
+  "ai-chat-landing/types/word-extractor.d.ts": {
+    "mtime": 1794884082.878609,
+    "seen": 1794899819.275656,
+    "ast_hash": "24bac3120658a8120b7f105c5981183b",
+    "semantic_hash": "24bac3120658a8120b7f105c5981183b"
+  },
+  "src/agentic_rag_mcp/windows_mcp/__init__.py": {
+    "mtime": 1794707262.5053692,
+    "seen": 1794899819.2771118,
+    "ast_hash": "1ec8b5d53a2f2c760ff085f338f82beb",
+    "semantic_hash": "1ec8b5d53a2f2c760ff085f338f82beb"
+  },
+  "src/agentic_rag_mcp/windows_mcp/client.py": {
+    "mtime": 1794798812.6218908,
+    "seen": 1794899819.2771127,
+    "ast_hash": "f6812ac84e6f13bc6aeb3026ecc43e61",
+    "semantic_hash": "f6812ac84e6f13bc6aeb3026ecc43e61"
+  },
+  "src/agentic_rag_mcp/windows_mcp/gui.py": {
+    "mtime": 1794707273.7721403,
+    "seen": 1794899819.2771134,
+    "ast_hash": "2da765c754edc7f94df1af69299705f0",
+    "semantic_hash": "2da765c754edc7f94df1af69299705f0"
+  },
+  "src/agentic_rag_mcp/windows_mcp/health.py": {
+    "mtime": 1794648138.407899,
+    "seen": 1794899819.277114,
+    "ast_hash": "69e962cbb65407aa97a07541bc8c7e46",
+    "semantic_hash": "69e962cbb65407aa97a07541bc8c7e46"
+  },
+  "src/agentic_rag_mcp/windows_mcp/open.py": {
+    "mtime": 1794822653.050285,
+    "seen": 1794899819.2771146,
+    "ast_hash": "cf559e4827430bb54dc78edd3a12a8c7",
+    "semantic_hash": "cf559e4827430bb54dc78edd3a12a8c7"
+  },
+  "src/agentic_rag_mcp/windows_mcp/read_gate.py": {
+    "mtime": 1794710845.889821,
+    "seen": 1794899819.277115,
+    "ast_hash": "fa84c070c1ecba04fd0740440f156506",
+    "semantic_hash": "fa84c070c1ecba04fd0740440f156506"
+  },
+  "src/agentic_rag_mcp/windows_mcp/schemas.py": {
+    "mtime": 1794706685.602338,
+    "seen": 1794899819.2771156,
+    "ast_hash": "6062b4ced3f5c5bba06b3bfb9fdf62e1",
+    "semantic_hash": "6062b4ced3f5c5bba06b3bfb9fdf62e1"
+  },
+  "src/agentic_rag_mcp/windows_mcp/targets.py": {
+    "mtime": 1794822636.4381955,
+    "seen": 1794899819.277116,
+    "ast_hash": "270b5374a231379cf27c5823d82b19e8",
+    "semantic_hash": "270b5374a231379cf27c5823d82b19e8"
+  },
+  "tests/integration/test_windows_mcp_applets_e2e.py": {
+    "mtime": 1794709283.540963,
+    "seen": 1794899819.27756,
+    "ast_hash": "71d5c05dbb2912d9ceb725bf67e259fe",
+    "semantic_hash": "71d5c05dbb2912d9ceb725bf67e259fe"
+  },
+  "tests/integration/test_windows_mcp_e2e.py": {
+    "mtime": 1794648200.6961753,
+    "seen": 1794899819.277561,
+    "ast_hash": "1c847e35a9069e793215c78735f81dd1",
+    "semantic_hash": "1c847e35a9069e793215c78735f81dd1"
+  },
+  "tests/unit/test_windows_mcp_applets.py": {
+    "mtime": 1794822641.2302253,
+    "seen": 1794899819.2782629,
+    "ast_hash": "b5652700c16a9558368420a4c8360373",
+    "semantic_hash": "b5652700c16a9558368420a4c8360373"
+  },
+  "tests/unit/test_windows_mcp_lane.py": {
+    "mtime": 1794798903.1419055,
+    "seen": 1794899819.2782636,
+    "ast_hash": "d9e0c752251f35308ea65c8d2af7c629",
+    "semantic_hash": "d9e0c752251f35308ea65c8d2af7c629"
+  },
+  "windows/safe-shutdown.ps1": {
+    "mtime": 1794646538.343048,
+    "seen": 1794899819.278264,
+    "ast_hash": "309b80e218d4ea75485c0691316c88f5",
+    "semantic_hash": "309b80e218d4ea75485c0691316c88f5"
+  },
+  ".specify/bugs/does-not-have-a-powershell-windows-mcp-tool/assessment.md": {
+    "mtime": 1794649514.1631153,
+    "seen": 1794899819.2792165,
+    "ast_hash": "6dd99027085c62cf34b73c5ec461643a",
+    "semantic_hash": "6dd99027085c62cf34b73c5ec461643a"
+  },
+  ".specify/bugs/does-not-have-a-powershell-windows-mcp-tool/fix.md": {
+    "mtime": 1794660512.6302433,
+    "seen": 1794899819.2792175,
+    "ast_hash": "f38366be86bc2217a4fe528c3609e0d2",
+    "semantic_hash": "f38366be86bc2217a4fe528c3609e0d2"
+  },
+  ".specify/bugs/does-not-have-a-powershell-windows-mcp-tool/test.md": {
+    "mtime": 1794660522.8986049,
+    "seen": 1794899819.2792182,
+    "ast_hash": "4cfd3e02fe123996e181e1858eab5188",
+    "semantic_hash": "4cfd3e02fe123996e181e1858eab5188"
+  },
+  ".specify/bugs/error-windows-mcp-tool-error/assessment.md": {
+    "mtime": 1794663466.3201902,
+    "seen": 1794899819.2793224,
+    "ast_hash": "010061c426b3fdb3cb811dfcc4709788",
+    "semantic_hash": "010061c426b3fdb3cb811dfcc4709788"
+  },
+  ".specify/bugs/error-windows-mcp-tool-error/fix.md": {
+    "mtime": 1794664498.5006037,
+    "seen": 1794899819.2793233,
+    "ast_hash": "dfed20a1b473a485f96ef89bbf1ffb95",
+    "semantic_hash": "dfed20a1b473a485f96ef89bbf1ffb95"
+  },
+  ".specify/bugs/error-windows-mcp-tool-error/test.md": {
+    "mtime": 1794665052.664374,
+    "seen": 1794899819.2793238,
+    "ast_hash": "c34c3452a983f439daf8e7132cf6a04a",
+    "semantic_hash": "c34c3452a983f439daf8e7132cf6a04a"
+  },
+  ".specify/bugs/no-saved-skill-matches-this-one/assessment.md": {
+    "mtime": 1794710567.6279628,
+    "seen": 1794899819.2797353,
+    "ast_hash": "995fde33c7468185c0bfe866a3a01974",
+    "semantic_hash": "995fde33c7468185c0bfe866a3a01974"
+  },
+  ".specify/bugs/some-success-some-unsuccess-test-open-applets-on-my-desktop-screen/assessment.md": {
+    "mtime": 1794801713.916802,
+    "seen": 1794899819.2803864,
+    "ast_hash": "a21a163b267a51c3c67b406c58b6ed2b",
+    "semantic_hash": "a21a163b267a51c3c67b406c58b6ed2b"
+  },
+  ".specify/bugs/some-success-some-unsuccess-test-open-applets-on-my-desktop-screen/fix.md": {
+    "mtime": 1794801793.6013968,
+    "seen": 1794899819.2803874,
+    "ast_hash": "e16930812d67fc368eb96cb13374b625",
+    "semantic_hash": "e16930812d67fc368eb96cb13374b625"
+  },
+  ".specify/bugs/some-success-some-unsuccess-test-open-applets-on-my-desktop-screen/test.md": {
+    "mtime": 1794802023.2184527,
+    "seen": 1794899819.280388,
+    "ast_hash": "140f26ec91b991bc0dec458b0dae36ba",
+    "semantic_hash": "140f26ec91b991bc0dec458b0dae36ba"
+  },
+  ".specify/bugs/the-ile-is-not-well-formed-xml/assessment.md": {
+    "mtime": 1794892063.9724076,
+    "seen": 1794899819.2804236,
+    "ast_hash": "79c990e3d678d233809361f896180e54",
+    "semantic_hash": "79c990e3d678d233809361f896180e54"
+  },
+  ".specify/bugs/the-ile-is-not-well-formed-xml/fix.md": {
+    "mtime": 1794892186.4056683,
+    "seen": 1794899819.2804244,
+    "ast_hash": "253423f7783741a8d3534770069156db",
+    "semantic_hash": "253423f7783741a8d3534770069156db"
+  },
+  ".specify/bugs/the-ile-is-not-well-formed-xml/test.md": {
+    "mtime": 1794892221.019154,
+    "seen": 1794899819.280425,
+    "ast_hash": "8dc3d8c5be8bf20fc0669493199eddbe",
+    "semantic_hash": "8dc3d8c5be8bf20fc0669493199eddbe"
+  },
+  ".specify/bugs/the-value-of-cpu-is-impossibel/assessment.md": {
+    "mtime": 1794660852.3474638,
+    "seen": 1794899819.2808697,
+    "ast_hash": "66cdbdd785ee501ef34e1971ada75685",
+    "semantic_hash": "66cdbdd785ee501ef34e1971ada75685"
+  },
+  ".specify/bugs/the-value-of-cpu-is-impossibel/fix.md": {
+    "mtime": 1794662605.2939177,
+    "seen": 1794899819.2808707,
+    "ast_hash": "e3596d7948a7d5a0dd4876617df1dcd8",
+    "semantic_hash": "e3596d7948a7d5a0dd4876617df1dcd8"
+  },
+  ".specify/bugs/the-value-of-cpu-is-impossibel/test.md": {
+    "mtime": 1794661139.6808298,
+    "seen": 1794899819.2808716,
+    "ast_hash": "a39ff5a2e1ff5e9ffacfbfe91dc0f9b3",
+    "semantic_hash": "a39ff5a2e1ff5e9ffacfbfe91dc0f9b3"
+  },
+  "specs/040-windowsmcp-powershell/contracts/windowsmcp-lane.md": {
+    "mtime": 1794647826.1858635,
+    "seen": 1794899819.2861266,
+    "ast_hash": "b7b8062e660f95315b14012bb93cd491",
+    "semantic_hash": "b7b8062e660f95315b14012bb93cd491"
+  },
+  "specs/040-windowsmcp-powershell/data-model.md": {
+    "mtime": 1794647818.6522985,
+    "seen": 1794899819.2861278,
+    "ast_hash": "d58d80df45813d4f5ecbceb76a757573",
+    "semantic_hash": "d58d80df45813d4f5ecbceb76a757573"
+  },
+  "specs/040-windowsmcp-powershell/plan.md": {
+    "mtime": 1794647799.8282955,
+    "seen": 1794899819.2861283,
+    "ast_hash": "31644f7b5d3e6db85259787f7e430905",
+    "semantic_hash": "31644f7b5d3e6db85259787f7e430905"
+  },
+  "specs/040-windowsmcp-powershell/quickstart.md": {
+    "mtime": 1794647833.8402953,
+    "seen": 1794899819.2861292,
+    "ast_hash": "35dba6719a87aef04b069e54a49d93e7",
+    "semantic_hash": "35dba6719a87aef04b069e54a49d93e7"
+  },
+  "specs/040-windowsmcp-powershell/research.md": {
+    "mtime": 1794647811.9962983,
+    "seen": 1794899819.2861297,
+    "ast_hash": "d250b769cec208f7d4b991c7c5a60df6",
+    "semantic_hash": "d250b769cec208f7d4b991c7c5a60df6"
+  },
+  "specs/040-windowsmcp-powershell/spec.md": {
+    "mtime": 1794649147.8680232,
+    "seen": 1794899819.2861304,
+    "ast_hash": "53e7b828586febc909c415f7c93a8d61",
+    "semantic_hash": "53e7b828586febc909c415f7c93a8d61"
+  },
+  "specs/040-windowsmcp-powershell/tasks.md": {
+    "mtime": 1794721903.2441654,
+    "seen": 1794899819.286131,
+    "ast_hash": "2010c6f0372d79ac7f87d2b4892f2c54",
+    "semantic_hash": "2010c6f0372d79ac7f87d2b4892f2c54"
+  },
+  "specs/041-windows-mcp-applet-control/contracts/applet-tiers.md": {
+    "mtime": 1794706557.5576105,
+    "seen": 1794899819.2861314,
+    "ast_hash": "91014dd5cbd86d61d9017a646be765e8",
+    "semantic_hash": "91014dd5cbd86d61d9017a646be765e8"
+  },
+  "specs/041-windows-mcp-applet-control/data-model.md": {
+    "mtime": 1794709877.4867525,
+    "seen": 1794899819.2861323,
+    "ast_hash": "af4b27c48885f9188cc6a5048fa0af94",
+    "semantic_hash": "af4b27c48885f9188cc6a5048fa0af94"
+  },
+  "specs/041-windows-mcp-applet-control/research.md": {
+    "mtime": 1794706539.4675362,
+    "seen": 1794899819.286133,
+    "ast_hash": "8b0930ca74e374611e850eb71c5b721a",
+    "semantic_hash": "8b0930ca74e374611e850eb71c5b721a"
+  },
+  "specs/041-windows-mcp-applet-control/spec.md": {
+    "mtime": 1794706309.3421664,
+    "seen": 1794899819.2861333,
+    "ast_hash": "a635e6ae0e18fd663507dac5c3106e20",
+    "semantic_hash": "a635e6ae0e18fd663507dac5c3106e20"
+  },
+  "specs/042-reliability-monitor-applet/checklists/requirements.md": {
+    "mtime": 1794821759.3113277,
+    "seen": 1794899819.2861338,
+    "ast_hash": "c4d13796f70f3e572a441db6e29fc561",
+    "semantic_hash": "c4d13796f70f3e572a441db6e29fc561"
+  },
+  "specs/042-reliability-monitor-applet/contracts/reliability-target.md": {
+    "mtime": 1794822552.9802175,
+    "seen": 1794899819.2861342,
+    "ast_hash": "45d3a926550c45e33d0b2b1d846cd8ec",
+    "semantic_hash": "45d3a926550c45e33d0b2b1d846cd8ec"
+  },
+  "specs/042-reliability-monitor-applet/data-model.md": {
+    "mtime": 1794822547.5257595,
+    "seen": 1794899819.2861347,
+    "ast_hash": "b27eb524d0e40a41fa7538ae0348979b",
+    "semantic_hash": "b27eb524d0e40a41fa7538ae0348979b"
+  },
+  "specs/042-reliability-monitor-applet/plan.md": {
+    "mtime": 1794822542.6417387,
+    "seen": 1794899819.2861352,
+    "ast_hash": "7ec897c9170fddcac13619cf192e59b9",
+    "semantic_hash": "7ec897c9170fddcac13619cf192e59b9"
+  },
+  "specs/042-reliability-monitor-applet/quickstart.md": {
+    "mtime": 1794822561.6658251,
+    "seen": 1794899819.286136,
+    "ast_hash": "e218fa3db2e80d7c69630f2bf4a2dfb8",
+    "semantic_hash": "e218fa3db2e80d7c69630f2bf4a2dfb8"
+  },
+  "specs/042-reliability-monitor-applet/research.md": {
+    "mtime": 1794822494.877464,
+    "seen": 1794899819.2861364,
+    "ast_hash": "6db6b9c47d6b4269513e2a7d8a0e9b8a",
+    "semantic_hash": "6db6b9c47d6b4269513e2a7d8a0e9b8a"
+  },
+  "specs/042-reliability-monitor-applet/spec.md": {
+    "mtime": 1794822128.0069141,
+    "seen": 1794899819.2861369,
+    "ast_hash": "508ea62cb1b261ebd288d489ee7e9781",
+    "semantic_hash": "508ea62cb1b261ebd288d489ee7e9781"
+  },
+  "specs/042-reliability-monitor-applet/tasks.md": {
+    "mtime": 1794823257.818772,
+    "seen": 1794899819.2861373,
+    "ast_hash": "717a1706950b234479f442e2e85527b1",
+    "semantic_hash": "717a1706950b234479f442e2e85527b1"
+  },
+  "specs/043-chat-attachment-upload/checklists/requirements.md": {
+    "mtime": 1794880632.7174404,
+    "seen": 1794899819.2861378,
+    "ast_hash": "b9392dfcdee07bfc84b8d8eb635267e6",
+    "semantic_hash": "b9392dfcdee07bfc84b8d8eb635267e6"
+  },
+  "specs/043-chat-attachment-upload/contracts/attach-api.md": {
+    "mtime": 1794882505.4550855,
+    "seen": 1794899819.2861383,
+    "ast_hash": "4e1def85e434e94101c17386e79dd69d",
+    "semantic_hash": "4e1def85e434e94101c17386e79dd69d"
+  },
+  "specs/043-chat-attachment-upload/data-model.md": {
+    "mtime": 1794882475.0799274,
+    "seen": 1794899819.2861388,
+    "ast_hash": "850ab6ed25bad90fb2c3813e7a7c8af1",
+    "semantic_hash": "850ab6ed25bad90fb2c3813e7a7c8af1"
+  },
+  "specs/043-chat-attachment-upload/plan.md": {
+    "mtime": 1794889960.2897103,
+    "seen": 1794899819.2861395,
+    "ast_hash": "3a96fbe05d8eada8811473ffcae881ab",
+    "semantic_hash": "3a96fbe05d8eada8811473ffcae881ab"
+  },
+  "specs/043-chat-attachment-upload/quickstart.md": {
+    "mtime": 1794882538.456408,
+    "seen": 1794899819.28614,
+    "ast_hash": "c734e7c3b6de40c3682e35b7e5f1fa9d",
+    "semantic_hash": "c734e7c3b6de40c3682e35b7e5f1fa9d"
+  },
+  "specs/043-chat-attachment-upload/research.md": {
+    "mtime": 1794882443.6236885,
+    "seen": 1794899819.2861404,
+    "ast_hash": "3607cebd3f08add8759d570beac3d106",
+    "semantic_hash": "3607cebd3f08add8759d570beac3d106"
+  },
+  "specs/043-chat-attachment-upload/spec.md": {
+    "mtime": 1794882161.0731456,
+    "seen": 1794899819.286141,
+    "ast_hash": "5b1363cdecfc63f8aef7a98589425f2e",
+    "semantic_hash": "5b1363cdecfc63f8aef7a98589425f2e"
+  },
+  "specs/043-chat-attachment-upload/tasks.md": {
+    "mtime": 1794890051.5731874,
+    "seen": 1794899819.2861414,
+    "ast_hash": "e168c95802891d8788e0cb4b4a0840b4",
+    "semantic_hash": "e168c95802891d8788e0cb4b4a0840b4"
+  },
+  "ai-chat-landing/tests/fixtures/attach/corrupt.pdf": {
+    "mtime": 1794883229.1879797,
+    "seen": 1794899819.2862375,
+    "ast_hash": "43186f9d9c1d704f399d615c70e1fcca",
+    "semantic_hash": "43186f9d9c1d704f399d615c70e1fcca"
+  },
+  "ai-chat-landing/tests/fixtures/attach/renamed-docx-as-pdf.pdf": {
+    "mtime": 1794883229.19198,
+    "seen": 1794899819.2862382,
+    "ast_hash": "31b6c96b0ea0b1b72f3766a47d6c281d",
+    "semantic_hash": "31b6c96b0ea0b1b72f3766a47d6c281d"
+  },
+  "ai-chat-landing/tests/fixtures/attach/sample.pdf": {
+    "mtime": 1794885038.4740007,
+    "seen": 1794899819.2862387,
+    "ast_hash": "cf1e6b29659af805c9e814fac1afeaaf",
+    "semantic_hash": "cf1e6b29659af805c9e814fac1afeaaf"
+  },
+  "ai-chat-landing/tests/fixtures/attach/scan-only.pdf": {
+    "mtime": 1794885038.4740932,
+    "seen": 1794899819.2862391,
+    "ast_hash": "17cd66c41c92357eec4a3e1f25d1b921",
+    "semantic_hash": "17cd66c41c92357eec4a3e1f25d1b921"
+  },
+  "ai-chat-landing/tests/fixtures/attach/empty.txt": {
+    "mtime": 1794883229.1959798,
+    "seen": 1794900659.0549738,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "ai-chat-landing/tests/fixtures/attach/sample.txt": {
+    "mtime": 1794883229.1959798,
+    "seen": 1794900659.054975,
+    "ast_hash": "2df2ef19aceaaa7fed5f2d15a3276a2f",
+    "semantic_hash": "2df2ef19aceaaa7fed5f2d15a3276a2f"
+  },
+  "specs/040-windowsmcp-powershell/checklists/requirements.md": {
+    "mtime": 1794647226.149895,
+    "seen": 1794900659.0552323,
+    "ast_hash": "6801171f1782aa1e0f60834bcfd5dc17",
+    "semantic_hash": "6801171f1782aa1e0f60834bcfd5dc17"
+  },
+  "specs/041-windows-mcp-applet-control/checklists/requirements.md": {
+    "mtime": 1794705981.5850537,
+    "seen": 1794900659.0552373,
+    "ast_hash": "94f970edb8dc296d76c402b08dc8218f",
+    "semantic_hash": "94f970edb8dc296d76c402b08dc8218f"
+  },
+  "specs/041-windows-mcp-applet-control/plan.md": {
+    "mtime": 1794706527.3938062,
+    "seen": 1794900659.0552392,
+    "ast_hash": "c39a50be3d7ca47b176e2ead6b1de525",
+    "semantic_hash": "c39a50be3d7ca47b176e2ead6b1de525"
+  },
+  "specs/041-windows-mcp-applet-control/quickstart.md": {
+    "mtime": 1794706568.0758896,
+    "seen": 1794900659.05524,
+    "ast_hash": "682f8f6c39e1677a9d543d889a4cb84c",
+    "semantic_hash": "682f8f6c39e1677a9d543d889a4cb84c"
+  },
+  "specs/041-windows-mcp-applet-control/tasks.md": {
+    "mtime": 1794709737.7174814,
+    "seen": 1794900659.0552416,
+    "ast_hash": "e2ee18c6312438167b27fe9beca9fa4b",
+    "semantic_hash": "e2ee18c6312438167b27fe9beca9fa4b"
   }
 }
