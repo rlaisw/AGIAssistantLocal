@@ -155,9 +155,33 @@ workflow:
         isInIteration: false
         isInLoop: false
         sourceType: if-else
-        targetType: question-classifier
+        targetType: if-else
       id: router-cloud
       source: model_router
+      sourceHandle: 'false'
+      target: attach_router_cloud
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: agent
+      id: attach-cloud-general
+      source: attach_router_cloud
+      sourceHandle: 'true'
+      target: agentic_strategy
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: question-classifier
+      id: attach-cloud-classifier
+      source: attach_router_cloud
       sourceHandle: 'false'
       target: intent_router
       targetHandle: target
@@ -167,10 +191,34 @@ workflow:
         isInIteration: false
         isInLoop: false
         sourceType: if-else
-        targetType: question-classifier
+        targetType: if-else
       id: router-local
       source: model_router
       sourceHandle: 'true'
+      target: attach_router_local
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: agent
+      id: attach-local-general
+      source: attach_router_local
+      sourceHandle: 'true'
+      target: agentic_strategy_local
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: question-classifier
+      id: attach-local-classifier
+      source: attach_router_local
+      sourceHandle: 'false'
       target: intent_router_local
       targetHandle: target
       type: custom
@@ -580,7 +628,7 @@ workflow:
             titled X') , AND ANY BROWSER-ACTION request — when the user asks the assistant to DO something inside their browser or current chrome session ('create a new api key in current chrome session', 'in my browser log in to X', 'click the Create Key button on openrouter', 'do it in my browser') — even when the request also contains the words 'search', 'find', or 'look up' — it is a BROWSER ACTION routed to the Hermes browser lane (browser_navigate_v2, browser_read_v2, browser_click_v2), NOT a web search. ACTION-IN-BROWSER BEATS SEARCH-FOR-INFORMATION whenever the request names the user's browser or chrome session, or asks the assistant to perform clicks, logins, or key creation there. During such actions the browser lane captures SCREENSHOTS step by step — always keep that step-by-step screen capture (the user explicitly requires it)— these are LOCAL Office tasks on the user's computer, NEVER knowledge-base questions, even though they mention a file name or a spreadsheet cell (e.g.
             'open Excel and put 12345 in cell A1', 'insert a row at the top and add the header Height in A1', 'add a column B', 'change the PowerPoint background to dark', 'write an email to a@b.com saying hi'), OR to run a read-only diagnostic command on their Windows computer (e.g. 'show my current IP address', 'system info', 'what processes are running', 'ping 8.8.8.8') — NOT deck generation, NOT general questions.
         desc: Route deck-generation requests to PPT-Master; everything else to the AgenticRAG agent.
-        instruction: Classify the user's request. Choose 'PPT request' ONLY when the user wants a NEW PowerPoint/deck/slides GENERATED from a topic. Choose 'Hermes local task' when the user wants files or folders created, written, read, or listed on their local Windows computer or disk (paths like C:\\...), or wants a program/application launched, started, opened, or run on their Windows computer — by name ('launch Outlook', 'open Excel', 'start notepad') or by full path ('run C:\\tools\\mytool.exe'), or wants Office applications CONTROLLED — writing cells ('put 12345 in cell A1'), editing/creating Word/Excel/PowerPoint documents — including structure edits such as inserting or deleting rows or columns, adding or renaming headers, and changing slide backgrounds or themes ('insert a row at the top', 'add the header Height in A1', 'add a column B', 'change the PowerPoint background to dark'), adding slides to an existing presentation, composing emails ('write an email to a@b.com saying hi').
+        instruction: Classify the user's request. Choose 'PPT request' ONLY when the user wants a NEW PowerPoint/deck/slides GENERATED from a topic. Choose 'Hermes local task' when the user wants files or folders created, written, read, or listed on their local Windows computer or disk (paths like C:\\...), or wants a program/application launched, started, opened, or run on their Windows computer — by name ('launch Outlook', 'open Excel', 'start notepad') or by full path ('run C:\\tools\\mytool.exe'), or wants Office applications CONTROLLED — writing cells ('put 12345 in cell A1'), editing/creating Word/Excel/PowerPoint documents — including structure edits such as inserting or deleting rows or columns, adding or renaming headers, and changing slide backgrounds or themes ('insert a row at the top', 'add the header Height in A1', 'add a column B', 'change the PowerPoint background to dark'), adding slides to an existing presentation, composing emails ('write an email to a@b.com saying hi'). PRECEDENCE (spec 043, 2026-11-17) — when the message contains an attached-file preamble starting with '[Attached file:' and containing 'User question:', the request is ANALYZING that attached file whose content is already in the message — choose 'General' (never 'Hermes local task'), even when the wording mentions files, CSV, Excel, disk, or read.
           Requests to open/launch/start/run programs, requests to run read-only diagnostics ('show my IP address', 'system info', 'list running processes', 'ping <host>'), and requests to control Office apps — including inserting rows, adding headers, adding columns, or changing backgrounds/themes — are 'Hermes local task', NOT 'General'. Otherwise choose 'General'.
         model:
           completion_params: {}
@@ -851,6 +899,62 @@ workflow:
         x: 725.8602899449893
         y: 598.7195571955723
       selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: contains
+            value: '[Attached file:'
+            variable_selector:
+            - sys
+            - query
+          logical_operator: and
+        desc: Spec 043 — a message carrying an attached-file preamble is an attachment ANALYSIS question (the file content is already inside the message) — route it straight to the General lane, never the intent classifier or the local-file lane.
+        selected: false
+        title: Attachment Analysis? (Cloud)
+        type: if-else
+      height: 192
+      id: attach_router_cloud
+      position:
+        x: 94
+        y: 720
+      positionAbsolute:
+        x: 94
+        y: 720
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 242
+      zIndex: 0
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: contains
+            value: '[Attached file:'
+            variable_selector:
+            - sys
+            - query
+          logical_operator: and
+        desc: Spec 043 — a message carrying an attached-file preamble is an attachment ANALYSIS question (the file content is already inside the message) — route it straight to the General lane, never the intent classifier or the local-file lane.
+        selected: false
+        title: Attachment Analysis? (Local)
+        type: if-else
+      height: 192
+      id: attach_router_local
+      position:
+        x: 94
+        y: 1092
+      positionAbsolute:
+        x: 94
+        y: 1092
+      selected: false
       sourcePosition: right
       targetPosition: left
       type: custom

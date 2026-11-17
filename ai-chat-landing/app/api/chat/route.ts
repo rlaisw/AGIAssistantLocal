@@ -1,5 +1,7 @@
 export const runtime = "nodejs"
 
+import { buildPreamble } from "@/lib/attach/preamble"
+
 type StreamEvent = {
   // spec 027: additive "task" event — consumers must tolerate unknown types
   type: "chunk" | "reasoning" | "replace" | "sources" | "done" | "error" | "ping" | "task"
@@ -11,10 +13,28 @@ type StreamEvent = {
 }
 
 export async function POST(req: Request) {
-  const { query, conversationId, aiModel } = await req.json()
+  const { query, conversationId, aiModel, attachments } = await req.json()
   if (!query || typeof query !== "string") {
     return Response.json({ error: "query is required" }, { status: 400 })
   }
+  // spec 043: one attachment per message rides the query as a structured
+  // preamble (the chatflow is text-only); no attachment -> query unchanged
+  // and the upstream body stays byte-identical (pinned in route.test.ts)
+  const attached = Array.isArray(attachments) ? attachments[0] : undefined
+  const upstreamQuery =
+    attached && typeof attached.text === "string"
+      ? buildPreamble(
+          {
+            name: String(attached.name ?? "attachment"),
+            type: String(attached.type ?? ""),
+            chars: Number(attached.chars ?? attached.text.length),
+            text: attached.text,
+            truncated: Boolean(attached.truncated),
+            note: typeof attached.note === "string" ? attached.note : undefined,
+          },
+          query
+        )
+      : query
 
   const apiKey = process.env.DIFY_API_KEY
   if (!apiKey) {
@@ -41,7 +61,7 @@ export async function POST(req: Request) {
           : aiModel
             ? { ai_model: "cloud" }
             : {},
-      query,
+      query: upstreamQuery,
       response_mode: "streaming",
       conversation_id: conversationId ?? "",
       user: "ai-chat-ui-user",

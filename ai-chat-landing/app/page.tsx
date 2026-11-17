@@ -16,7 +16,9 @@ import {
   Monitor,
   Moon,
   MoreHorizontal,
+  FileText,
   Paperclip,
+  X,
   PanelLeft,
   Plus,
   RefreshCw,
@@ -34,6 +36,7 @@ import { ChatHistory } from "@/components/chat-history"
 import { ModelDropdown } from "@/components/model-dropdown"
 import { PdfExportButton } from "@/components/pdf-export-button"
 import { createHistoryState } from "@/lib/history/state"
+import { ACCEPT_ATTR, MAX_ATTACHMENT_BYTES } from "@/lib/attach/formats"
 import { filterHistory } from "@/lib/history/search"
 import type { ConversationRecord } from "@/lib/history/types"
 import { HistoryError } from "@/lib/history/types"
@@ -61,6 +64,15 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+
+type AttachmentState = {
+  name: string
+  status: "extracting" | "ready"
+  type?: string
+  chars?: number
+  text?: string
+  note?: string
+}
 
 type Message = {
   id: number
@@ -219,6 +231,10 @@ export default function Page() {
   const [configuredCloud, setConfiguredCloud] = React.useState<ModelId>(DEFAULT_MODEL_ID)
   const [applyingModel, setApplyingModel] = React.useState<ModelId | null>(null)
   const [applyError, setApplyError] = React.useState<string | null>(null)
+  // spec 043: one attachment per message — chip state + inline honest error
+  const [attachment, setAttachment] = React.useState<AttachmentState | null>(null)
+  const [attachError, setAttachError] = React.useState<string | null>(null)
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null)
   const { theme, setTheme } = useTheme()
   const history = React.useMemo(
     () =>
@@ -454,9 +470,50 @@ export default function Page() {
     return !localOk
   }
 
+  async function pickAttachment(file: File) {
+    setAttachError(null)
+    // fast client pre-checks; the server is the authoritative gate
+    if (file.size > MAX_ATTACHMENT_BYTES) {
+      setAttachment(null)
+      const mb = (file.size / (1024 * 1024)).toFixed(1)
+      setAttachError(`This file is ${mb} MB — the maximum attachment size is 20 MB.`)
+      return
+    }
+    setAttachment({ name: file.name, status: "extracting" })
+    const form = new FormData()
+    form.append("file", file)
+    try {
+      const res = await fetch("/api/attach", { method: "POST", body: form })
+      const data = (await res.json().catch(() => null)) as
+        | { ok?: boolean; error?: string; type?: string; chars?: number; text?: string; note?: string }
+        | null
+      if (!res.ok || !data?.ok || typeof data.text !== "string") {
+        setAttachment(null)
+        setAttachError(data?.error ?? `The file could not be read (${res.status}).`)
+        return
+      }
+      setAttachment({
+        name: file.name,
+        status: "ready",
+        type: data.type ?? "",
+        chars: data.chars ?? data.text.length,
+        text: data.text,
+        note: data.note,
+      })
+    } catch {
+      setAttachment(null)
+      setAttachError("The file could not be uploaded — check the connection and try again.")
+    }
+  }
+
   async function send(text = input) {
     const value = text.trim()
-    if (!value || busy || applyingModel) return
+    const hasAttachment = attachment?.status === "ready"
+    if ((!value && !hasAttachment) || busy || applyingModel) return
+    if (attachment?.status === "extracting") {
+      setAttachError("Still reading the file — one moment, then send again.")
+      return
+    }
     if (active?.difyId) {
       history.touch(active.difyId)
       syncHistory()
@@ -489,6 +546,8 @@ export default function Page() {
       }
     }
 
+    const sentAttachment = attachment?.status === "ready" ? attachment : null
+    setAttachment(null)
     updateConversation(activeId, (c) => ({
       ...c,
       title: c.title === "New chat" ? value.slice(0, 42) : c.title,
@@ -523,7 +582,25 @@ export default function Page() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: value, conversationId: difyId ?? null, aiModel: serving }),
+        body: JSON.stringify({
+          query: value,
+          conversationId: difyId ?? null,
+          aiModel: serving,
+          ...(sentAttachment
+            ? {
+                attachments: [
+                  {
+                    name: sentAttachment.name,
+                    type: sentAttachment.type,
+                    chars: sentAttachment.chars,
+                    text: sentAttachment.text,
+                    truncated: false,
+                    ...(sentAttachment.note ? { note: sentAttachment.note } : {}),
+                  },
+                ],
+              }
+            : {}),
+        }),
         signal: controller.signal,
       })
       if (!res.ok || !res.body) {
@@ -1269,8 +1346,68 @@ export default function Page() {
                 rows={1}
                 className="min-h-8 border-transparent bg-transparent px-3 py-2 focus-visible:border-transparent focus-visible:ring-0"
               />
+              {(attachment || attachError) && (
+                <div className="flex flex-wrap items-center gap-2 px-3 pb-1">
+                  {attachment && (
+                    <span
+                      className="inline-flex max-w-full items-center gap-1.5 rounded-full border bg-background px-2.5 py-1 text-xs"
+                      data-attachment-chip={attachment.status}
+                    >
+                      <FileText className="size-3.5 shrink-0" aria-hidden="true" />
+                      <span className="max-w-52 truncate" title={attachment.name}>
+                        {attachment.name}
+                      </span>
+                      {attachment.status === "extracting" ? (
+                        <LoaderCircle className="size-3 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <span className="text-muted-foreground">
+                          {attachment.chars?.toLocaleString("en-US")} chars
+                        </span>
+                      )}
+                      {attachment.note && (
+                        <span className="text-amber-600" title={attachment.note}>
+                          !
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        aria-label="Remove attachment"
+                        className="ml-0.5 rounded-full p-0.5 hover:bg-muted"
+                        onClick={() => {
+                          setAttachment(null)
+                          setAttachError(null)
+                        }}
+                      >
+                        <X className="size-3" aria-hidden="true" />
+                      </button>
+                    </span>
+                  )}
+                  {attachError && (
+                    <span role="alert" className="max-w-full text-xs text-destructive">
+                      {attachError}
+                    </span>
+                  )}
+                </div>
+              )}
               <div className="flex items-center gap-1 px-1 pt-1">
-                <Button variant="ghost" size="icon-sm" aria-label="Attach files">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept={ACCEPT_ATTR}
+                  className="hidden"
+                  data-testid="attachment-input"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    e.target.value = ""
+                    if (file) void pickAttachment(file)
+                  }}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Attach files"
+                  onClick={() => fileInputRef.current?.click()}
+                >
                   <Paperclip />
                 </Button>
                 <Button variant="ghost" size="icon-sm" aria-label="Voice input">
@@ -1317,7 +1454,11 @@ export default function Page() {
                       className="rounded-full"
                       aria-label="Send message"
                       data-composer-mode="send"
-                      disabled={!input.trim() || busy || !!applyingModel}
+                      disabled={
+                        (!input.trim() && attachment?.status !== "ready") ||
+                        busy ||
+                        !!applyingModel
+                      }
                       onClick={() => send()}
                     >
                       <ArrowUp />

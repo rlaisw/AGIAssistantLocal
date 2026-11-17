@@ -61,3 +61,48 @@ describe("chat route finalization", () => {
     expect(types[types.length - 1]).toBe("done")
   })
 })
+
+// spec 043: attachments ride the query as a preamble; without one the
+// upstream body must stay byte-identical to the pre-attachment shape.
+describe("attachment preamble injection", () => {
+  async function capturedBody(payload: Record<string, unknown>) {
+    process.env.DIFY_API_KEY = "k"
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(new ReadableStream({ start(c) { c.close() } }), { status: 200 })
+    )
+    vi.stubGlobal("fetch", fetchMock)
+    const req = new Request("http://local/api/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+    await POST(req)
+    const init = fetchMock.mock.calls[0][1] as RequestInit
+    return JSON.parse(String(init.body))
+  }
+
+  it("no attachment: query unchanged and body shape identical", async () => {
+    const body = await capturedBody({ query: "hello", conversationId: null })
+    expect(body.query).toBe("hello")
+    expect(Object.keys(body)).toEqual(["inputs", "query", "response_mode", "conversation_id", "user"])
+    expect(body).toEqual({
+      inputs: {},
+      query: "hello",
+      response_mode: "streaming",
+      conversation_id: "",
+      user: "ai-chat-ui-user",
+    })
+  })
+
+  it("with attachment: the preamble carries the file and the question", async () => {
+    const body = await capturedBody({
+      query: "what does it say?",
+      conversationId: "c1",
+      attachments: [{ name: "r.pdf", type: ".pdf", chars: 9, text: "TOKEN_42", truncated: false }],
+    })
+    expect(body.query).toContain("[Attached file: r.pdf (.pdf, 9 characters extracted)]")
+    expect(body.query).toContain("TOKEN_42")
+    expect(body.query).toContain("User question: what does it say?")
+    expect(body.conversation_id).toBe("c1")
+  })
+})
