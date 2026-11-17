@@ -45,6 +45,39 @@ stores Dify's conversation_id per chat for multi-turn context.
 - Conversation history sidebar, static "AGI Chat" badge (the chatflow's model is fixed server-side), theme dropdown; per-chat Dify `conversation_id` keeps agent memory across turns
 - Deck links in answers render as an action bar (⬇ Download / 👁 Preview-Edit) opening the sidecar's completion page (`/decks/<project>/<stem>/`) with per-slide previews — URL recognition and derivation live in `lib/deck-url.ts`
 
+## Attachments
+
+The composer's paperclip attaches **one file per message** — PDF, Word
+(.doc/.docx), Excel (.xls/.xlsx), PowerPoint (.ppt/.pptx), TXT, CSV, JSON, XML —
+up to **20 MB**. One click opens the native file-open dialog (the File
+Explorer-style dialog on Windows); the selected file shows as a chip in the
+composer (filename + extracted character count) and can be removed before
+sending.
+
+```
+Browser ── POST /api/attach (multipart) ──► app/api/attach/route.ts
+             validate 20 MB · 8-format allowlist · magic sniff (%PDF- / PK)
+             extract in memory: pdf-parse · mammoth (.docx) · word-extractor (.doc)
+                               · SheetJS (.xlsx/.xls/CSV) · jszip slide text (.pptx)
+                               · fast-xml-parser (XML)
+             ──► { text, chars, note? }   (nothing is written to disk)
+Browser ── POST /api/chat + attachments ──► the Dify query becomes a
+             [Attached file: <name> (<type>, N chars)] preamble, content capped
+             at 24,000 characters with the truncation named, then "User question: …"
+```
+
+Honest edges (all inline in the composer, typed text preserved):
+- scanned/image-only PDFs → attaches with the note "no readable text (OCR is not enabled)"; the assistant says it could not read text, never fabricates a summary
+- legacy `.ppt` → refused with the save-as-.pptx remedy (no pure-JS text extractor)
+- corrupt archives, malformed JSON/XML, renamed files (content ≠ extension) → the specific honest reason
+- over 20 MB or an unsupported type → refused naming the cap / the supported list
+
+Attachment messages are routed **deterministically** to the General lane by an
+if-else gate before the intent classifiers (the file content is already inside
+the message), so "what does this file contain?" never lands on the local-file
+lane. Acceptance: `node scripts/attachment-check.mjs` (CDP; needs Chrome
+`:9240`, `pnpm dev`, the Dify stack).
+
 ## Stack
 
 Next.js 16 (App Router, Turbopack) · React 19 · Tailwind CSS v4 · shadcn/ui (Base UI, luma preset) · react-markdown (GFM tables + images) · lucide-react icons

@@ -119,3 +119,8 @@ T003/T004/T005 (three lib files); T006/T007 (two test files); T012 alongside T01
 - The E2E needs the Dify stack up and `pnpm dev` running; the CDP pattern is the existing `scripts/landing-check.mjs`.
 - Legacy `.ppt` is a documented honest-refusal limitation (EH-5); OCR is out of scope (EH-4).
 - Commit per logical group; `pnpm test && pnpm typecheck && pnpm lint` before each commit.
+---
+
+## Phase 6: Convergence
+
+- [X] T019 Add the attachments section to `ai-chat-landing/README.md` per T017 (partial): the paperclip flow, the 20 MB cap, the eight formats, the 24,000-char preamble cap, the honest edges (scanned PDFs, legacy .ppt, malformed files), and the `scripts/attachment-check.mjs` acceptance script — the T017 script's anchor never matched, so only AGENTS.md carries the documentation
