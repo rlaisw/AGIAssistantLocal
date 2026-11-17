@@ -238,8 +238,51 @@ for (const [file, token] of [
   check(`E2E-5 ${file} grounded`, res.hit, res.hit ? "" : res.txt.slice(-160))
 }
 
-// ---- EH-5..7 unit-covered; EH-8/9 not forced live (documented) ----------
-check("EH-5..9", true, "covered by unit pins (legacy .ppt, renamed ext, truncation, route-5xx, send-while-extracting)")
+// ---- EH-9: send while extraction is in flight (forced slow attach) ------
+{
+  await freshChat()
+  await evalJS(`(() => {
+    const orig = window.fetch
+    window.fetch = (u, o) => {
+      const url = typeof u === "string" ? u : u?.url ?? ""
+      if (url.includes("/api/attach")) return new Promise(r => setTimeout(r, 4000)).then(() => orig(u, o))
+      return orig(u, o)
+    }
+    return true
+  })()`)
+  await setFile(join(FIX, "sample.pdf"))
+  await typeText("what does this file say about reliability?")
+  await clickSend()
+  const s = await chipState()
+  check("EH-9 send during extraction is refused honestly", /still reading/i.test(s.error), s.error)
+  const kept = await evalJS(`document.querySelector('textarea')?.value ?? ""`)
+  check("EH-9 the question stays in the composer (nothing sent)", kept.trim().length > 0, JSON.stringify(kept.slice(0, 40)))
+  const ready = await waitChip("ready")
+  check("EH-9 extraction then completes", ready.state === "ready", JSON.stringify(ready.text))
+}
+
+// ---- EH-8: attach route unreachable (forced network failure) ------------
+{
+  await freshChat()
+  await evalJS(`(() => {
+    const orig = window.fetch
+    window.fetch = (u, o) => {
+      const url = typeof u === "string" ? u : u?.url ?? ""
+      if (url.includes("/api/attach")) return Promise.reject(new TypeError("Failed to fetch"))
+      return orig(u, o)
+    }
+    return true
+  })()`)
+  await setFile(join(FIX, "sample.pdf"))
+  let s = { error: "" }
+  for (let i = 0; i < 20; i++) {
+    s = await chipState()
+    if (s.error) break
+    await sleep(300)
+  }
+  check("EH-8 unreachable route surfaces the inline error", /could not be uploaded/i.test(s.error), s.error)
+  check("EH-8 no chip left behind", s.state === null, s.state ?? "")
+}
 
 ws.close()
 if (fails.length) die(`${fails.length} FAILED: ${fails.join(", ")}`)

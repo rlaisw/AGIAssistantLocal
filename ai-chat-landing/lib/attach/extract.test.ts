@@ -66,6 +66,43 @@ describe("extraction edge cases (honest outcomes)", () => {
     if (!res.ok) expect(res.error).toContain("well-formed")
   })
 
+  it("UTF-16LE XML with BOM (the Windows RelMon export family) extracts", async () => {
+    const xml = '<?xml version="1.0" encoding="utf-16" ?><r><v>UTF16_XML_TOKEN_4</v></r>'
+    const bytes = Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(xml, "utf16le")])
+    const res = await extractText({ name: "relmon.xml", ext: ".xml", bytes })
+    expect(res.ok).toBe(true)
+    if (res.ok) expect(res.text).toContain("UTF16_XML_TOKEN_4")
+  })
+
+  it("UTF-16LE text and JSON with BOM decode correctly", async () => {
+    const text = "UTF16_TEXT_TOKEN_6"
+    const json = JSON.stringify({ k: "UTF16_JSON_TOKEN_2" })
+    for (const [name, ext, content, token] of [
+      ["relmon.txt", ".txt", text, "UTF16_TEXT_TOKEN_6"],
+      ["relmon.json", ".json", json, "UTF16_JSON_TOKEN_2"],
+    ] as const) {
+      const bytes = Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(content, "utf16le")])
+      const res = await extractText({ name, ext, bytes })
+      expect(res.ok).toBe(true)
+      if (res.ok) expect(res.text).toContain(token)
+    }
+  })
+
+  it("UTF-16BE XML with BOM extracts", async () => {
+    const xml = '<?xml version="1.0" encoding="utf-16" ?><r><v>UTF16BE_TOKEN_3</v></r>'
+    const bytes = Buffer.concat([Buffer.from([0xfe, 0xff]), Buffer.from(xml, "utf16le").swap16()])
+    const res = await extractText({ name: "relmon-be.xml", ext: ".xml", bytes })
+    expect(res.ok).toBe(true)
+    if (res.ok) expect(res.text).toContain("UTF16BE_TOKEN_3")
+  })
+
+  it("UTF-8 BOM is stripped before parsing", async () => {
+    const bytes = Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from("<r><v>BOM_TOKEN_9</v></r>")])
+    const res = await extractText({ name: "bom.xml", ext: ".xml", bytes })
+    expect(res.ok).toBe(true)
+    if (res.ok) expect(res.text).toContain("BOM_TOKEN_9")
+  })
+
   it("empty text yields the empty extraction (gate refuses before this in the route)", async () => {
     const res = await run("empty.txt")
     expect(res.ok).toBe(true)

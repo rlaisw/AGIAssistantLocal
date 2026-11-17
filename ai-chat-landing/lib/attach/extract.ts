@@ -25,6 +25,22 @@ export type ExtractInput = {
 const NO_TEXT_NOTE =
   "no readable text (scanned/image-only PDF — OCR is not enabled)"
 
+// Windows text exports (Reliability Monitor, Task Scheduler, Export-Clixml,
+// legacy Notepad "Unicode") are UTF-16 with a BOM — decoding them as UTF-8
+// garbles the bytes before any parser runs.
+function decodeText(buf: Buffer): string {
+  if (buf[0] === 0xff && buf[1] === 0xfe) return stripBom(buf.subarray(2).toString("utf16le"))
+  if (buf[0] === 0xfe && buf[1] === 0xff) {
+    const body = buf.subarray(2, buf.length - (buf.length % 2))
+    return stripBom(Buffer.from(body).swap16().toString("utf16le"))
+  }
+  if (buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf)
+    return buf.subarray(3).toString("utf-8")
+  return buf.toString("utf-8")
+}
+
+const stripBom = (s: string) => (s.charCodeAt(0) === 0xfeff ? s.slice(1) : s)
+
 export async function extractText({
   ext,
   bytes,
@@ -42,7 +58,7 @@ export async function extractText({
       case ".xls":
         return extractWorkbook(buf)
       case ".csv":
-        return { ok: true, text: buf.toString("utf-8") }
+        return { ok: true, text: decodeText(buf) }
       case ".pptx":
         return await extractPptx(buf)
       case ".ppt":
@@ -52,7 +68,7 @@ export async function extractText({
             "Legacy PowerPoint (.ppt) text cannot be extracted — save it as .pptx and attach that.",
         }
       case ".txt":
-        return { ok: true, text: buf.toString("utf-8") }
+        return { ok: true, text: decodeText(buf) }
       case ".json":
         return extractJson(buf)
       case ".xml":
@@ -136,7 +152,7 @@ async function extractPptx(buf: Buffer): Promise<ExtractResult> {
 }
 
 function extractJson(buf: Buffer): ExtractResult {
-  const raw = buf.toString("utf-8")
+  const raw = decodeText(buf)
   try {
     const parsed = JSON.parse(raw)
     return { ok: true, text: JSON.stringify(parsed, null, 2) }
@@ -146,7 +162,7 @@ function extractJson(buf: Buffer): ExtractResult {
 }
 
 function extractXml(buf: Buffer): ExtractResult {
-  const raw = buf.toString("utf-8")
+  const raw = decodeText(buf)
   const valid = XMLValidator.validate(raw)
   if (valid !== true) {
     return { ok: false, error: "The file is not well-formed XML." }
