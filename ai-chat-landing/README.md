@@ -58,8 +58,10 @@ sending.
 Browser ── POST /api/attach (multipart) ──► app/api/attach/route.ts
              validate 20 MB · 8-format allowlist · magic sniff (%PDF- / PK)
              extract in memory: pdf-parse · mammoth (.docx) · word-extractor (.doc)
-                               · SheetJS (.xlsx/.xls/CSV) · jszip slide text (.pptx)
-                               · fast-xml-parser (XML)
+                                · SheetJS (.xlsx/.xls/CSV) · jszip slide text (.pptx)
+                                · fast-xml-parser (XML)
+             text family decoded BOM-aware: UTF-16LE/BE and UTF-8 BOM
+                                (Windows RelMon/schtasks XML, legacy Notepad "Unicode")
              ──► { text, chars, note? }   (nothing is written to disk)
 Browser ── POST /api/chat + attachments ──► the Dify query becomes a
              [Attached file: <name> (<type>, N chars)] preamble, content capped
@@ -71,6 +73,7 @@ Honest edges (all inline in the composer, typed text preserved):
 - legacy `.ppt` → refused with the save-as-.pptx remedy (no pure-JS text extractor)
 - corrupt archives, malformed JSON/XML, renamed files (content ≠ extension) → the specific honest reason
 - over 20 MB or an unsupported type → refused naming the cap / the supported list
+- BOM-less UTF-16 text (rare — every Windows export tool writes a BOM) still fails honestly with the encoding-shaped reason
 
 Attachment messages are routed **deterministically** to the General lane by an
 if-else gate before the intent classifiers (the file content is already inside
@@ -86,7 +89,7 @@ shadcn components installed: button, badge, card, accordion, avatar, table, sepa
 
 ## Testing
 
-`pnpm test` runs vitest (pure logic — deck-URL recognition/derivation, history grouping and delete state, sidebar search, the PDF-export pipeline incl. the image-proxy rewrite, the stop state machine, the chat route's `message_end`→`done` stream finalization and upstream-reader cancellation (`app/api/chat/route.test.ts`), and the follow-up prompt splitter; 143 tests). Browser-facing behavior is covered by the deploy battery's `chat-ui-liveness` and `chat-journey` scenarios (`python -m agentic_rag_mcp.deploy verify` from the repo root). Layout acceptance is measured live by the CDP scripts: `node scripts/wide-layout.mjs` (layout + `--smoke` behavioral — spec 016), `node scripts/landing-check.mjs` (New-chat landing — spec 020), and `node scripts/welcome-cards.mjs` (welcome feature cards — spec 021); all need Chrome on `--remote-debugging-port=9240`.
+`pnpm test` runs vitest (pure logic — deck-URL recognition/derivation, history grouping and delete state, sidebar search, the PDF-export pipeline incl. the image-proxy rewrite, the stop state machine, the chat route's `message_end`→`done` stream finalization and upstream-reader cancellation (`app/api/chat/route.test.ts`), and the follow-up prompt splitter, the attachment format gate + BOM-aware decode + preamble builder (`lib/attach/`); 175 tests). Browser-facing behavior is covered by the deploy battery's `chat-ui-liveness` and `chat-journey` scenarios (`python -m agentic_rag_mcp.deploy verify` from the repo root). Layout acceptance is measured live by the CDP scripts: `node scripts/wide-layout.mjs` (layout + `--smoke` behavioral — spec 016), `node scripts/landing-check.mjs` (New-chat landing — spec 020), and `node scripts/welcome-cards.mjs` (welcome feature cards — spec 021); all need Chrome on `--remote-debugging-port=9240`.
 
 ## Notes
 

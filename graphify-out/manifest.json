@@ -1122,10 +1122,10 @@
     "semantic_hash": "7e3332a78cec1722b4351c6bf52dfc51"
   },
   "AGENTS.md": {
-    "mtime": 1794900179.7992826,
-    "seen": 1794900659.0548933,
-    "ast_hash": "f09b17213482cbcc3ffaca6a3e6e4d4e",
-    "semantic_hash": "f09b17213482cbcc3ffaca6a3e6e4d4e"
+    "mtime": 1794900851.5862792,
+    "seen": 1794901076.968077,
+    "ast_hash": "4055466d616b476b7d1c0b920be4d214",
+    "semantic_hash": "4055466d616b476b7d1c0b920be4d214"
   },
   "specs/003-web-search-scrape/tasks.md": {
     "mtime": 1793493790.30643,
@@ -1674,10 +1674,10 @@
     "semantic_hash": "5c27369b226fcf2be8a6cfe52224e767"
   },
   "ai-chat-landing/README.md": {
-    "mtime": 1794889583.8317668,
-    "seen": 1794899819.2817855,
-    "ast_hash": "085a634e9d4d91ef1cda8ddadd504879",
-    "semantic_hash": "085a634e9d4d91ef1cda8ddadd504879"
+    "mtime": 1794900844.5282145,
+    "seen": 1794901076.9681032,
+    "ast_hash": "40fd83345185452feb1b130a0c32872c",
+    "semantic_hash": "40fd83345185452feb1b130a0c32872c"
   },
   "ai-chat-landing/agent/skills/migrate-radix-to-base/SKILL.md": {
     "mtime": 1794632524.8800743,
