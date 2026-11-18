@@ -36,7 +36,7 @@ _RE_GUI_CLAUSE = re.compile(
 - Gate matrix (all report phrasings): "open chrome search hong kong weather" → ok target `chrome`; with ", show me the temperature today" → tail rides the followup; "open a new session chrome browser , search …" → ok target `chrome`; two real apps still blocked; chaining in the followup still blocked; "open chrome, type www.google.com" unchanged
 - `deploy redeploy` → ok
 - **Live (02:20)**: the exact request → `status ok`, gate passed, followup carried — *"Chrome launch: succeeded… Desktop followup (search 'hong kong weather', show today's temperature): not completed. WindowsMCP desktop control is currently unavailable (state: unavailable…)"* — the agent honestly declined rather than fabricating or working around the gate
-- **Environmental blocker (recurring, out of scope)**: by 02:25 the RDP session had **disconnected again** (`qwinsta`: state `Disc`), WindowsMCP 0.8.8 cannot restart ("No active interactive desktop"), and its control machinery had degraded — the same pattern as 2026-11-06. Reconnect the session (RDP), then `Start-ScheduledTask windows-mcp-server` (or `./reboot.sh`), and re-ask to complete the search end-to-end
+- **Environmental blocker (recurring, out of scope)**: by 02:25 the RDP session had **disconnected again** (`qwinsta`: state `Disc`), WindowsMCP 0.8.8 cannot restart ("No active interactive desktop"), and its control machinery had degraded — the same pattern as 2026-11-06. Reconnect the session (RDP), then `Start-ScheduledTask windows-mcp-server` (or `./startup.sh`), and re-ask to complete the search end-to-end
 
 ## Deviations from Assessment
 
@@ -45,6 +45,6 @@ _RE_GUI_CLAUSE = re.compile(
 
 ## Follow-ups
 
-- **Recurring environmental fragility worth its own lifecycle**: the RDP session disconnects and WindowsMCP 0.8.8 dies/degrades every time (observed 2026-11-06 and again within 30 min today). Candidates: reboot.sh proactively restarting the `windows-mcp-server` task when its control state is unavailable; a watchdog; or evaluating a newer windows-mcp version whose control-off mode survives disconnected sessions — owner's call
+- **Recurring environmental fragility worth its own lifecycle**: the RDP session disconnects and WindowsMCP 0.8.8 dies/degrades every time (observed 2026-11-06 and again within 30 min today). Candidates: startup.sh proactively restarting the `windows-mcp-server` task when its control state is unavailable; a watchdog; or evaluating a newer windows-mcp version whose control-off mode survives disconnected sessions — owner's call
 - The observe step ("show me the temperature today") rides the followup as text; the agent's WindowsMCP Scrape/Snapshot can fulfill it once the control state is healthy — watch quality on the first natural occurrence
 - Multi-step desktop turns still take 3–6 minutes (desktop-control idle waits + LLM iterations) — the known latency floor

@@ -33,7 +33,7 @@ pytest tests/unit → 341 passed
 
 ## Residual Risks
 
-- WindowsMCP 0.8.8 still cannot survive a **disconnected** session (control machinery hard-requires an Active session; no 0.8.8 config escape) — after any disconnect/reconnect cycle the server may need `./reboot.sh` or `Start-ScheduledTask` to come back, and the gateway's tool session may need one `hermes mcp test WindowsMCP` refresh (observed this run); worth adding to the runbook's disconnect-recovery notes
+- WindowsMCP 0.8.8 still cannot survive a **disconnected** session (control machinery hard-requires an Active session; no 0.8.8 config escape) — after any disconnect/reconnect cycle the server may need `./startup.sh` or `Start-ScheduledTask` to come back, and the gateway's tool session may need one `hermes mcp test WindowsMCP` refresh (observed this run); worth adding to the runbook's disconnect-recovery notes
 - The agent noted intermittent **UIA staleness** mid-task (empty window list while screenshots were fine) — it recovered; if it recurs, the `WINDOWS_MCP_EXCLUDE_PROCESSES` mitigation from the README is the knob
 - The agent typed into Google's **search box** rather than the address bar for step 3 (both match the request's intent; noting the interpretation)
 - Multi-step desktop turns take 3–6 minutes (desktop-control idle waits + LLM iterations) — the known latency floor; the search-phrase was correctly left unsubmitted since only typing was requested

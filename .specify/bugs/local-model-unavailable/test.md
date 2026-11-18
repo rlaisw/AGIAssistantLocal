@@ -28,5 +28,5 @@ request-level switch (what Dify sends through the plugin):
   way; only `think:false` suppresses thinking.
 
 ## Re-verify after next reboot
-Run `./reboot.sh` — step [4/6] must report `Ollama: up on :11434 (2 models)` and
+Run `./startup.sh` — step [4/6] must report `Ollama: up on :11434 (2 models)` and
 the health table must show `Ollama :11434: ok`; then repeat Test 1 and Test 3.

@@ -55,12 +55,11 @@ gateway_up() {
 echo "[2/6] Hermes gateway..."
 if gateway_up; then
     echo "  Gateway: already up on :8642 — NOT restarting"
-    echo "  (a gateway restart re-arms the ~15-min OfficeMCP argument-strip window)"
 else
     hermes gateway restart -y --detach >/dev/null 2>&1
     sleep 10
     if gateway_up; then
-        echo "  Gateway: up on :8642 (fresh start — Office tasks may be strip-blocked ~15 min)"
+        echo "  Gateway: up on :8642"
     else
         echo "  Gateway not responding yet (may need a moment or manual restart)"
     fi
@@ -68,7 +67,7 @@ fi
 
 echo "[3/6] MCP connection..."
 if hermes mcp list 2>/dev/null | grep -q "OfficeMCP"; then
-    echo "  OfficeMCP: already registered — NOT re-registering (re-registration re-arms the strip window)"
+    echo "  OfficeMCP: already registered — NOT re-registering"
 else
     yes | hermes mcp remove OfficeMCP >/dev/null 2>&1 || true
     yes | hermes mcp add OfficeMCP --url http://127.0.0.1:8888/sse >/dev/null 2>&1 || true
@@ -76,7 +75,6 @@ else
     hermes mcp list 2>/dev/null | grep -q "OfficeMCP" && echo "  MCP registered" || echo "  MCP registration may have failed"
     hermes gateway restart -y --detach >/dev/null 2>&1
     sleep 10
-    echo "  (fresh registration — Office tasks may be strip-blocked ~15 min)"
 fi
 
 echo "[4/6] Starting WSL Ollama server (local-model lane)..."

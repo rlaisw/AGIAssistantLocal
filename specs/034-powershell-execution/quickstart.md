@@ -4,7 +4,7 @@ Phase 1 output — runnable validation scenarios that prove the feature end-to-e
 
 ## Prerequisites
 
-- The full stack up and healthy (`reboot.sh` reports all lanes green)
+- The full stack up and healthy (`startup.sh` reports all lanes green)
 - The feature built and live: sidecar with the new gate/state/tool, tool sync run (28 → 29), and the chatflow published from the updated DSL
 
 ## Scenario 1 — Gate and tool suites (offline, seconds)

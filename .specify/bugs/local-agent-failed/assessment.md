@@ -21,7 +21,7 @@ The email task fails with the honest "local agent failed" error because the gate
 1. 07:24–07:34 — the previous email turn exceeded the sidecar's 600 s Hermes budget on the COM-broken Outlook (the attach-marathon); the sidecar timed out honestly at 07:34:52
 2. 07:39:10 — the gateway **completed** that marathon turn server-side (gateway.log: "response ready"), five minutes after the client gave up
 3. 07:39–07:53 — **the gateway exited uncleanly** (the next start logged `gateway.previous_unclean_exit`, prior PID 19144) — **no traceback in errors.log, no OOM in dmesg**: a silent death
-4. 07:53:09–07:53:18 — `./reboot.sh` ran: OfficeMCP restarted, and the gateway — found **down**, so the skip-when-healthy guard correctly did not apply — was restarted (PID 19277), arming the strip window
+4. 07:53:09–07:53:18 — `./startup.sh` ran: OfficeMCP restarted, and the gateway — found **down**, so the skip-when-healthy guard correctly did not apply — was restarted (PID 19277), arming the strip window
 5. 07:57:40 — the user's email attempt hit the 4.5-minute-old window: `STEP 1: Outlook process probe via RunPython FAILED — arguments stripped, default echo 'OfficeMCP' returned (3 canaries attempted, none delivered)` (07:58:04 audit) → honest "local agent failed" with the wait/recovery guidance
 6. Current state: Outlook is now **fully closed** (the broken instance is gone — the fresh-state Launch path is available), and the window opened at 07:53:18, so delivery should resume ~08:08
 
@@ -30,11 +30,11 @@ The email task fails with the honest "local agent failed" error because the gate
 - `src/agentic_rag_mcp/hermes_client.py` — `OFFICE_INSTRUCTIONS`: the OUTLOOK ATTACH-FAILURE PROTOCOL does not bound its attach attempts — `GetActiveObject` fails fast, but each `Dispatch`/`EnsureDispatch` on a broken Outlook hangs ~1–2 min, letting turns run 600 s+ (the marathon that preceded today's gateway death)
 - `src/agentic_rag_mcp/config.py` — `[hermes] timeout_s = 600` — the sidecar budget; the gateway kept running past it and died afterward
 - Upstream (`~/.hermes/hermes-agent`) — two defects now: the argument-strip window (#148459) and the **newly observed silent unclean gateway exit after a >600 s agent turn** (no log trace; `gateway.previous_unclean_exit` is only recorded by the *next* start)
-- `reboot.sh` — worked as designed (restarted a dead gateway); its fresh-start branch already prints the strip-window warning
+- `startup.sh` — worked as designed (restarted a dead gateway); its fresh-start branch already prints the strip-window warning
 
 ## Root Cause Hypothesis
 
-**High confidence.** The immediate cause is the strip window re-armed by a gateway restart that was itself correct recovery from a silent gateway death — and the chain's origin is the unbounded attach-marathon on the COM-broken Outlook: marathon turn → server-side completion 5 min past the client budget → silent gateway death → reboot.sh restart → window → failed turn. Three of the four links are known/documented; the new links this bug adds are the **unbounded attach path** (repo-fixable) and the **silent gateway death** (upstream evidence).
+**High confidence.** The immediate cause is the strip window re-armed by a gateway restart that was itself correct recovery from a silent gateway death — and the chain's origin is the unbounded attach-marathon on the COM-broken Outlook: marathon turn → server-side completion 5 min past the client budget → silent gateway death → startup.sh restart → window → failed turn. Three of the four links are known/documented; the new links this bug adds are the **unbounded attach path** (repo-fixable) and the **silent gateway death** (upstream evidence).
 
 ## Proposed Remediation
 
@@ -42,7 +42,7 @@ The email task fails with the honest "local agent failed" error because the gate
 
 **Alternatives**:
 - Raise `[hermes] timeout_s` — rejected: it makes every real failure slower and feeds the marathon
-- Sidecar-side gateway-ETA reporting in the strip error — deferred: the container cannot see the host gateway's start time; reboot.sh already prints the warning at the moment of restart
+- Sidecar-side gateway-ETA reporting in the strip error — deferred: the container cannot see the host gateway's start time; startup.sh already prints the warning at the moment of restart
 
 **Files likely to change**:
 - `src/agentic_rag_mcp/hermes_client.py` — bounded attach text in the OUTLOOK ATTACH-FAILURE PROTOCOL
@@ -55,9 +55,9 @@ The email task fails with the honest "local agent failed" error because the gate
 
 - Bounding attach attempts trades a (tiny) chance of a false "not attachable" verdict on a very slow COM startup for certainty that turns finish inside the budget — the right trade for an unattended lane
 - The gateway's silent death remains upstream; until hermes-agent fixes it, any >600 s turn is a mortality risk for the gateway — the bounded attach removes this lane's main producer of such turns
-- The strip window is unavoidable after any gateway restart (including correct recoveries); the wait guidance is already deployed and reboot.sh prints the warning — user patience of ~15 min after restarts is the standing operating reality
+- The strip window is unavoidable after any gateway restart (including correct recoveries); the wait guidance is already deployed and startup.sh prints the warning — user patience of ~15 min after restarts is the standing operating reality
 
 ## Open Questions
 
-- [NEEDS CLARIFICATION: what triggered the reboot.sh run at 07:53 — the user, or something scheduled? If the user, nothing to change; if scheduled, the scheduler should respect the strip-window cost]
+- [NEEDS CLARIFICATION: what triggered the startup.sh run at 07:53 — the user, or something scheduled? If the user, nothing to change; if scheduled, the scheduler should respect the strip-window cost]
 - The gateway's unclean exit had no log trace — its cause (crash in cleanup after the long turn? SIGKILL from a supervisor?) is unknown upstream-side; the evidence line is `gateway.previous_unclean_exit` recorded at 07:53:18 by the successor

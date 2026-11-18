@@ -68,7 +68,7 @@ specs/032-ai-control-dialog-timeout/
 #
 # Repo-side artifacts touched at implementation time:
 DEPLOY.md                                  # patch note + re-apply step (FR-005)
-reboot.sh                                  # (no change expected — :8800 health check already covers it)
+startup.sh                                  # (no change expected — :8800 health check already covers it)
 ```
 
 **Structure Decision**: zero-repo-code feature; the only repo delta is documentation. Contracts/ directory intentionally omitted — this feature exposes no interfaces (pure internal third-party behavior change).

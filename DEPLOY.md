@@ -453,7 +453,7 @@ logs: `~/.windows-mcp/server.log`). It is registered in Hermes as **`WindowsMCP`
 (`hermes mcp add WindowsMCP --url http://127.0.0.1:8800/sse`, all 21 tools) — the Hermes agent can
 now drive the Windows desktop/UI (Click/Type/Screenshot/App/Process/FileSystem/Registry/PowerShell).
 
-- `reboot.sh` checks `:8800` and starts the wrapper if it is down (the login task normally owns it)
+- `startup.sh` checks `:8800` and starts the wrapper if it is down (the login task normally owns it)
 - Manual control: `windows-mcp uninstall` removes the task; `hermes mcp remove WindowsMCP` unregisters
 - Security: loopback-bound, no auth key (mirrored-networking reach from WSL, same trust model as
   OfficeMCP). Tool-level hardening is available via `--exclude-tools "PowerShell,Registry"` (or

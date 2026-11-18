@@ -22,6 +22,6 @@ Date: 2026-11-08 · Scope: how the "AI is controlling this computer" notice work
 
 ## R4: Restart and persistence vehicle
 
-- **Decision**: The patch applies to the installed tool at `C:\Users\RLWC145\AppData\Roaming\uv\tools\windows-mcp\...`; the service restarts via the existing `windows-mcp-server` scheduled task (login auto-start + `./reboot.sh` health check). Persistence across reboots is inherent (the file edit survives; the task relaunches it).
-- **Rationale**: established operational path (DEPLOY.md WindowsMCP section; reboot.sh step 1b).
+- **Decision**: The patch applies to the installed tool at `C:\Users\RLWC145\AppData\Roaming\uv\tools\windows-mcp\...`; the service restarts via the existing `windows-mcp-server` scheduled task (login auto-start + `./startup.sh` health check). Persistence across reboots is inherent (the file edit survives; the task relaunches it).
+- **Rationale**: established operational path (DEPLOY.md WindowsMCP section; startup.sh step 1b).
 - **Alternatives considered**: per-run CLI flags — none exist for this in 0.8.8.

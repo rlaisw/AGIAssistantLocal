@@ -8,29 +8,29 @@
 
 ## Summary
 
-This bug's two failure modes no longer reproduce: the strip window is confirmed **time-based** (0 stripped / 5 and 0 stripped / 7 delivered across two live email turns), the channel survives a full `./reboot.sh` run because the gateway is no longer restarted and OfficeMCP no longer re-registered (PID unchanged, arguments still delivered immediately after), and the launch guard prevented any Outlook Launch on the broken instance. What still blocks the user-visible compose: Outlook's COM server remains unattachable (owner declined the restart — cross-bug), and a **new finding**: the attach-failure protocol's Dispatch attempts hang long enough to hit the sidecar's 600 s Hermes timeout, so some turns end in `error: Hermes did not finish within 600s` instead of the intended ask-back.
+This bug's two failure modes no longer reproduce: the strip window is confirmed **time-based** (0 stripped / 5 and 0 stripped / 7 delivered across two live email turns), the channel survives a full `./startup.sh` run because the gateway is no longer restarted and OfficeMCP no longer re-registered (PID unchanged, arguments still delivered immediately after), and the launch guard prevented any Outlook Launch on the broken instance. What still blocks the user-visible compose: Outlook's COM server remains unattachable (owner declined the restart — cross-bug), and a **new finding**: the attach-failure protocol's Dispatch attempts hang long enough to hit the sidecar's 600 s Hermes timeout, so some turns end in `error: Hermes did not finish within 600s` instead of the intended ask-back.
 
 ## Checks Performed
 
 | Check | Command / Action | Result | Notes |
 |-------|------------------|--------|-------|
 | Reproduction (post-fix): email task through the lane | `hermes_office_task` email compose (07:14–07:20) | **pass** | 0 stripped / 5 delivered; no Launch on broken Outlook; ended in the attach-failure protocol's consent ask-back |
-| No-re-arm: full `./reboot.sh` run | gateway PID before/after + skip-path output | **pass** | `Gateway: already up — NOT restarting`, `already registered — NOT re-registering`; gateway PID 19144 unchanged; all 7 health checks ok |
-| Channel health immediately after reboot.sh | second email task + args log (07:24) | **pass (channel)** | 0 stripped / 7 delivered — the run did not re-arm the window; however the turn exceeded the sidecar's 600 s Hermes budget (see Residual Risks) |
+| No-re-arm: full `./startup.sh` run | gateway PID before/after + skip-path output | **pass** | `Gateway: already up — NOT restarting`, `already registered — NOT re-registering`; gateway PID 19144 unchanged; all 7 health checks ok |
+| Channel health immediately after startup.sh | second email task + args log (07:24) | **pass (channel)** | 0 stripped / 7 delivered — the run did not re-arm the window; however the turn exceeded the sidecar's 600 s Hermes budget (see Residual Risks) |
 | Incomplete-chunked-read reproduction (deploy mid-request) | not re-performed | **skipped** | Destructive: requires stopping the sidecar during an in-flight request; cause fully evidenced in the assessment (06:56:54 shutdown severed the stream); stream draining remains a follow-up |
 | New / updated tests | `pytest tests/unit/test_hermes_office_tool.py tests/unit/test_office_gate.py` | **pass** | 49 passed, incl. the time-window/launch-guard guard |
 | Regression suite | `pytest tests/unit` | **pass** | 332 passed |
-| Lint / type-check | `ruff check src/agentic_rag_mcp/hermes_client.py`; `bash -n reboot.sh` | **pass** | clean / clean |
+| Lint / type-check | `ruff check src/agentic_rag_mcp/hermes_client.py`; `bash -n startup.sh` | **pass** | clean / clean |
 
 ## Output Excerpts
 
 ```
-./reboot.sh:
+./startup.sh:
   [2/6] Hermes gateway...   Gateway: already up on :8642 — NOT restarting
   [3/6] MCP connection...    OfficeMCP: already registered — NOT re-registering
   (all 7 health checks ok; gateway pid 19144 → 19144)
 
-args log after reboot.sh (second email turn): stripped: 0, delivered: 7
+args log after startup.sh (second email turn): stripped: 0, delivered: 7
 audit 07:34:52 → error: Hermes did not finish within 600s — try a smaller task…
 pytest tests/unit → 332 passed
 ```

@@ -8,7 +8,7 @@
    bind steals port 11434 from it at every boot. The app can still be started
    manually, but must not autostart while the WSL server owns 11434.
 2. **Made the WSL server a systemd user service** (auto-restart, starts on
-   `systemctl --user start ollama`; `reboot.sh` step [4/6] now starts it after every
+   `systemctl --user start ollama`; `startup.sh` step [4/6] now starts it after every
    reboot):
    `~/.config/systemd/user/ollama.service` with `OLLAMA_HOST=0.0.0.0:11434`.
    The WSL store already contained qwen3:8b and qwen3-8b-nothink from the original
@@ -40,8 +40,8 @@
   thinking block (Dify's think:false honored)
 
 ## Permanence
-- `reboot.sh` [4/6] starts the service and health-checks `:11434`; the health
+- `startup.sh` [4/6] starts the service and health-checks `:11434`; the health
   table also gained an Ollama line. Linger is not enabled (needs sudo), so the
-  user service starts with the first user session — `reboot.sh` guarantees it.
+  user service starts with the first user session — `startup.sh` guarantees it.
 - If Local is ever greyed out again: check `journalctl --user -u ollama` first, and
   make sure no Windows Ollama app instance is running (port thief).

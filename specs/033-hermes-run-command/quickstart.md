@@ -4,7 +4,7 @@ Phase 1 output — runnable validation scenarios that prove the feature end-to-e
 
 ## Prerequisites
 
-- The full stack up and healthy: sidecar :28080, Dify :80, Hermes gateway :8642, WindowsMCP active (`reboot.sh` reports all lanes)
+- The full stack up and healthy: sidecar :28080, Dify :80, Hermes gateway :8642, WindowsMCP active (`startup.sh` reports all lanes)
 - The feature built and live: sidecar rebuilt (or hot-patched) with `hermes_run_gate` + the `hermes_run_command` tool, tool sync run (27 → 28), and the chatflow published from the updated DSL
 
 ## Scenario 1 — Gate matrix (offline, seconds)

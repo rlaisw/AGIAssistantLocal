@@ -19,7 +19,7 @@ An email compose turn fails twice in different ways: first with a mid-stream tra
 ## Reproduction (all steps evidenced from logs, 2026-11-05 UTC)
 
 1. 06:56:54 — the **sidecar container was gracefully stopped** (`StreamableHTTP session manager shutting down … Finished server process [1]`) and **recreated at 07:00:01** (`docker inspect`: RestartCount 0, ExitCode 0) — a `deploy redeploy`-style reset ran in this window
-2. 07:01:01 — **OfficeMCP restarted** (PID 9096, started 15:01:01 local — stdout goes to `/tmp/agi-assistant-officemcp.log`, the reboot.sh redirect) and the **gateway restarted at 07:01:23** with a **fresh OfficeMCP registration** — i.e. `./reboot.sh` ran at ~07:01
+2. 07:01:01 — **OfficeMCP restarted** (PID 9096, started 15:01:01 local — stdout goes to `/tmp/agi-assistant-officemcp.log`, the startup.sh redirect) and the **gateway restarted at 07:01:23** with a **fresh OfficeMCP registration** — i.e. `./startup.sh` ran at ~07:01
 3. The chat's attempt 1 was in flight when the sidecar went down → the plugin's chunked read died mid-body → *"peer closed connection without sending complete message body"* (the deploy cut the user's own request)
 4. Attempt 2 (audit 07:05:06): the cold-window canary warm-up ran **8/8 stripped**, a delegated subagent **8/8 stripped**, the direct-SSE fallback blocked by the consent gate → honest stale error
 5. Audit 07:05:59: RunningApps reported *"no Outlook instance running"* — **bad data** (OUTLOOK.EXE PID 19116 was up since 06:59:12) → `Launch Outlook` → **"Launch returned false"** (second-instance block; no dialog this time) → subsequent RunPython calls echoed the default
@@ -30,7 +30,7 @@ An email compose turn fails twice in different ways: first with a mid-stream tra
 - `src/agentic_rag_mcp/hermes_client.py` — `OFFICE_INSTRUCTIONS`: the SESSION-DEGRADATION RULE's recovery hint (`hermes mcp remove … then gateway restart`) **re-arms the strip window** every time it is followed; the 8-attempt canary warm-up (added 2026-11-05) cannot outrun a ~15-minute time window and lengthens turns toward plugin timeouts
 - `src/agentic_rag_mcp/server.py` — the office-task envelope relays the agent's stale text verbatim, so the harmful hint reaches the user with authority
 - Upstream (`~/.hermes/hermes-agent/`, issue #148459) — the argument strip itself: now evidenced as **time-gated after (re)registration** (fresh gateway or fresh server registration strips argument-carrying calls for ~10–15 minutes; args-free tools work throughout; `C:\temp\officemcp_calls.log` shows byte-level default-schema payloads arriving)
-- `deploy redeploy` / `reboot.sh` (ops) — stopping the sidecar at 06:56:54 severed an in-flight chat request mid-body; nothing drains in-flight MCP streams before shutdown
+- `deploy redeploy` / `startup.sh` (ops) — stopping the sidecar at 06:56:54 severed an in-flight chat request mid-body; nothing drains in-flight MCP streams before shutdown
 - OfficeMCP `RunningApps` — returned "no Outlook" while OUTLOOK.EXE ran (recurring corruption signature; the process probe in the instructions is the reliable source)
 
 ## Root Cause Hypothesis
@@ -58,9 +58,9 @@ An email compose turn fails twice in different ways: first with a mid-stream tra
 - The ~10–15-minute window is measured from two data points today plus one from 05:40→05:54; treat it as approximate — the guidance should say "about 15 minutes"
 - Removing the reset recommendation changes long-documented runbook behavior (DEPLOY.md, older bug lifecycles) — those docs describe the old "hours of uptime" pattern; they should be annotated, not silently rewritten
 - The sidecar-shutdown-mid-request issue remains: a deploy during active chat use will keep severing streams — the honest error text can at least name the cause
-- The gateway restart by reboot.sh at every boot means office tasks may be strip-blocked for the first ~15 minutes after any machine reboot — the reboot.sh output should warn about this
+- The gateway restart by startup.sh at every boot means office tasks may be strip-blocked for the first ~15 minutes after any machine reboot — the startup.sh output should warn about this
 
 ## Open Questions
 
-- [NEEDS CLARIFICATION: who ran the deploy reset at ~06:57 and reboot.sh at ~07:01 — the user following the recovery hint? If scripted, the script needs the same wait-based fix]
+- [NEEDS CLARIFICATION: who ran the deploy reset at ~06:57 and startup.sh at ~07:01 — the user following the recovery hint? If scripted, the script needs the same wait-based fix]
 - [NEEDS CLARIFICATION: is Outlook's COM state healthy after the 06:59 restart (PID 19116)? The 07:05 turn never reached attach — untested since the restart]

@@ -4,14 +4,14 @@ Date: 2026-11-08 · Validation guide for the ~3-second AI-control notice.
 
 ## Prerequisites
 
-- The full stack is up (`./reboot.sh` all-green; WindowsMCP `:8800` healthy, `ControlStatus: ready`).
+- The full stack is up (`./startup.sh` all-green; WindowsMCP `:8800` healthy, `ControlStatus: ready`).
 - You are physically at (or RDP-connected to) the Windows desktop — the notice is visual.
 
 ## Validation scenarios
 
 ### V1 — Notice clears in ~3 seconds (FR-001 / SC-001)
 
-1. Restart the desktop automation service after the patch: `Start-ScheduledTask windows-mcp-server` (PowerShell) or `./reboot.sh` from WSL.
+1. Restart the desktop automation service after the patch: `Start-ScheduledTask windows-mcp-server` (PowerShell) or `./startup.sh` from WSL.
 2. In the chat, send: `open chrome, type www.google.com` (or any launch + typing followup).
 3. **Watch the screen**: when the AI begins typing, the "AI is controlling this computer" notice appears.
 4. **Expected**: the notice clears within ~3 seconds after the AI's last action (previously it lingered up to ~15 s); typing still completes and verifies.
@@ -31,7 +31,7 @@ Repeat on a second desktop task — SC-001 requires two consecutive episodes.
 
 ### V4 — Persistence across restart (FR-002 / SC-004)
 
-1. Restart the service (scheduled task) or reboot the machine; run `./reboot.sh`.
+1. Restart the service (scheduled task) or reboot the machine; run `./startup.sh`.
 2. Re-run V1.
 3. **Expected**: the ~3-second notice behavior still applies — the patch lives in the installed service files, which the login task relaunches.
 
