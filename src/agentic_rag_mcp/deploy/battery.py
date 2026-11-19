@@ -818,6 +818,7 @@ def registry(skip_chat: bool = False) -> list[tuple[str, object]]:
         ("hermes-launch-app", scenario_hermes_launch_app),
         ("hermes-office-task", scenario_hermes_office_task),
         ("office-routing", scenario_office_routing),
+        ("ask-first", scenario_ask_first),
         ("antv-chart", scenario_antv_chart),
         ("antv-infographic", scenario_antv_infographic),
         ("chart-in-deck", scenario_chart_in_deck),
@@ -825,6 +826,58 @@ def registry(skip_chat: bool = False) -> list[tuple[str, object]]:
     if not skip_chat:
         scenarios.append(("chat-journey", scenario_chat_journey))
     return scenarios
+
+
+
+def scenario_ask_first(dcfg: DeployConfig) -> tuple[bool, str]:
+    """Spec 045: the ask-before-answering rule — an underspecified ask gets a
+    targeted ask-back with no action, a complete question answers directly,
+    and the launch gate's own ask-back stands without a double-ask."""
+    if not dcfg.api_key:
+        return True, "skipped: no DIFY_API_KEY configured (notice, not failure)"
+    base = dcfg.console_url.rstrip("/") + "/v1"
+    headers = {"Authorization": f"Bearer {dcfg.api_key}"}
+
+    def chat(q: str) -> str:
+        answer = ""
+        with httpx.stream(
+            "POST", f"{base}/chat-messages", headers=headers,
+            json={"inputs": {}, "query": q, "response_mode": "streaming",
+                  "conversation_id": "", "user": "deploy-battery-askfirst"},
+            timeout=240,
+        ) as resp:
+            if resp.status_code != 200:
+                return ""
+            for line in resp.iter_lines():
+                if line.startswith("data:"):
+                    try:
+                        ev = json.loads(line[5:])
+                    except json.JSONDecodeError:
+                        continue
+                    if ev.get("event") in ("message", "agent_message"):
+                        answer += ev.get("answer") or ""
+        return answer
+
+    checks: list[tuple[str, bool]] = []
+
+    # P1: underspecified ask -> ask-back, no action
+    a1 = chat("back up my files")
+    askback = "?" in a1 and bool(re.search(r"\b(which|what|where|how)\b", a1, re.I))
+    no_action = "LAUNCH: SUCCESS" not in a1 and "backed up your" not in a1.lower()
+    checks.append(("P1 underspecified ask-back", bool(a1) and askback and no_action))
+
+    # P2: complete question -> direct answer, no clarifying question
+    a2 = chat("what is the capital of France")
+    checks.append(("P2 complete question direct answer", "Paris" in a2))
+
+    # P3: launch ambiguity -> the lane gate's own ask-back, no launch
+    a3 = chat("open the app")
+    gate_ask = re.search(r"which application", a3, re.I) is not None
+    checks.append(("P3 launch-gate ask-back, no double-ask", bool(a3) and gate_ask and "LAUNCH: SUCCESS" not in a3))
+
+    ok_all = all(ok for _, ok in checks)
+    msg = "ask-first: " + "; ".join(f"{'ok' if ok else 'FAILED'} {name}" for name, ok in checks)
+    return ok_all, msg
 
 
 def run_battery(dcfg: DeployConfig, skip_chat: bool = False) -> tuple[list[tuple[str, bool, str]], list[str]]:

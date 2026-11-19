@@ -72,3 +72,7 @@ Story completion order: US1 → US2 → US3. US2 and US3 depend on the published
 ## Implementation Strategy
 
 MVP is **Phase 2 + US1** (T002–T006): the rule published and the default rendering live — that alone delivers the owner's directive. US2's probes (T007–T008) lock the chain and override semantics; US3 (T009) is the regression sweep; T010 ships. If T001 shows a template ID that fails to render, the spec's FR-006 path applies: stop, report, re-verify IDs before any DSL edit.
+
+## Phase 7: Convergence
+
+- [X] T011 Add the spec-044 re-verify note at the engine version pin in `src/agentic_rag_mcp/antv/infographic.py:33` (one comment line beside the `@antv/infographic@0.2.20` CDN URL naming the stepwise-default IDs `sequence-roadmap-vertical-pill-badge`, `sequence-timeline-done-list`, `list-row-horizontal-icon-arrow` and the rule: any version bump must re-verify these IDs exist in the new bundle before the chatflow's stepwise default keeps applying them) per FR-006 (partial)

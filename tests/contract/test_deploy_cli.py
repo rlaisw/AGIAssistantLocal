@@ -21,6 +21,7 @@ CONTRACT_SCENARIOS = [
     "hermes-file-task",                                     # spec 028
     "hermes-launch-app",                                    # spec 029
     "hermes-office-task", "office-routing",                 # spec 030 + bug office-routing-flake
+    "ask-first",                                            # spec 045
     "antv-chart", "antv-infographic", "chart-in-deck", "chat-journey",
 ]
 

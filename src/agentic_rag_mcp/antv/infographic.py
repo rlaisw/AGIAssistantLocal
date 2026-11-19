@@ -15,6 +15,11 @@ from .errors import AntvInvalidInput
 
 _ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
 
+# spec 044: the chatflow's stepwise-default templates below are pinned to this
+# @antv/infographic version — if the CDN version in _PAGE_TEMPLATE ever changes,
+# re-verify that sequence-roadmap-vertical-pill-badge, sequence-timeline-done-list,
+# and list-row-horizontal-icon-arrow still exist in the new bundle before the
+# chatflow's stepwise default keeps applying them (FR-006).
 _PAGE_TEMPLATE = """<!doctype html>
 <html lang="en">
 <head>
