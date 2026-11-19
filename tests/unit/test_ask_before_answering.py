@@ -1,6 +1,9 @@
 """Spec 045 unit pins: the ask-before-answering steering rule must exist in
-every Agentic Strategy system prompt of the chatflow DSL. Red before the edit,
-green after — these catch console reverts, careless hand edits, and drift."""
+EVERY answering prompt of the chatflow DSL — both Agentic Strategy nodes, the
+Hermes Local Agent, and both PPT-Master nodes (bug fix 2026-11-19: the rule
+initially covered only the strategy prompts, leaving the other answering
+lanes free to answer without asking). Red before the edit, green after —
+these catch console reverts, careless hand edits, and drift."""
 
 from __future__ import annotations
 
@@ -18,6 +21,18 @@ CRITICAL_DEF = "materially changes the answer"
 NO_OVER_ASKING = "do not interrogate"
 NO_RE_ASK = "Never re-ask what the conversation already established"
 SECRETS_EXCLUSION = "Never ask for passwords or API keys"
+CONTEXT_DEPENDENT = "Context-dependent questions"
+UNIVERSAL_FACTS = "Universal facts with a single right answer"
+END_REPLY = "END THE REPLY THERE"
+
+
+ANSWERING_NODE_TITLES = (
+    "Agentic Strategy",
+    "Agentic Strategy (Local)",
+    "Hermes Local Agent",
+    "PPT-Master",
+    "PPT-Master (Local)",
+)
 
 
 def _strategy_prompts() -> list[str]:
@@ -26,7 +41,7 @@ def _strategy_prompts() -> list[str]:
 
     def walk(node) -> None:
         if isinstance(node, dict):
-            if str(node.get("title", "")).startswith("Agentic Strategy"):
+            if node.get("title") in ANSWERING_NODE_TITLES:
                 value = ((node.get("agent_parameters") or {}).get("instruction") or {}).get("value")
                 if isinstance(value, str):
                     prompts.append(value)
@@ -40,15 +55,18 @@ def _strategy_prompts() -> list[str]:
     return prompts
 
 
-def test_dsl_loads_and_strategy_prompts_found():
+def test_dsl_loads_and_answering_prompts_found():
     prompts = _strategy_prompts()
-    assert prompts, "no Agentic Strategy system prompts found in the DSL"
-    assert len(prompts) == 2, f"expected 2 strategy prompts, found {len(prompts)}"
+    assert prompts, "no answering prompts found in the DSL"
+    assert len(prompts) == len(ANSWERING_NODE_TITLES), (
+        f"expected {len(ANSWERING_NODE_TITLES)} answering prompts "
+        f"(strategy x2, Hermes Local Agent, PPT-Master x2), found {len(prompts)}"
+    )
 
 
-@pytest.mark.parametrize("fragment", [HEADLINE, CRITICAL_DEF, NO_OVER_ASKING, NO_RE_ASK, SECRETS_EXCLUSION])
+@pytest.mark.parametrize("fragment", [HEADLINE, CRITICAL_DEF, NO_OVER_ASKING, NO_RE_ASK, SECRETS_EXCLUSION, CONTEXT_DEPENDENT, UNIVERSAL_FACTS, END_REPLY])
 def test_rule_fragments_present_in_every_strategy_prompt(fragment):
     prompts = _strategy_prompts()
-    assert len(prompts) == 2, f"expected 2 strategy prompts, found {len(prompts)}"
+    assert len(prompts) == len(ANSWERING_NODE_TITLES), f"expected all answering prompts, found {len(prompts)}"
     missing_in = [i for i, text in enumerate(prompts) if fragment not in text]
     assert not missing_in, f"fragment {fragment!r} missing from prompt(s) {missing_in}"
