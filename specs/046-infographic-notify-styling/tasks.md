@@ -45,7 +45,7 @@ Story goal: non-matching lines are untouched, old wordings still style, and the 
 
 ## Phase 6: Polish & Cross-Cutting
 
-- [X] T009 Gates and ship: `pnpm typecheck && pnpm lint && pnpm test` — typecheck clean, lint pre-existing warning only, full vitest suite green (175+ tests, 0 new failures); then commit and push the change set together: `ai-chat-landing/lib/infographic-link.ts`, `ai-chat-landing/lib/infographic-link.test.ts`, `ai-chat-landing/components/markdown.tsx`, `ai-chat-landing/scripts/infographic-link-check.mjs`, `dify/AGIAssistant/AGI_Assistant.yml`, and the spec set.
+- [ ] T009 Gates and ship: `pnpm typecheck && pnpm lint && pnpm test` — typecheck clean, lint pre-existing warning only, full vitest suite green (175+ tests, 0 new failures); then commit and push the change set together: `ai-chat-landing/lib/infographic-link.ts`, `ai-chat-landing/lib/infographic-link.test.ts`, `ai-chat-landing/components/markdown.tsx`, `ai-chat-landing/scripts/infographic-link-check.mjs`, `dify/AGIAssistant/AGI_Assistant.yml`, and the spec set.
 
 ---
 
