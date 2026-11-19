@@ -46,7 +46,7 @@ Story goal: the existing lane gates are unchanged (no double-asks), secrets are 
 
 ## Phase 6: Polish & Cross-Cutting
 
-- [ ] T010 Quality gate and ship: run the full pytest suite (`pytest tests/`) and compare against the pre-change baseline — zero NEW failures (the five known live-stack-dependent pre-existing failures aside); then commit and push the change set together: `tests/unit/test_ask_before_answering.py`, `dify/AGIAssistant/AGI_Assistant.yml`, `src/agentic_rag_mcp/deploy/battery.py`, and the spec set.
+- [X] T010 Quality gate and ship: run the full pytest suite (`pytest tests/`) and compare against the pre-change baseline — zero NEW failures (the five known live-stack-dependent pre-existing failures aside); then commit and push the change set together: `tests/unit/test_ask_before_answering.py`, `dify/AGIAssistant/AGI_Assistant.yml`, `src/agentic_rag_mcp/deploy/battery.py`, and the spec set.
 
 ---
 
