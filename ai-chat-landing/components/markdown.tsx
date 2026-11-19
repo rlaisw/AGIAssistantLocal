@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 import { parseDeckLink } from "@/lib/deck-url"
+import { infographicDisplayLabel, isInfographicLink } from "@/lib/infographic-link"
 
 export function Markdown({
   children,
@@ -52,6 +53,23 @@ export function Markdown({
             const deck = href ? parseDeckLink(href) : null
             if (deck) {
               return <DeckActions downloadUrl={deck.downloadUrl} pageUrl={deck.pageUrl} />
+            }
+            // spec 046: the infographic notify line — 📌 + blue, target-based
+            if (isInfographicLink(href)) {
+              // E5 guard applies to plain-string labels; rich (nested markdown)
+              // labels render as-is so node children never coerce to [object Object]
+              const label = typeof children === "string" ? infographicDisplayLabel(children) : children
+              return (
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-infographic-link
+                  className="font-medium underline underline-offset-4 text-blue-600 hover:text-primary dark:text-blue-400"
+                >
+                  📌 {label}
+                </a>
+              )
             }
             return (
               <a
