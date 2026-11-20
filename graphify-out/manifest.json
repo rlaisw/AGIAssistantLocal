@@ -1122,10 +1122,10 @@
     "semantic_hash": "7e3332a78cec1722b4351c6bf52dfc51"
   },
   "AGENTS.md": {
-    "mtime": 1794907757.8732767,
-    "seen": 1794991559.6784008,
-    "ast_hash": "ccd189425733e74da789171f2adf0b26",
-    "semantic_hash": "ccd189425733e74da789171f2adf0b26"
+    "mtime": 1795147483.931876,
+    "seen": 1795148157.2215056,
+    "ast_hash": "0b6105c3024677fa5ae1f87ede4febd7",
+    "semantic_hash": "0b6105c3024677fa5ae1f87ede4febd7"
   },
   "specs/003-web-search-scrape/tasks.md": {
     "mtime": 1793493790.30643,
@@ -1404,10 +1404,10 @@
     "semantic_hash": "f9caf70a517c52072d8c858ce4be5713"
   },
   "ai-chat-landing/components/markdown.tsx": {
-    "mtime": 1793493790.2806222,
-    "seen": 1794630864.4724908,
-    "ast_hash": "b50504642666e9de7512e6ae925fd414",
-    "semantic_hash": "b50504642666e9de7512e6ae925fd414"
+    "mtime": 1795142015.4473634,
+    "seen": 1795146974.5065048,
+    "ast_hash": "a07a19e84b956473279d8687ed6a4919",
+    "semantic_hash": "a07a19e84b956473279d8687ed6a4919"
   },
   "ai-chat-landing/components/theme-provider.tsx": {
     "mtime": 1793493790.2806222,
@@ -1662,10 +1662,10 @@
     "semantic_hash": "b96334a06e8ed397c4dbc3f8a0c7303f"
   },
   "ai-chat-landing/AGENTS.md": {
-    "mtime": 1793493790.2774224,
-    "seen": 1794630864.474106,
-    "ast_hash": "8310f4e86a16bca252a0a63bd640ae2e",
-    "semantic_hash": "8310f4e86a16bca252a0a63bd640ae2e"
+    "mtime": 1795147533.329294,
+    "seen": 1795148157.2215207,
+    "ast_hash": "b1b51d7e132406533919d6bdd677eb5c",
+    "semantic_hash": "b1b51d7e132406533919d6bdd677eb5c"
   },
   "ai-chat-landing/CLAUDE.md": {
     "mtime": 1793493790.2774224,
@@ -1674,10 +1674,10 @@
     "semantic_hash": "5c27369b226fcf2be8a6cfe52224e767"
   },
   "ai-chat-landing/README.md": {
-    "mtime": 1794900844.5282145,
-    "seen": 1794901076.9681032,
-    "ast_hash": "40fd83345185452feb1b130a0c32872c",
-    "semantic_hash": "40fd83345185452feb1b130a0c32872c"
+    "mtime": 1795147478.1997023,
+    "seen": 1795148157.2215216,
+    "ast_hash": "ce92be077ed878775f9ed3842cfc533f",
+    "semantic_hash": "ce92be077ed878775f9ed3842cfc533f"
   },
   "ai-chat-landing/agent/skills/migrate-radix-to-base/SKILL.md": {
     "mtime": 1794632524.8800743,
@@ -1890,10 +1890,10 @@
     "semantic_hash": "9b3dcca82168561ad9545ce07e904ea0"
   },
   "src/agentic_rag_mcp/deploy/battery.py": {
-    "mtime": 1794709397.305279,
-    "seen": 1794899819.2761698,
-    "ast_hash": "38d3131e0bea31a76d7a7beafff95495",
-    "semantic_hash": "38d3131e0bea31a76d7a7beafff95495"
+    "mtime": 1795058401.4594073,
+    "seen": 1795146974.5083168,
+    "ast_hash": "93d7fc3000a29e130d4f4b308deb8532",
+    "semantic_hash": "93d7fc3000a29e130d4f4b308deb8532"
   },
   "src/agentic_rag_mcp/deploy/config.py": {
     "mtime": 1793493790.3175733,
@@ -1956,10 +1956,10 @@
     "semantic_hash": "b26bc859c56b6197fd2e0ac8585c45bd"
   },
   "tests/contract/test_deploy_cli.py": {
-    "mtime": 1793610782.021044,
-    "seen": 1794630864.4733958,
-    "ast_hash": "ac725ce43f8311b9946db04a255b78e8",
-    "semantic_hash": "ac725ce43f8311b9946db04a255b78e8"
+    "mtime": 1795058419.928414,
+    "seen": 1795146974.5094712,
+    "ast_hash": "74ab601d654f0681603ea75ca8042142",
+    "semantic_hash": "74ab601d654f0681603ea75ca8042142"
   },
   "tests/contract/test_ppt_completion_contract.py": {
     "mtime": 1793493790.319388,
@@ -2214,10 +2214,10 @@
     "semantic_hash": "f4958f683513ba32eeab2a0cbe97c8e5"
   },
   "src/agentic_rag_mcp/antv/infographic.py": {
-    "mtime": 1793493790.317382,
-    "seen": 1794630864.47279,
-    "ast_hash": "8b0fe5543bd29dd5e72a59a0dc3964c3",
-    "semantic_hash": "8b0fe5543bd29dd5e72a59a0dc3964c3"
+    "mtime": 1795058401.459209,
+    "seen": 1795146974.5081768,
+    "ast_hash": "8946d1a6a7e1ca527204569b72204738",
+    "semantic_hash": "8946d1a6a7e1ca527204569b72204738"
   },
   "tests/contract/test_antv_contract.py": {
     "mtime": 1793599894.3743947,
@@ -3120,10 +3120,10 @@
     "semantic_hash": "bd26199f7e6c3f5d1c0940550d6b84c9"
   },
   "dify/AGIAssistant/AGI_Assistant.yml": {
-    "mtime": 1794886621.9473503,
-    "seen": 1794899819.2818966,
-    "ast_hash": "55c5add914136fa43867594aa1e86d77",
-    "semantic_hash": "55c5add914136fa43867594aa1e86d77"
+    "mtime": 1795144184.5118294,
+    "seen": 1795146974.5147645,
+    "ast_hash": "7c71b19c0e319bfc865c9fbdd1afb083",
+    "semantic_hash": "7c71b19c0e319bfc865c9fbdd1afb083"
   },
   "specs/024-install-difyctl/checklists/requirements.md": {
     "mtime": 1793493790.3148267,
@@ -3318,16 +3318,16 @@
     "semantic_hash": "bb4f2715314496f1b911a1e78620ddf3"
   },
   "ai-chat-landing/lib/follow-up.test.ts": {
-    "mtime": 1793493790.28109,
-    "seen": 1794630864.4725077,
-    "ast_hash": "b60ed69dca727c4868af830307457698",
-    "semantic_hash": "b60ed69dca727c4868af830307457698"
+    "mtime": 1795143467.7707202,
+    "seen": 1795146974.506979,
+    "ast_hash": "083931bbd633fb83ebeba695e998b40b",
+    "semantic_hash": "083931bbd633fb83ebeba695e998b40b"
   },
   "ai-chat-landing/lib/follow-up.ts": {
-    "mtime": 1793493790.28109,
-    "seen": 1794630864.472509,
-    "ast_hash": "3fb5abfc883a03cc1efe8ed052808150",
-    "semantic_hash": "3fb5abfc883a03cc1efe8ed052808150"
+    "mtime": 1795143578.1891747,
+    "seen": 1795146974.5069804,
+    "ast_hash": "a29c2871abb0e80fc7ff58d69881b4ba",
+    "semantic_hash": "a29c2871abb0e80fc7ff58d69881b4ba"
   },
   "ai-chat-landing/lib/stop/state.test.ts": {
     "mtime": 1793493790.2817042,
@@ -5938,5 +5938,191 @@
     "seen": 1794991559.678211,
     "ast_hash": "79318451b435e688cf3f441f61ad43c8",
     "semantic_hash": "79318451b435e688cf3f441f61ad43c8"
+  },
+  "ai-chat-landing/lib/infographic-link.test.ts": {
+    "mtime": 1795141987.603125,
+    "seen": 1795146974.5071921,
+    "ast_hash": "9e5f600cda3ac9d5bc08764487962d6b",
+    "semantic_hash": "9e5f600cda3ac9d5bc08764487962d6b"
+  },
+  "ai-chat-landing/lib/infographic-link.ts": {
+    "mtime": 1795142001.2912438,
+    "seen": 1795146974.507193,
+    "ast_hash": "8157ff8b2fd19120a71392114cfdbf9f",
+    "semantic_hash": "8157ff8b2fd19120a71392114cfdbf9f"
+  },
+  "ai-chat-landing/scripts/infographic-link-check.mjs": {
+    "mtime": 1795144226.7770584,
+    "seen": 1795146974.5076437,
+    "ast_hash": "fd20b443738e54859966a2519573d25f",
+    "semantic_hash": "fd20b443738e54859966a2519573d25f"
+  },
+  "tests/unit/test_ask_before_answering.py": {
+    "mtime": 1795144167.9161558,
+    "seen": 1795146974.5098765,
+    "ast_hash": "ad8e94b7bacf7a0ce0bbbaf3c1ad085f",
+    "semantic_hash": "ad8e94b7bacf7a0ce0bbbaf3c1ad085f"
+  },
+  ".specify/bugs/no-asking-question-before-answering/assessment.md": {
+    "mtime": 1795061999.9267182,
+    "seen": 1795146974.5120504,
+    "ast_hash": "c417c6361b4a7e70c1272bfd80b13ddd",
+    "semantic_hash": "c417c6361b4a7e70c1272bfd80b13ddd"
+  },
+  ".specify/bugs/no-asking-question-before-answering/fix.md": {
+    "mtime": 1795062237.971172,
+    "seen": 1795146974.5120513,
+    "ast_hash": "b5972e73406f77ac0148ad200fb6e221",
+    "semantic_hash": "b5972e73406f77ac0148ad200fb6e221"
+  },
+  ".specify/bugs/no-asking-question-before-answering/test.md": {
+    "mtime": 1795062395.9794183,
+    "seen": 1795146974.5120525,
+    "ast_hash": "ec8b01a6bca24e644696e47933d5eabe",
+    "semantic_hash": "ec8b01a6bca24e644696e47933d5eabe"
+  },
+  ".specify/bugs/restore-to-get-image-as-many-as-possible/assessment.md": {
+    "mtime": 1795089467.0535374,
+    "seen": 1795146974.512696,
+    "ast_hash": "2a7c10dfe278438da5ea954caefb9dee",
+    "semantic_hash": "2a7c10dfe278438da5ea954caefb9dee"
+  },
+  ".specify/bugs/restore-to-get-image-as-many-as-possible/fix.md": {
+    "mtime": 1795089478.0602584,
+    "seen": 1795146974.5126967,
+    "ast_hash": "8d4c92f93309be4429c521b12dcf5fb8",
+    "semantic_hash": "8d4c92f93309be4429c521b12dcf5fb8"
+  },
+  ".specify/bugs/restore-to-get-image-as-many-as-possible/test.md": {
+    "mtime": 1795089488.0805845,
+    "seen": 1795146974.5126977,
+    "ast_hash": "5a513335b0af5d8d3fd29e1336144dc3",
+    "semantic_hash": "5a513335b0af5d8d3fd29e1336144dc3"
+  },
+  "specs/044-step-by-step-infographic-default/checklists/requirements.md": {
+    "mtime": 1794994631.0638514,
+    "seen": 1795146974.519706,
+    "ast_hash": "85525ef6fc11c643777d27ab936f8e29",
+    "semantic_hash": "85525ef6fc11c643777d27ab936f8e29"
+  },
+  "specs/044-step-by-step-infographic-default/data-model.md": {
+    "mtime": 1794994813.8281186,
+    "seen": 1795146974.519707,
+    "ast_hash": "a0345987a8150f2dc8fb7a9f457f0055",
+    "semantic_hash": "a0345987a8150f2dc8fb7a9f457f0055"
+  },
+  "specs/044-step-by-step-infographic-default/plan.md": {
+    "mtime": 1794994794.3481073,
+    "seen": 1795146974.5197074,
+    "ast_hash": "faa4016da808915f86dc315274824e30",
+    "semantic_hash": "faa4016da808915f86dc315274824e30"
+  },
+  "specs/044-step-by-step-infographic-default/quickstart.md": {
+    "mtime": 1794994827.4441206,
+    "seen": 1795146974.519708,
+    "ast_hash": "36b7db1914b363095db14c7c8239fcfd",
+    "semantic_hash": "36b7db1914b363095db14c7c8239fcfd"
+  },
+  "specs/044-step-by-step-infographic-default/research.md": {
+    "mtime": 1794994806.2041097,
+    "seen": 1795146974.5197084,
+    "ast_hash": "a7a3d0fa18004a52ab5f94764399d97f",
+    "semantic_hash": "a7a3d0fa18004a52ab5f94764399d97f"
+  },
+  "specs/044-step-by-step-infographic-default/spec.md": {
+    "mtime": 1794994729.1536846,
+    "seen": 1795146974.519709,
+    "ast_hash": "3390217ac9211b8e68558ebbf2ece3fa",
+    "semantic_hash": "3390217ac9211b8e68558ebbf2ece3fa"
+  },
+  "specs/044-step-by-step-infographic-default/tasks.md": {
+    "mtime": 1795058401.459209,
+    "seen": 1795146974.5197096,
+    "ast_hash": "094e18afe3cf78abe2d214b71c12a73f",
+    "semantic_hash": "094e18afe3cf78abe2d214b71c12a73f"
+  },
+  "specs/045-ask-before-answering/checklists/requirements.md": {
+    "mtime": 1795055803.935221,
+    "seen": 1795146974.5197108,
+    "ast_hash": "cf78c216a5345ba890fcfc54af14eb15",
+    "semantic_hash": "cf78c216a5345ba890fcfc54af14eb15"
+  },
+  "specs/045-ask-before-answering/data-model.md": {
+    "mtime": 1795056070.1741242,
+    "seen": 1795146974.5197115,
+    "ast_hash": "3f31256f67a53840990cd7a32de10ab6",
+    "semantic_hash": "3f31256f67a53840990cd7a32de10ab6"
+  },
+  "specs/045-ask-before-answering/plan.md": {
+    "mtime": 1795056047.1092975,
+    "seen": 1795146974.5197124,
+    "ast_hash": "e77df6a91ad5f0f23052786b031e6a61",
+    "semantic_hash": "e77df6a91ad5f0f23052786b031e6a61"
+  },
+  "specs/045-ask-before-answering/quickstart.md": {
+    "mtime": 1795056080.882508,
+    "seen": 1795146974.5197132,
+    "ast_hash": "eff154e89b536884fcf8415ab18c367e",
+    "semantic_hash": "eff154e89b536884fcf8415ab18c367e"
+  },
+  "specs/045-ask-before-answering/research.md": {
+    "mtime": 1795056060.6457827,
+    "seen": 1795146974.5197139,
+    "ast_hash": "420aca5398532dc5883c96f586b9d662",
+    "semantic_hash": "420aca5398532dc5883c96f586b9d662"
+  },
+  "specs/045-ask-before-answering/spec.md": {
+    "mtime": 1795065127.5829864,
+    "seen": 1795146974.5197144,
+    "ast_hash": "ca24bc641a4631ec5eea774cc6476033",
+    "semantic_hash": "ca24bc641a4631ec5eea774cc6476033"
+  },
+  "specs/046-infographic-notify-styling/checklists/requirements.md": {
+    "mtime": 1795141639.7201052,
+    "seen": 1795146974.5197148,
+    "ast_hash": "f188117f0829bc348d68506f1f197d3c",
+    "semantic_hash": "f188117f0829bc348d68506f1f197d3c"
+  },
+  "specs/046-infographic-notify-styling/data-model.md": {
+    "mtime": 1795141843.4498808,
+    "seen": 1795146974.5197155,
+    "ast_hash": "17048b301e9ff8e9a218721b0dc2afd0",
+    "semantic_hash": "17048b301e9ff8e9a218721b0dc2afd0"
+  },
+  "specs/046-infographic-notify-styling/plan.md": {
+    "mtime": 1795141825.5657196,
+    "seen": 1795146974.519716,
+    "ast_hash": "af1cc560fcda4ec1643b0267c8079bc3",
+    "semantic_hash": "af1cc560fcda4ec1643b0267c8079bc3"
+  },
+  "specs/046-infographic-notify-styling/quickstart.md": {
+    "mtime": 1795141852.4619575,
+    "seen": 1795146974.519717,
+    "ast_hash": "68c0240229e3f7c28b73af84ea2f806b",
+    "semantic_hash": "68c0240229e3f7c28b73af84ea2f806b"
+  },
+  "specs/046-infographic-notify-styling/research.md": {
+    "mtime": 1795141836.7938204,
+    "seen": 1795146974.5197175,
+    "ast_hash": "9a10fe7112f27eb6d004051a091f1cbc",
+    "semantic_hash": "9a10fe7112f27eb6d004051a091f1cbc"
+  },
+  "specs/046-infographic-notify-styling/spec.md": {
+    "mtime": 1795141632.2840433,
+    "seen": 1795146974.5197182,
+    "ast_hash": "c60078d72dc6b932800e002a7fe4b998",
+    "semantic_hash": "c60078d72dc6b932800e002a7fe4b998"
+  },
+  "specs/045-ask-before-answering/tasks.md": {
+    "mtime": 1795060639.529844,
+    "seen": 1795148157.2217631,
+    "ast_hash": "7fbfcab5ae8b9612c6468c4df7a7e280",
+    "semantic_hash": "7fbfcab5ae8b9612c6468c4df7a7e280"
+  },
+  "specs/046-infographic-notify-styling/tasks.md": {
+    "mtime": 1795142514.2315717,
+    "seen": 1795148157.2217674,
+    "ast_hash": "8c45282517952e8f038cf3d6c28f244e",
+    "semantic_hash": "8c45282517952e8f038cf3d6c28f244e"
   }
 }
