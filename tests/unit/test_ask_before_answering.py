@@ -70,3 +70,32 @@ def test_rule_fragments_present_in_every_strategy_prompt(fragment):
     assert len(prompts) == len(ANSWERING_NODE_TITLES), f"expected all answering prompts, found {len(prompts)}"
     missing_in = [i for i, text in enumerate(prompts) if fragment not in text]
     assert not missing_in, f"fragment {fragment!r} missing from prompt(s) {missing_in}"
+
+
+def _agentic_strategy_prompts() -> list[str]:
+    dsl = yaml.safe_load(_DSL.read_text(encoding="utf-8"))
+    prompts: list[str] = []
+
+    def walk(node) -> None:
+        if isinstance(node, dict):
+            if str(node.get("title", "")).startswith("Agentic Strategy"):
+                value = ((node.get("agent_parameters") or {}).get("instruction") or {}).get("value")
+                if isinstance(value, str):
+                    prompts.append(value)
+            for child in node.values():
+                walk(child)
+        elif isinstance(node, list):
+            for child in node:
+                walk(child)
+
+    walk(dsl)
+    return prompts
+
+
+def test_follow_up_guidance_present_in_both_agentic_strategy_prompts():
+    prompts = _agentic_strategy_prompts()
+    assert len(prompts) == 2, f"expected both Agentic Strategy prompts, found {len(prompts)}"
+    for i, text in enumerate(prompts):
+        assert "ANSWER FORMAT — FOLLOW-UP" in text, f"missing follow-up guidance in prompt {i}"
+        assert "final paragraph" in text, f"missing final-paragraph placement in prompt {i}"
+        assert "Want me to" in text, f"missing follow-up question example in prompt {i}"

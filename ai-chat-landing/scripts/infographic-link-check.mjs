@@ -230,6 +230,30 @@ async function followUpBeforeLink() {
   )
 }
 
+async function generationFollowUp() {
+  await freshChat()
+  await typeText("Explain how to back up a phone in 3 steps, and also create an infographic summary of the steps.")
+  await clickSend()
+  for (let turn = 0; turn < 3; turn++) {
+    const hasFollowUp = await waitFor(`document.querySelector('[data-follow-up]')`, 180000)
+    if (hasFollowUp) break
+    // A how-to can trigger spec 045's ask-first turn; answer its context question
+    // so the next turn must produce the infographic plus the follow-up.
+    await typeText("iPhone 13 on iOS 17, over Wi-Fi to iCloud, please give the steps and the infographic summary.")
+    await clickSend()
+  }
+  const result = await evalJS(`(() => {
+    const fu = document.querySelector('[data-follow-up]')
+    const link = document.querySelector('[data-infographic-link]')
+    return { followUp: fu?.textContent ?? '', link: link?.href ?? '' }
+  })()`)
+  check(
+    "Generated answer ends with a follow-up after the infographic link",
+    /want me to|would you like|should i|shall i/i.test(result.followUp) && result.link.includes('/infographics/'),
+    JSON.stringify(result)
+  )
+}
+
 async function storedTextCheck() {
   const query = `Reply with exactly this markdown line and nothing else: [Open the step-by-step infographic](${INFO_URL})`
   const sql = `select coalesce(answer,'') from messages where query = '${query.replaceAll("'", "''")}' order by created_at desc limit 1`
@@ -245,6 +269,7 @@ await multipleLinks()
 await plainAndDeck()
 await imageAndFollowUp()
 await followUpBeforeLink()
+await generationFollowUp()
 await storedTextCheck()
 
 console.log(failures.length ? `FAILED: ${failures.join("; ")}` : "All infographic notification-link checks passed")
