@@ -207,6 +207,29 @@ async function imageAndFollowUp() {
   check("V2 follow-up keeps 💡 and its blue token", fu?.bulb && fu.color === blue, JSON.stringify(fu))
 }
 
+async function followUpBeforeLink() {
+  await freshChat()
+  await typeText(`Reply with exactly these three paragraphs and nothing else: This is the answer body.\n\nWant me to tailor the steps?\n\n[Open the step-by-step infographic](${INFO_URL})`)
+  await clickSend()
+  await waitFor(`document.querySelector('[data-follow-up]') && document.querySelector('[data-infographic-link]')`, 120000)
+  const result = await evalJS(`(() => {
+    const fu = document.querySelector('[data-follow-up]')
+    const link = document.querySelector('[data-infographic-link]')
+    return {
+      text: fu?.textContent ?? '',
+      color: fu ? getComputedStyle(fu).color : '',
+      hasBulb: fu?.textContent.includes('💡') ?? false,
+      link: link?.href ?? ''
+    }
+  })()`)
+  const blue = await refBlue()
+  check(
+    "Follow-up before infographic link is re-added with 💡 + blue",
+    result.text.includes("Want me to tailor the steps?") && result.hasBulb && result.color === blue && result.link === INFO_URL,
+    JSON.stringify(result)
+  )
+}
+
 async function storedTextCheck() {
   const query = `Reply with exactly this markdown line and nothing else: [Open the step-by-step infographic](${INFO_URL})`
   const sql = `select coalesce(answer,'') from messages where query = '${query.replaceAll("'", "''")}' order by created_at desc limit 1`
@@ -221,6 +244,7 @@ await duplicatePin()
 await multipleLinks()
 await plainAndDeck()
 await imageAndFollowUp()
+await followUpBeforeLink()
 await storedTextCheck()
 
 console.log(failures.length ? `FAILED: ${failures.join("; ")}` : "All infographic notification-link checks passed")

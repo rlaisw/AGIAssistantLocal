@@ -90,4 +90,27 @@ describe("splitFollowUp", () => {
     const text = "Analysis.\n\nThe team wanted me to check twice, so I did."
     expect(splitFollowUp(text)).toEqual({ body: text })
   })
+
+  it("re-adds a follow-up question that sits immediately before an infographic link", () => {
+    const link = "[Open the step-by-step infographic](http://localhost:28080/infographics/e468aaee5ee3/)"
+    const r = splitFollowUp(`Answer body.\n\nWant me to tailor the steps?\n\n${link}`)
+    expect(r.body).toBe(`Answer body.\n\n${link}`)
+    expect(r.followUp).toBe("Want me to tailor the steps?")
+  })
+
+  it("keeps an opener + options + closer follow-up block before an infographic link", () => {
+    const link = "[Open the step-by-step infographic](http://localhost:28080/infographics/e468aaee5ee3/)"
+    const text = `Summary.\n\nWant me to add a visual?\nA roadmap\nA timeline\n\nJust tell me which one.\n\n${link}`
+    const r = splitFollowUp(text)
+    expect(r.body).toBe(`Summary.\n\n${link}`)
+    expect(r.followUp).toContain("Want me to add a visual?")
+    expect(r.followUp).toContain("A roadmap")
+    expect(r.followUp).toContain("Just tell me which one.")
+  })
+
+  it("does not invent a follow-up when an infographic link follows plain body text", () => {
+    const link = "[Open the step-by-step infographic](http://localhost:28080/infographics/e468aaee5ee3/)"
+    const text = `Answer body without any follow-up question.\n\n${link}`
+    expect(splitFollowUp(text)).toEqual({ body: text })
+  })
 })
