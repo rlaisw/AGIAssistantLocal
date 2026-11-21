@@ -1,0 +1,384 @@
+{
+  "actions": {
+    "windows_default_printer": {
+      "count": 20,
+      "p95_execution_s": 23.72280911800044,
+      "p95_queue_wait_s": 1.1508003808557987e-05,
+      "p95_total_s": 23.722818422989803,
+      "restoration": "restored",
+      "samples": [
+        {
+          "display": "displayed",
+          "execution_s": 106.17280457500601,
+          "queue_wait_s": 1.4349003322422504e-05,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 106.17281892400933,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 20.28929027999402,
+          "queue_wait_s": 1.1508003808557987e-05,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 20.28930178799783,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 19.852756157997646,
+          "queue_wait_s": 1.0437011951580644e-05,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 19.852766595009598,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 23.72280911800044,
+          "queue_wait_s": 9.30498936213553e-06,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 23.722818422989803,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 20.007607018997078,
+          "queue_wait_s": 1.0691001079976559e-05,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 20.007617709998158,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 19.97960803299793,
+          "queue_wait_s": 9.504001354798675e-06,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 19.979617536999285,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 20.558480042003794,
+          "queue_wait_s": 9.680006769485772e-06,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 20.558489722010563,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 18.573738285005675,
+          "queue_wait_s": 9.243987733498216e-06,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 18.573747528993408,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 18.603512410001713,
+          "queue_wait_s": 1.1302006896585226e-05,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 18.60352371200861,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 18.902488284002175,
+          "queue_wait_s": 9.808005415834486e-06,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 18.90249809200759,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 18.786739421993843,
+          "queue_wait_s": 1.0511008440516889e-05,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 18.786749933002284,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 18.96044800800155,
+          "queue_wait_s": 1.0113988537341356e-05,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 18.960458121990087,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 18.546613427010016,
+          "queue_wait_s": 1.0706993634812534e-05,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 18.54662413400365,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 18.605295910005225,
+          "queue_wait_s": 1.021000207401812e-05,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 18.6053061200073,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 18.78637151599105,
+          "queue_wait_s": 1.0764008038677275e-05,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 18.78638227999909,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 18.683793554009753,
+          "queue_wait_s": 9.903989848680794e-06,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 18.683803457999602,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 18.87376947699522,
+          "queue_wait_s": 1.0211006156168878e-05,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 18.873779688001378,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 18.786891301992,
+          "queue_wait_s": 1.0029005352407694e-05,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 18.786901330997352,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 18.81470650799747,
+          "queue_wait_s": 9.920011507347226e-06,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 18.81471642800898,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 18.722974645002978,
+          "queue_wait_s": 1.0104005923494697e-05,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 18.7229847490089,
+          "verification": "verified"
+        }
+      ],
+      "state": "pass"
+    },
+    "word_printer_duplex": {
+      "count": 20,
+      "p95_execution_s": 3.248618658995838,
+      "p95_queue_wait_s": 1.4175995602272451e-05,
+      "p95_total_s": 3.2486298509902554,
+      "restoration": "restored",
+      "samples": [
+        {
+          "display": "displayed",
+          "execution_s": 3.656793030007975,
+          "queue_wait_s": 1.4117002137936652e-05,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 3.656807147010113,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 3.045726215990726,
+          "queue_wait_s": 1.2903008610010147e-05,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 3.045739118999336,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 3.1491893529891968,
+          "queue_wait_s": 9.025010513141751e-06,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 3.14919837799971,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 3.136483627007692,
+          "queue_wait_s": 1.1128999176435173e-05,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 3.1364947560068686,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 3.1752292390010552,
+          "queue_wait_s": 1.0442992788739502e-05,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 3.175239681993844,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 2.932576605002396,
+          "queue_wait_s": 1.4175995602272451e-05,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 2.932590780997998,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 3.248618658995838,
+          "queue_wait_s": 1.1191994417458773e-05,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 3.2486298509902554,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 3.17095399700338,
+          "queue_wait_s": 1.035800960380584e-05,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 3.170964355012984,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 3.0772075499990024,
+          "queue_wait_s": 1.038500340655446e-05,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 3.077217935002409,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 2.8710234689933714,
+          "queue_wait_s": 1.0155010386370122e-05,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 2.8710336240037577,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 2.988558461991488,
+          "queue_wait_s": 9.937008144333959e-06,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 2.9885683989996323,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 2.9676086389954435,
+          "queue_wait_s": 1.0315998224541545e-05,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 2.967618954993668,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 3.0501841789955506,
+          "queue_wait_s": 1.0177012882195413e-05,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 3.050194356008433,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 3.046105412009638,
+          "queue_wait_s": 9.778988896869123e-06,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 3.0461151909985347,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 2.9762870959966676,
+          "queue_wait_s": 1.0075003956444561e-05,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 2.976297171000624,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 2.899295755007188,
+          "queue_wait_s": 1.425298978574574e-05,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 2.8993100079969736,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 2.840305811012513,
+          "queue_wait_s": 1.1940996046178043e-05,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 2.840317752008559,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 2.9576500140101416,
+          "queue_wait_s": 9.570998372510076e-06,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 2.957659585008514,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 2.999596574009047,
+          "queue_wait_s": 9.233990567736328e-06,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 2.9996058079996146,
+          "verification": "verified"
+        },
+        {
+          "display": "displayed",
+          "execution_s": 3.1779493209905922,
+          "queue_wait_s": 1.1808995623141527e-05,
+          "screenshot": "captured",
+          "status": "ok",
+          "total_s": 3.1779611299862154,
+          "verification": "verified"
+        }
+      ],
+      "state": "pass"
+    }
+  }
+}

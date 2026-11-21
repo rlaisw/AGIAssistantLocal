@@ -91,7 +91,7 @@
 ## Phase 8: Polish & Cross-Cutting
 
 - [X] T022 [P] Update `README.md` + `AGENTS.md`: tool count 35 → 39, the gateway lane feature surface + tier protocol description (house doc pattern)
-- [X] T023 Run `ruff` on new sources; full pytest suite green minus the 3 pre-existing contract pins
+- [X] T023 Run `ruff` on new sources; full pytest suite green minus the 3 pre-existing contract pins (those pins were repaired 2026-11-21; current suite is fully green)
 - [X] T024 [P] Run `graphify update .`
 - [X] T025 Rebuild Dify `tool_mcp_providers` rows + restart `docker-api-1`/`docker-worker-1` + `deploy chatflow` publish — deploy window
 - [X] T026 Run quickstart.md live battery: P1/P2/A1/A4/J1/D1; grep the audit JSONL for `task-*` rows incl. every A1/A4 refusal — deploy window (idle host)

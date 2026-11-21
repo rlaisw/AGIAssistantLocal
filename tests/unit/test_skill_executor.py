@@ -62,6 +62,9 @@ class TestGatedReplayStructural:
         assert "hermes_run_powershell" in GATED_TOOLS
         assert not (SKILL_TOOLS & GATED_TOOLS)
 
+    def test_mcp_action_requires_live_replay_confirmation(self):
+        assert "mcp_action" in GATED_TOOLS
+
     def test_gated_step_marked_for_live_confirm(self):
         out = prepare_replay(WF, {"service_name": "Spooler"})
         assert out["workflow"][1]["gated"] is True   # pause: needs live confirm

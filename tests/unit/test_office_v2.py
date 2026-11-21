@@ -3,8 +3,17 @@ document primitives — name sanitization, payload parsing, templates."""
 
 from __future__ import annotations
 
+import ast
+import inspect
 import json
+import re
+import textwrap
+import threading
+from unittest.mock import Mock
 
+import pytest
+
+import agentic_rag_mcp.office_lanes.proxy as office_proxy
 from agentic_rag_mcp.office_lanes.proxy import _WRITE_TEMPLATE, OfficeProxy
 
 
@@ -179,3 +188,227 @@ class TestXlsPptV2:
         assert "finally:" in T
         assert T.index("xl.DisplayAlerts = True") > T.index("wb.SaveAs(")
         assert "recovered or temporary name" in T   # the honest wrap
+
+
+def _word_print_template():
+    assert hasattr(office_proxy, "_WORD_PRINT_TEMPLATE"), (
+        "T042 must add the fixed _WORD_PRINT_TEMPLATE")
+    return office_proxy._WORD_PRINT_TEMPLATE
+
+
+def _word_print_source():
+    return textwrap.dedent(_word_print_template())
+
+
+def _if_guards(source, tree, node):
+    parents = {child: parent for parent in ast.walk(tree)
+               for child in ast.iter_child_nodes(parent)}
+    guards = []
+    while node in parents:
+        node = parents[node]
+        if isinstance(node, ast.If):
+            guards.append(ast.get_source_segment(source, node.test) or "")
+    return guards
+
+
+def _fake_http_proxy(monkeypatch, frame):
+    """An OfficeProxy with only its HTTP/SSE boundary mocked; no COM runs."""
+    proxy = OfficeProxy.__new__(OfficeProxy)
+    proxy.base = "http://office.test"
+    proxy.timeout_s = 180.0
+    proxy._endpoint = "/messages"
+    proxy._lock = threading.Lock()
+    posts = []
+
+    def ensure():
+        proxy._endpoint = "/messages"
+
+    def next_frame(*args, **kwargs):
+        if isinstance(frame, BaseException):
+            raise frame
+        return frame
+
+    def post(url, json, timeout):
+        posts.append({"url": url, "json": json, "timeout": timeout})
+        return Mock()
+
+    monkeypatch.setattr(proxy, "_ensure", ensure)
+    monkeypatch.setattr(proxy, "_next", next_frame)
+    monkeypatch.setattr(office_proxy.httpx, "post", post)
+    return proxy, posts
+
+
+class TestWordPrintPreviewT036:
+    def test_com_initializes_and_attaches_before_dispatch(self):
+        source = _word_print_source()
+        assert "pythoncom.CoInitialize()" in source
+        assert source.index("pythoncom.CoInitialize()") < source.index(
+            "GetActiveObject(")
+        assert source.index("GetActiveObject(") < source.index("Dispatch(")
+
+    def test_dispatch_requires_no_winword_process(self):
+        # A running-but-unregistered Word must produce an honest failure, not
+        # an empty second instance that hides the user's documents.
+        source = _word_print_source()
+        tree = ast.parse(source)
+        dispatch = [n for n in ast.walk(tree)
+                    if isinstance(n, ast.Call)
+                    and isinstance(n.func, ast.Attribute)
+                    and n.func.attr == "Dispatch"]
+        assert len(dispatch) == 1
+        assert "WINWORD" in source.upper()
+        guards = _if_guards(source, tree, dispatch[0])
+        assert any(
+            any(marker in guard.upper()
+                for marker in ("WINWORD", "RUNNING", "PROCESS"))
+            and ("NOT" in guard.upper()
+                 or "==0" in "".join(guard.split()))
+            for guard in guards
+        ), "Dispatch must be guarded by a no-WINWORD-process check"
+
+    def test_document_preview_and_all_display_checks_are_verified(self):
+        source = _word_print_source()
+        assert "doc.PrintPreview()" in source       # Document, not Backstage
+        assert "word.PrintPreview" in source       # independent read-back
+        assert re.search(r"ActiveWindow\.View\.Type[^\n]*==\s*4", source)
+        assert "ActiveWindow.Hwnd" in source
+        assert "IsWindowVisible(hwnd)" in source
+        assert "SetForegroundWindow(hwnd)" in source
+        assert "GetForegroundWindow() == hwnd" in source
+        assert "preview_ok" in source
+        assert "visible" in source and "foreground" in source
+
+    def test_blank_document_is_conditional_and_disclosed(self):
+        source = _word_print_source()
+        tree = ast.parse(source)
+        adds = [n for n in ast.walk(tree)
+                if isinstance(n, ast.Call)
+                and isinstance(n.func, ast.Attribute) and n.func.attr == "Add"
+                and isinstance(n.func.value, ast.Attribute)
+                and n.func.value.attr == "Documents"]
+        assert len(adds) == 1
+        guards = _if_guards(source, tree, adds[0])
+        assert any("COUNT" in guard.upper()
+                   and ("NOT" in guard.upper()
+                        or "==0" in "".join(guard.split()))
+                   for guard in guards)
+        assert "blank_created" in source
+
+    def test_existing_document_count_and_saved_flags_are_preserved(self):
+        source = _word_print_source()
+        for marker in ("before_count", "after_count", "before_saved",
+                       "after_saved", "count_ok", "saved_ok",
+                       "documents_preserved"):
+            assert marker in source
+        assert source.index("before_count") < source.index("doc.PrintPreview()")
+        assert source.index("before_saved") < source.index("doc.PrintPreview()")
+        assert source.index("doc.PrintPreview()") < source.index("after_count")
+        assert source.index("doc.PrintPreview()") < source.index("after_saved")
+        compact = "".join(source.split())
+        assert "after_count==before_count+int(blank_created)" in compact
+        assert "before_saved==after_saved[:before_count]" in compact
+        assert ".Saved" in source                  # read-only snapshots
+        assert ".Name" not in source and ".FullName" not in source
+        assert "document_names" not in source
+
+    def test_no_print_mutation_dialog_or_evidence_free_backstage(self):
+        source = _word_print_source()
+        tree = ast.parse(source)
+        called = {n.func.attr for n in ast.walk(tree)
+                  if isinstance(n, ast.Call)
+                  and isinstance(n.func, ast.Attribute)}
+        assert {"PrintOut", "Save", "SaveAs", "SaveAs2", "Close", "Quit",
+                "Dialogs", "Show", "Display"}.isdisjoint(called)
+        # This proxy has no UI-tree evidence. Only separately gated T043
+        # orchestration may consider bounded ExecuteMso for explicit legacy
+        # unsupported results; busy/modal/timeout must never reach Backstage.
+        assert "ExecuteMso" not in called
+        assert "PrintPreviewAndPrint" not in source
+        for node in ast.walk(tree):
+            targets = (node.targets if isinstance(node, ast.Assign) else
+                       [node.target] if isinstance(node, (ast.AnnAssign,
+                                                          ast.AugAssign)) else [])
+            assert not any(isinstance(part, ast.Attribute)
+                           and part.attr == "Saved"
+                           for target in targets for part in ast.walk(target))
+
+    def test_show_word_print_sync_api_uses_fixed_template(self, monkeypatch):
+        assert hasattr(OfficeProxy, "show_word_print"), (
+            "T042 must add OfficeProxy.show_word_print()")
+        assert not inspect.iscoroutinefunction(OfficeProxy.show_word_print)
+        assert list(inspect.signature(
+            OfficeProxy.show_word_print).parameters) == ["self"]
+        payload = {
+            "preview_ok": True,
+            "view_type": 4,
+            "visible": True,
+            "foreground": True,
+            "blank_created": False,
+            "document_count": 2,
+            "count_ok": True,
+            "saved_ok": True,
+            "documents_preserved": True,
+        }
+        tool_text = json.dumps({"success": True,
+                                "output": json.dumps(payload)})
+        frame = {"result": {"content": [{"type": "text", "text": tool_text}]}}
+        proxy, posts = _fake_http_proxy(monkeypatch, frame)
+
+        out = proxy.show_word_print()
+
+        assert out == {"status": "ok", **payload}
+        assert len(posts) == 1
+        request = posts[0]["json"]
+        assert request["method"] == "tools/call"
+        assert request["params"]["name"] == "RunPython"
+        assert request["params"]["arguments"] == {
+            "code": _word_print_template()}
+        assert 0 < posts[0]["timeout"] < 180.0
+        assert proxy.timeout_s == 180.0           # later callers keep defaults
+
+    @pytest.mark.parametrize("reason", [
+        "Word is busy and rejected the COM call",
+        "Word has a modal dialog open",
+        "legacy PrintPreview is explicitly unsupported",
+    ])
+    def test_busy_modal_and_unsupported_never_fall_back_to_backstage(
+            self, monkeypatch, reason):
+        proxy, posts = _fake_http_proxy(
+            monkeypatch, {"error": {"message": reason}})
+
+        out = proxy.show_word_print()
+
+        assert out["status"] == "error"
+        assert len(posts) == 1
+        code = posts[0]["json"]["params"]["arguments"]["code"]
+        assert "ExecuteMso" not in code
+        assert "PrintPreviewAndPrint" not in code
+        assert 0 < posts[0]["timeout"] < 180.0
+
+    def test_timeout_is_bounded_and_not_retried(self, monkeypatch):
+        proxy, posts = _fake_http_proxy(
+            monkeypatch, ConnectionError("OfficeMCP response timeout"))
+
+        try:
+            out = proxy.show_word_print()
+        except ConnectionError:
+            pass
+        else:
+            assert isinstance(out, dict) and out.get("status") != "ok"
+
+        assert len(posts) == 1
+        assert 0 < posts[0]["timeout"] < 180.0
+        assert proxy.timeout_s == 180.0
+
+    def test_existing_call_still_uses_its_two_attempt_180s_defaults(
+            self, monkeypatch):
+        assert inspect.signature(
+            OfficeProxy.__init__).parameters["timeout_s"].default == 180.0
+        proxy, posts = _fake_http_proxy(
+            monkeypatch, ConnectionError("OfficeMCP response timeout"))
+
+        with pytest.raises(ConnectionError):
+            proxy.call("RunPython", {})
+
+        assert len(posts) == 2
+        assert [post["timeout"] for post in posts] == [180.0, 180.0]

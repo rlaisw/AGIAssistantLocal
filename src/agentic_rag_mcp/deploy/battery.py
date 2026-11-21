@@ -132,7 +132,7 @@ def scenario_tools_surface(dcfg: DeployConfig) -> tuple[bool, str]:
     # PowerShell tool is NEVER among them (no ungated passthrough — the
     # wrappers are the only chat-facing path)
     assert "PowerShell" not in wmcp
-    ok = ppt == expected_ppt and wmcp == expected_wmcp
+    ok = "mcp_action" in names and ppt == expected_ppt and wmcp == expected_wmcp
     return ok, (f"tools={len(names)} ppt={len(ppt)} ({', '.join(sorted(ppt))}) "
                 f"windows-mcp={len(wmcp)} ({', '.join(sorted(wmcp))})")
 

@@ -340,6 +340,140 @@ output = json.dumps({'path': path, 'size': size, 'existed': bool(existed),
                      'text_ok': bool(ok), 'fronted': bool(fronted)})
 """
 
+_WORD_PRINT_TEMPLATE = """
+import ctypes
+import json
+import subprocess
+import time
+import pythoncom
+import win32com.client
+
+_initialized = False
+_stage = 'com-initialize'
+try:
+    pythoncom.CoInitialize()
+    _initialized = True
+    _stage = 'attach'
+    try:
+        word = win32com.client.GetActiveObject('Word.Application')
+    except Exception as _attach_exc:
+        _processes = subprocess.check_output(
+            ['tasklist', '/FI', 'IMAGENAME eq WINWORD.EXE',
+             '/FO', 'CSV', '/NH'], text=True, timeout=5)
+        winword_running = 'WINWORD.EXE' in _processes.upper()
+        if winword_running:
+            _attach_message = str(_attach_exc).lower()
+            if any(marker in _attach_message for marker in
+                   ('busy', 'modal', '0x8001010a', '-2147417846',
+                    'retry later', 'call was rejected by callee', 'servercall')):
+                raise RuntimeError('word-busy-modal')
+            raise RuntimeError('word-running-com-unregistered')
+        if not winword_running:
+            word = win32com.client.Dispatch('Word.Application')
+    _stage = 'snapshot-before'
+    before_count = int(word.Documents.Count)
+    before_saved = [
+        bool(word.Documents.Item(index).Saved)
+        for index in range(1, before_count + 1)
+    ]
+    blank_created = False
+    if before_count == 0:
+        doc = word.Documents.Add()
+        blank_created = True
+    else:
+        doc = word.ActiveDocument
+    _stage = 'visible'
+    word.Visible = True
+    _stage = 'preview'
+    doc.PrintPreview()
+    _stage = 'verify'
+    preview_ok = (bool(word.PrintPreview)
+                  and int(word.ActiveWindow.View.Type) == 4)
+    view_type = int(word.ActiveWindow.View.Type)
+    hwnd = int(word.ActiveWindow.Hwnd)
+    u32 = ctypes.windll.user32
+    visible = bool(word.Visible) and bool(u32.IsWindowVisible(hwnd))
+    foreground = False
+    try:
+        if u32.IsIconic(hwnd):
+            u32.ShowWindow(hwnd, 9)
+        u32.keybd_event(0x12, 0, 0, 0)
+        u32.keybd_event(0x12, 0, 2, 0)
+        u32.SetForegroundWindow(hwnd)
+        time.sleep(0.3)
+        foreground = bool(u32.GetForegroundWindow() == hwnd)
+    except Exception:
+        foreground = False
+    _stage = 'snapshot-after'
+    after_count = int(word.Documents.Count)
+    after_saved = [
+        bool(word.Documents.Item(index).Saved)
+        for index in range(1, after_count + 1)
+    ]
+    count_ok = after_count == before_count + int(blank_created)
+    saved_ok = before_saved == after_saved[:before_count]
+    documents_preserved = count_ok and saved_ok
+    output = json.dumps({
+        'preview_ok': bool(preview_ok),
+        'view_type': view_type,
+        'visible': bool(visible),
+        'foreground': bool(foreground),
+        'blank_created': bool(blank_created),
+        'document_count': after_count,
+        'count_ok': bool(count_ok),
+        'saved_ok': bool(saved_ok),
+        'documents_preserved': bool(documents_preserved),
+    })
+except Exception as _exc:
+    _message = str(_exc).lower()
+    if 'word-running-com-unregistered' in _message:
+        _kind = 'running-unregistered'
+    elif (isinstance(_exc, subprocess.TimeoutExpired)
+          or 'timeout' in _message or 'timed out' in _message):
+        _kind = 'timeout'
+    elif (_stage == 'preview' and any(
+            marker in _message for marker in
+            ('unsupported', 'not implemented', '0x80004001'))):
+        _kind = 'unsupported'
+    elif (any(marker in _message for marker in
+              ('busy', 'modal', '0x8001010a', '-2147417846',
+               'retry later', 'call was rejected by callee', 'servercall'))
+          or _stage in ('visible', 'snapshot-before', 'snapshot-after')):
+        _kind = 'busy-modal'
+    else:
+        _kind = 'com-error'
+    output = json.dumps({'error_kind': _kind, 'stage': _stage,
+                         'error_type': type(_exc).__name__})
+finally:
+    if _initialized:
+        pythoncom.CoUninitialize()
+"""
+
+_WORD_PRINT_TIMEOUT_S = 30.0
+_WORD_PRINT_ERRORS = {
+    "busy-modal": (
+        "error:word-print-busy-modal — Word is busy or has a modal dialog; "
+        "no Backstage fallback was attempted"),
+    "timeout": (
+        "error:word-print-timeout — the bounded Word preview request timed "
+        "out; no retry or Backstage fallback was attempted"),
+    "unsupported": (
+        "error:word-print-unsupported-preview — legacy Document.PrintPreview "
+        "is unsupported; no Backstage fallback was attempted"),
+    "running-unregistered": (
+        "error:word-print-running-unregistered — Word is running but its COM "
+        "server is not registered; no second instance was started"),
+    "transport": (
+        "error:word-print-transport — the bounded OfficeMCP request failed; "
+        "no retry or Backstage fallback was attempted"),
+    "malformed": (
+        "error:word-print-malformed — OfficeMCP returned no verifiable "
+        "preview result"),
+    "com-error": (
+        "error:word-print-com — Word automation failed safely; no Backstage "
+        "fallback was attempted"),
+}
+
 
 class OfficeProxy:
     """One persistent legacy-SSE MCP session to OfficeMCP (via the docker0
@@ -384,9 +518,10 @@ class OfficeProxy:
         except Exception:  # noqa: BLE001 — the stream died; _ensure re-opens
             self._endpoint = None
 
-    def _post(self, obj: dict) -> None:
-        r = httpx.post(f"{self.base}{self._endpoint}", json=obj,
-                       timeout=self.timeout_s)
+    def _post(self, obj: dict, timeout_s: float | None = None) -> None:
+        r = httpx.post(
+            f"{self.base}{self._endpoint}", json=obj,
+            timeout=self.timeout_s if timeout_s is None else timeout_s)
         r.raise_for_status()
 
     def _ensure(self) -> None:
@@ -396,10 +531,12 @@ class OfficeProxy:
             if not getattr(self, "_endpoint", None):
                 self._start_session()
 
-    def _next(self, events: bool = True, want_id: int | None = None) -> dict:
+    def _next(self, events: bool = True, want_id: int | None = None,
+              timeout_s: float | None = None) -> dict:
         """Next JSON frame: from the queue (with the shared reader) or by
         draining the stream — this client uses a queue-fed reader."""
-        deadline = time.monotonic() + self.timeout_s
+        deadline = time.monotonic() + (
+            self.timeout_s if timeout_s is None else timeout_s)
         while time.monotonic() < deadline:
             try:
                 frame = self._events.get(timeout=max(0.1,
@@ -449,6 +586,24 @@ class OfficeProxy:
             return {"status": "ok", "text": text}
         raise ConnectionError("OfficeMCP unreachable after retry")
 
+    def _call_once(self, tool: str, arguments: dict,
+                   timeout_s: float) -> dict:
+        """One bounded attempt for operations whose outcome must not repeat."""
+        self._ensure()
+        rid = uuid.uuid4().int % (2 ** 31)
+        with self._lock:
+            self._post({"jsonrpc": "2.0", "id": rid,
+                        "method": "tools/call",
+                        "params": {"name": tool, "arguments": arguments}},
+                       timeout_s=timeout_s)
+        out = self._next(want_id=rid, timeout_s=timeout_s)
+        if "error" in out:
+            return {"status": "error", "reason": str(out["error"])[:300]}
+        content = (out.get("result") or {}).get("content") or []
+        text = "\n".join(c.get("text", "") for c in content
+                         if c.get("type") == "text")
+        return {"status": "ok", "text": text}
+
     # -- the deterministic document primitives ------------------------------
 
     @staticmethod
@@ -462,6 +617,69 @@ class OfficeProxy:
             return m if isinstance(m, dict) else None
         except (json.JSONDecodeError, TypeError):
             return None
+
+    def show_word_print(self) -> dict:
+        """Show and verify Word Print Preview without repeating the action."""
+        try:
+            out = self._call_once("RunPython",
+                                  {"code": _WORD_PRINT_TEMPLATE},
+                                  _WORD_PRINT_TIMEOUT_S)
+        except (httpx.HTTPError, ConnectionError) as exc:
+            message = str(exc).lower()
+            kind = ("timeout" if isinstance(exc, httpx.TimeoutException)
+                    or "timeout" in message or "timed out" in message
+                    else "transport")
+            return {"status": "error", "reason": _WORD_PRINT_ERRORS[kind]}
+        if out.get("status") != "ok":
+            message = str(out.get("reason", "")).lower()
+            if "timeout" in message or "timed out" in message:
+                kind = "timeout"
+            elif "busy" in message or "modal" in message:
+                kind = "busy-modal"
+            elif "unsupported" in message or "not implemented" in message:
+                kind = "unsupported"
+            else:
+                kind = "transport"
+            return {"status": "error", "reason": _WORD_PRINT_ERRORS[kind]}
+        payload = self._payload_json(out.get("text", ""))
+        if payload is None:
+            return {"status": "error", "reason": _WORD_PRINT_ERRORS["malformed"]}
+        if payload.get("error_kind"):
+            kind = str(payload["error_kind"])[:40]
+            if kind not in _WORD_PRINT_ERRORS:
+                kind = "com-error"
+            return {"status": "error", "reason": _WORD_PRINT_ERRORS[kind],
+                    "stage": str(payload.get("stage", "unknown"))[:40]}
+        required = ("preview_ok", "view_type", "visible", "foreground",
+                    "blank_created", "document_count", "count_ok", "saved_ok",
+                    "documents_preserved")
+        if any(key not in payload for key in required):
+            return {"status": "error", "reason": _WORD_PRINT_ERRORS["malformed"]}
+        boolean_keys = ("preview_ok", "visible", "foreground", "blank_created",
+                        "count_ok", "saved_ok", "documents_preserved")
+        if (any(type(payload[key]) is not bool for key in boolean_keys)
+                or type(payload["view_type"]) is not int
+                or type(payload["document_count"]) is not int
+                or payload["document_count"] < 0):
+            return {"status": "error", "reason": _WORD_PRINT_ERRORS["malformed"]}
+        payload = {key: payload[key] for key in required}
+        preserved = all(payload.get(key) is True for key in
+                        ("count_ok", "saved_ok", "documents_preserved"))
+        if not preserved:
+            return {"status": "error", **payload,
+                    "reason": "error:word-print-preservation — document count "
+                              "or Saved flags changed unexpectedly"}
+        failures = []
+        if payload.get("preview_ok") is not True or payload.get("view_type") != 4:
+            failures.append("PrintPreview/View.Type unverified")
+        if payload.get("visible") is not True:
+            failures.append("window visibility unverified")
+        if payload.get("foreground") is not True:
+            failures.append("foreground HWND mismatch")
+        if failures:
+            return {"status": "partial", **payload,
+                    "reason": "partial:word-print-display — " + "; ".join(failures)}
+        return {"status": "ok", **payload}
 
     def write_doc(self, text: str, name: str, root: str) -> dict:
         """Create a Word document with the literal text, save as `name` in

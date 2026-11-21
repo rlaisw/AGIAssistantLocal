@@ -6,11 +6,16 @@ schema validation, honest envelopes, output bounding, audit rows, and the
 behavioral probe matrix (the browser-lane bridge-mask lesson)."""
 
 import asyncio
+import base64
 import json
 import socket
 import threading
+from pathlib import Path
+from types import SimpleNamespace
+from typing import ClassVar
 
 import httpx
+import pytest
 
 from agentic_rag_mcp.hermes_audit import HermesAudit
 from agentic_rag_mcp.windows_mcp import (
@@ -289,7 +294,7 @@ class TestUserControlDeferral:
     @staticmethod
     def _install(monkeypatch, responses):
         """Fake the SSE+session layer; responses: list or factory of
-        (text, is_error) tuples. Returns the call counter."""
+        (text-or-content-list, is_error) tuples. Returns the call counter."""
         import agentic_rag_mcp.windows_mcp.client as cl
 
         class _Item:
@@ -299,10 +304,11 @@ class TestUserControlDeferral:
         class _Res:
             def __init__(self, text, is_error):
                 self.isError = is_error
-                self.content = [_Item(text)]
+                self.content = text if isinstance(text, list) else [_Item(text)]
 
         class _Session:
             calls = 0
+            last_args = None
 
             async def __aenter__(self):
                 return self
@@ -315,6 +321,7 @@ class TestUserControlDeferral:
 
             async def call_tool(self, tool, args):
                 type(self).calls += 1
+                type(self).last_args = args
                 text, is_error = responses() if callable(responses) \
                     else responses
                 return _Res(text, is_error)
@@ -362,6 +369,169 @@ class TestUserControlDeferral:
                                     "conv-recover", None))
         assert out["status"] == "ok"
         assert sess.calls == 3
+
+    @pytest.mark.parametrize("attempts", [1, 8])
+    def test_consent_attempts_accepts_the_boundaries(self, monkeypatch,
+                                                     attempts):
+        sess = self._install(monkeypatch, lambda: (self.UC, True))
+        out = asyncio.run(call_tool("Process", {"mode": "list"},
+                                    "conv-consent-bound", None,
+                                    consent_attempts=attempts))
+        assert out["status"] == "blocked"
+        assert sess.calls == attempts
+        assert sess.last_args == {"mode": "list"}
+
+    @pytest.mark.parametrize("attempts", [0, 9])
+    def test_consent_attempts_outside_the_bounds_never_dispatch(
+            self, monkeypatch, attempts):
+        sess = self._install(monkeypatch, lambda: (self.UC, True))
+        out = asyncio.run(call_tool("Process", {"mode": "list"},
+                                    "conv-consent-invalid", None,
+                                    consent_attempts=attempts))
+        assert out["status"] == "blocked"
+        assert "consent_attempts" in out["reason"]
+        assert sess.calls == 0
+
+
+class TestImageExtraction:
+    """Spec 047 T015: screenshots are additive, singular, and bounded."""
+
+    FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "mcp_action"
+    BASELINE: ClassVar[dict] = {
+        "status": "ok", "tool": "Screenshot",
+        "text": "Screenshot captured.", "truncated": False}
+
+    @classmethod
+    def _content(cls, case):
+        document = json.loads((cls.FIXTURES / "windows_mcp_results.json")
+                              .read_text(encoding="utf-8"))
+        content = []
+        for item in document[case]["content"]:
+            values = dict(item)
+            data_file = values.pop("data_file", None)
+            if data_file:
+                values["data"] = base64.b64encode(
+                    (cls.FIXTURES / data_file).read_bytes()).decode("ascii")
+            content.append(SimpleNamespace(**values))
+        return content
+
+    @classmethod
+    def _image_bytes(cls, filename):
+        return (cls.FIXTURES / filename).read_bytes()
+
+    def _run(self, monkeypatch, tmp_path, caplog, content, **options):
+        caplog.set_level("DEBUG")
+        sess = TestUserControlDeferral._install(monkeypatch, (content, False))
+        audit_path = tmp_path / "audit.jsonl"
+        out = asyncio.run(call_tool("Screenshot", {}, "conv-image",
+                                    HermesAudit(audit_path), **options))
+        return out, sess, audit_path
+
+    @staticmethod
+    def _assert_no_binary_leak(audit_path, caplog, *payloads):
+        audit_bytes = audit_path.read_bytes()
+        audit_text = audit_bytes.decode("utf-8")
+        for payload in payloads:
+            encoded = base64.b64encode(payload).decode("ascii")
+            assert payload not in audit_bytes, "image bytes leaked into audit"
+            for rendered in (encoded, repr(payload)):
+                assert rendered not in audit_text, "image data leaked into audit"
+                assert rendered not in caplog.text, "image data leaked into logs"
+
+    @staticmethod
+    def _assert_bounded_image_error(out, audit_path, caplog, content):
+        assert out["status"] == "error"
+        reason = out.get("reason", "")
+        assert reason.startswith("error:")
+        assert "image" in reason.lower()
+        assert len(reason) <= TEXT_BOUND
+        assert not out.get("images")
+        audit_text = audit_path.read_text(encoding="utf-8")
+        for item in content:
+            encoded = getattr(item, "data", "")
+            if encoded:
+                assert encoded not in reason, "Base64 leaked into the error"
+                assert encoded not in audit_text, "Base64 leaked into audit"
+                assert encoded not in caplog.text, "Base64 leaked into logs"
+
+    @pytest.mark.parametrize("options", [{}, {"include_images": False}],
+                             ids=["default", "explicit-false"])
+    def test_mixed_result_is_compatible_without_opt_in(
+            self, monkeypatch, tmp_path, caplog, options):
+        content = self._content("mixed_image_result")
+        out, sess, audit_path = self._run(monkeypatch, tmp_path, caplog,
+                                          content, **options)
+        assert out == self.BASELINE
+        assert "images" not in out
+        assert sess.last_args == {}
+        self._assert_no_binary_leak(audit_path, caplog,
+                                    self._image_bytes("tiny.png"))
+
+    @pytest.mark.parametrize(("filename", "mime_type"), [
+        ("tiny.png", "image/png"),
+        ("tiny.jpg", "image/jpeg"),
+    ])
+    def test_opt_in_extracts_one_image_and_preserves_the_envelope(
+            self, monkeypatch, tmp_path, caplog, filename, mime_type):
+        content = self._content("mixed_image_result")
+        payload = self._image_bytes(filename)
+        image = next(item for item in content if item.type == "image")
+        image.data = base64.b64encode(payload).decode("ascii")
+        image.mimeType = mime_type
+        out, sess, audit_path = self._run(monkeypatch, tmp_path, caplog,
+                                          content, include_images=True)
+        assert {key: value for key, value in out.items() if key != "images"} \
+            == self.BASELINE
+        assert len(out["images"]) == 1
+        captured = out["images"][0]
+        assert captured.data == payload
+        assert captured.mime_type == mime_type
+        assert sess.last_args == {}
+        self._assert_no_binary_leak(audit_path, caplog, payload)
+
+    @pytest.mark.parametrize(("case", "reason_part"), [
+        ("missing_image", "image"),
+        ("multiple_images", "image"),
+        ("malformed_image", "base64"),
+    ])
+    def test_invalid_image_results_are_honest_bounded_errors(
+            self, monkeypatch, tmp_path, caplog, case, reason_part):
+        content = self._content(case)
+        out, _, audit_path = self._run(monkeypatch, tmp_path, caplog,
+                                       content, include_images=True)
+        self._assert_bounded_image_error(out, audit_path, caplog, content)
+        assert reason_part in out["reason"].lower()
+
+    def test_wrong_image_mime_is_rejected(self, monkeypatch, tmp_path, caplog):
+        content = self._content("mixed_image_result")
+        image = next(item for item in content if item.type == "image")
+        image.mimeType = "image/gif"
+        out, _, audit_path = self._run(monkeypatch, tmp_path, caplog,
+                                       content, include_images=True)
+        self._assert_bounded_image_error(out, audit_path, caplog, content)
+        assert "mime" in out["reason"].lower()
+
+    def test_image_bytes_must_match_the_declared_mime(
+            self, monkeypatch, tmp_path, caplog):
+        content = self._content("mixed_image_result")
+        image = next(item for item in content if item.type == "image")
+        image.data = base64.b64encode(self._image_bytes("tiny.jpg")).decode(
+            "ascii")
+        image.mimeType = "image/png"
+        out, _, audit_path = self._run(monkeypatch, tmp_path, caplog,
+                                       content, include_images=True)
+        self._assert_bounded_image_error(out, audit_path, caplog, content)
+
+    def test_image_over_ten_mib_is_rejected(self, monkeypatch, tmp_path,
+                                            caplog):
+        content = self._content("mixed_image_result")
+        image = next(item for item in content if item.type == "image")
+        payload = self._image_bytes("tiny.png") + b"\0" * (10 * 1024 * 1024)
+        image.data = base64.b64encode(payload).decode("ascii")
+        out, _, audit_path = self._run(monkeypatch, tmp_path, caplog,
+                                       content, include_images=True)
+        self._assert_bounded_image_error(out, audit_path, caplog, content)
+        assert "10" in out["reason"]
 
 
 class TestChatSurface:

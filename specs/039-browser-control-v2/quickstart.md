@@ -8,7 +8,9 @@ Runnable validation proving the full control surface end-to-end. Shapes in [cont
 
 ```bash
 curl -s localhost:28080/healthz                          # sidecar ok (53 tools after build)
-.venv/bin/python -m agentic_rag_mcp.deploy all           # after 039 implementation
+.venv/bin/python -m agentic_rag_mcp.deploy redeploy  # rebuild + health + tool sync
+# publish the DSL to both apps by explicit ID (not name-based deploy all/chatflow)
+.venv/bin/python -m agentic_rag_mcp.deploy verify    # battery
 # Windows: the playwright-mcp-server launcher running (:3002 SSE reachable via the bridge)
 ```
 

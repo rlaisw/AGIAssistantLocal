@@ -62,6 +62,25 @@ def test_registry_matches_contract():
     assert [name for name, _ in battery.registry(skip_chat=True)] == CONTRACT_SCENARIOS[:-1]
 
 
+def test_tools_surface_requires_mcp_action(monkeypatch):
+    from agentic_rag_mcp.deploy import tool_sync
+
+    tools = [{"name": name} for name in (
+        "ppt_check", "ppt_export", "ppt_icon_sync", "ppt_project_init",
+        "ppt_write_page", "ppt_write_v2", "windows_mcp_process_list",
+        "windows_mcp_status", "windows_mcp_open_settings",
+        "windows_mcp_read_settings", "windows_mcp_gui_flow",
+    )]
+    monkeypatch.setattr(tool_sync, "fetch_live_tools", lambda: tools)
+    ok, evidence = battery.scenario_tools_surface(DeployConfig())
+    assert not ok, evidence
+
+    monkeypatch.setattr(tool_sync, "fetch_live_tools",
+                        lambda: [*tools, {"name": "mcp_action"}])
+    ok, evidence = battery.scenario_tools_surface(DeployConfig())
+    assert ok, evidence
+
+
 def test_battery_exit_code_counts_failures(tmp_path, monkeypatch):
     calls = []
 

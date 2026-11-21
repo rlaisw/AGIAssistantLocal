@@ -8,9 +8,12 @@ case maps to the native Process tool."""
 from __future__ import annotations
 
 import asyncio
+import base64
+import binascii
 import os
 import re
 import time
+from dataclasses import dataclass
 
 from mcp import ClientSession
 from mcp.client.sse import sse_client
@@ -21,6 +24,15 @@ BRIDGE_SSE_URL = "http://172.17.0.1:18800/sse"
 CANONICAL_HOST = "127.0.0.1:8800"
 PROBE_TIMEOUT_S = 2.0
 TEXT_BOUND = 4000
+_IMAGE_BYTES_BOUND = 10 * 1024 * 1024
+_IMAGE_BASE64_BOUND = 4 * ((_IMAGE_BYTES_BOUND + 2) // 3)
+
+
+@dataclass(frozen=True)
+class CapturedImage:
+    data: bytes
+    mime_type: str
+
 
 _RECOVERY = ("start the Scheduled Task: "
              "schtasks /run /tn windows-mcp-server")
@@ -71,6 +83,39 @@ def bound_text(text: str) -> tuple[str, bool]:
     and the truncation is named honestly by the caller when it happens."""
     t = text or ""
     return t[:TEXT_BOUND], len(t) > TEXT_BOUND
+
+
+def _extract_image(content: list) -> CapturedImage:
+    """Decode exactly one PNG/JPEG without echoing its data into errors."""
+    images = [item for item in content
+              if getattr(item, "type", None) == "image"]
+    if len(images) != 1:
+        raise ValueError(
+            f"expected exactly one ImageContent, got {len(images)}")
+    image = images[0]
+    mime_type = getattr(image, "mimeType", None)
+    if mime_type not in {"image/png", "image/jpeg"}:
+        raise ValueError("unsupported image MIME; expected PNG or JPEG")
+    encoded = getattr(image, "data", None)
+    if not isinstance(encoded, str):
+        raise TypeError("malformed image Base64")
+    if len(encoded) > _IMAGE_BASE64_BOUND:
+        raise ValueError("decoded image exceeds the 10 MiB limit")
+    try:
+        data = base64.b64decode(encoded, validate=True)
+    except (binascii.Error, TypeError, ValueError) as exc:
+        raise ValueError("malformed image Base64") from exc
+    if len(data) > _IMAGE_BYTES_BOUND:
+        raise ValueError("decoded image exceeds the 10 MiB limit")
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        detected_mime = "image/png"
+    elif data.startswith(b"\xff\xd8\xff"):
+        detected_mime = "image/jpeg"
+    else:
+        raise ValueError("image bytes are not PNG or JPEG")
+    if detected_mime != mime_type:
+        raise ValueError("image magic bytes do not match the declared MIME")
+    return CapturedImage(data=data, mime_type=mime_type)
 
 
 def classify_refusal(text: str) -> bool:
@@ -173,7 +218,9 @@ def _unavailable(exc: Exception) -> str:
 
 
 async def call_tool(tool: str, args: dict, conversation_id: str,
-                    audit: HermesAudit | None = None) -> dict:
+                    audit: HermesAudit | None = None, *,
+                    include_images: bool = False,
+                    consent_attempts: int = 8) -> dict:
     """One consented tool call through the repaired lane. Every path —
     executed, blocked, error — audits exactly one row."""
     t0 = time.monotonic()
@@ -196,6 +243,17 @@ async def call_tool(tool: str, args: dict, conversation_id: str,
                 duration_s=time.monotonic() - t0)
         return {"status": "blocked",
                 "reason": "rejected: conversation_id is required (audited)"}
+    if (not isinstance(consent_attempts, int)
+            or isinstance(consent_attempts, bool)
+            or not 1 <= consent_attempts <= 8):
+        reason = "rejected: consent_attempts must be an integer in 1..8"
+        if audit:
+            audit.write_attempt(decision="blocked", operation=_op(tool),
+                                normalized_path=None, allowed_root="",
+                                reason=reason,
+                                conversation_id=conversation_id,
+                                duration_s=time.monotonic() - t0)
+        return {"status": "blocked", "reason": reason}
     try:
         async with sse_client(BRIDGE_SSE_URL, headers=_headers()) \
                 as (read, write), \
@@ -211,10 +269,10 @@ async def call_tool(tool: str, args: dict, conversation_id: str,
                 # open-the-installed-programs-applet (2026-11-16): the
                 # service yields to the desktop user (USER_CONTROL) — a
                 # safety guard, but a chat user is ALWAYS active just after
-                # typing; 4 attempts (~32 s) often wasn't enough. 8 attempts
-                # (~64 s) within the 300 s turn budget lets a hands-off
-                # moment arrive while the turn is still open.
-                for _consent_attempt in range(8):
+                # typing; 4 attempts (~32 s) often wasn't enough. The default
+                # 8 attempts (~64 s) fits the 300 s turn budget; callers may
+                # choose a smaller bound without changing the legacy default.
+                for _consent_attempt in range(consent_attempts):
                     res = await session.call_tool(tool, args)
                     text = "\n".join(getattr(c, "text", "")
                                      for c in res.content
@@ -258,6 +316,26 @@ async def call_tool(tool: str, args: dict, conversation_id: str,
                 if truncated:
                     envelope["note"] = (f"output truncated at {TEXT_BOUND} "
                                         f"characters")
+                if include_images:
+                    try:
+                        captured = _extract_image(res.content)
+                    except (TypeError, ValueError) as exc:
+                        envelope = {
+                            "status": "error",
+                            "reason": f"error:windows-mcp-image — {exc}"}
+                        if audit:
+                            audit.write_attempt(
+                                decision="error", operation=_op(tool),
+                                normalized_path=None, allowed_root="",
+                                reason=envelope["reason"],
+                                conversation_id=conversation_id,
+                                duration_s=time.monotonic() - t0)
+                        return envelope
+                    for field in ("data", "logs"):
+                        value = getattr(res, field, None)
+                        if value is not None:
+                            envelope[field] = value
+                    envelope["images"] = [captured]
                 if audit:
                     audit.write_attempt(
                         decision="executed", operation=_op(tool),

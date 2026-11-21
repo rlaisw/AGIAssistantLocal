@@ -22,6 +22,8 @@ log = logging.getLogger("agentic_rag_mcp.logging")
 # RedactionRule (data-model.md, binding list) — applied to every record,
 # every level, on both handlers.
 _REDACTIONS: list[tuple[re.Pattern, str]] = [
+    (re.compile(r"(/mcp-action/screenshots/)[A-Za-z0-9_-]{43}(?![A-Za-z0-9_-])"),
+     r"\1[REDACTED:screenshot-token]"),
     (re.compile(r"(Bearer\s+)[A-Za-z0-9._\-]+"), r"\1[REDACTED:token]"),
     (re.compile(r"(client_secret[\"']?\s*[:=]\s*[\"'])[^\"']+"), r"\1[REDACTED:secret]"),
     (re.compile(r"(api[_-]?key[\"']?\s*[:=]\s*[\"'])[^\"']+"), r"\1[REDACTED:secret]"),

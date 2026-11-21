@@ -35,6 +35,8 @@ Expected: per-scenario PASS lines with evidence, a summary (failures first if an
 $VENV -m agentic_rag_mcp.deploy all
 ```
 
+> **Host caveat (2026-11-21):** this host has two live apps both named `AGI Assistant`, so name-based `deploy all`/`chatflow` can publish to the wrong app. Use `deploy redeploy`, publish both apps by explicit ID, then `deploy verify`.
+
 Expected: image rebuild → container recreate → health ok → MCP registration ensured (or tool cache re-synced with before/after counts, e.g. `21 → 21` or `16 → 21`) → chatflow draft-updated and published → battery green. Zero prompts, zero UI actions.
 
 ## 4. Automated test battery (developer)

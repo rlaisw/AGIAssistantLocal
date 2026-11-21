@@ -20,7 +20,7 @@ _SLOT_RE = re.compile(r"\{\{([a-z][a-z0-9_]*)\}\}")
 # tools whose execution is confirm-gated (spec 034 protocol) — a replayed
 # step on one of these pauses for its own live confirm; the skill record
 # never pre-confirms (035 FR-020)
-GATED_TOOLS = {"hermes_run_powershell"}
+GATED_TOOLS = {"hermes_run_powershell", "mcp_action"}
 
 # the four skill tools are data-only — they never execute anything
 SKILL_TOOLS = {"skill_search", "skill_get", "skill_save", "skill_feedback"}

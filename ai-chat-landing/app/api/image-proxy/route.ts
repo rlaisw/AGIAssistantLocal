@@ -48,11 +48,15 @@ export async function GET(request: NextRequest) {
   if (declared > MAX_BYTES) return new Response("too large", { status: 413 })
   const buf = await upstream.arrayBuffer()
   if (buf.byteLength > MAX_BYTES) return new Response("too large", { status: 413 })
+  const cacheControl = upstream.headers.get("cache-control")
 
   return new Response(buf, {
     headers: {
       "content-type": type,
-      "cache-control": "public, max-age=3600",
+      "cache-control":
+        cacheControl && /\bno-store\b/i.test(cacheControl)
+          ? cacheControl
+          : "public, max-age=3600",
     },
   })
 }

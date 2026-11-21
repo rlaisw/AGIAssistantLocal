@@ -166,3 +166,44 @@ def test_health_transitions_logged(tmp_path):
                     and " WARNING " not in ln]
     assert degrade_line and " WARNING " in degrade_line[0] and "needs sign-in" in degrade_line[0]
     assert recover_line and " INFO " in recover_line[0]
+
+
+def test_mcp_action_screenshot_capability_redaction(tmp_path):
+    """T018: access/application logs keep the route, never its 43-char capability."""
+    _, path = _configure(tmp_path)
+    token = "A" * 43
+    route = f"/mcp-action/screenshots/{token}"
+    url = f"https://sidecar.test{route}"
+    _emit("GET %s HTTP/1.1", route)
+    _emit("audit screenshot image_url=%s", url)
+    for h in logging.getLogger().handlers:
+        h.flush()
+    text = _file_text(path)
+    marker = "/mcp-action/screenshots/[REDACTED:screenshot-token]"
+    assert text.count(marker) == 2
+    assert token not in text
+    assert route not in text and url not in text
+
+
+def test_mcp_action_redaction_keeps_other_paths_and_existing_rules(tmp_path):
+    """T018: only exact capabilities are masked; existing credential rules remain."""
+    _, path = _configure(tmp_path)
+    paths = [
+        "/mcp-action/screenshots/" + "A" * 42,
+        "/mcp-action/screenshots/" + "A" * 44,
+        "/mcp-action/screenshots/not-a-capability",
+        "/mcp",
+    ]
+    for value in paths:
+        _emit("GET %s HTTP/1.1", value)
+    bearer = "eyJhbGciOiJIUzI1NiJ9.secret-token-value"
+    _emit('Authorization: Bearer %s client_secret="secret-value-123" api_key = "k-12345"',
+          bearer)
+    for h in logging.getLogger().handlers:
+        h.flush()
+    text = _file_text(path)
+    for value in paths:
+        assert f"GET {value} HTTP/1.1" in text
+    assert "Authorization: Bearer [REDACTED:token]" in text and bearer not in text
+    assert text.count("[REDACTED:secret]") == 2
+    assert "secret-value-123" not in text and "k-12345" not in text

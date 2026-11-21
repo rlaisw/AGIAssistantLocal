@@ -8,7 +8,9 @@ Runnable validation proving both lanes end-to-end. Shapes in [contracts/](./cont
 
 ```bash
 curl -s localhost:28080/healthz                          # sidecar ok (33 tools)
-.venv/bin/python -m agentic_rag_mcp.deploy all           # after 037 implementation: rebuild + publish + battery
+.venv/bin/python -m agentic_rag_mcp.deploy redeploy  # rebuild + health + tool sync
+# publish the DSL to both apps by explicit ID (not name-based deploy all/chatflow)
+.venv/bin/python -m agentic_rag_mcp.deploy verify    # battery
 # Windows host: playwright --version (1.65.0), playwright-mcp --version (0.0.85), Chromium installed
 ```
 

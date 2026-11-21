@@ -1,0 +1,20 @@
+{
+  "mixed_image_result": {
+    "content": [
+      {"type": "text", "text": "Screenshot captured."},
+      {"type": "image", "mimeType": "image/png", "data_file": "tiny.png"}
+    ]
+  },
+  "missing_image": {
+    "content": [{"type": "text", "text": "No image returned."}]
+  },
+  "multiple_images": {
+    "content": [
+      {"type": "image", "mimeType": "image/png", "data_file": "tiny.png"},
+      {"type": "image", "mimeType": "image/jpeg", "data_file": "tiny.jpg"}
+    ]
+  },
+  "malformed_image": {
+    "content": [{"type": "image", "mimeType": "image/png", "data": "not-base64"}]
+  }
+}

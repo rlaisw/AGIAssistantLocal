@@ -8,7 +8,9 @@ Runnable validation proving the tier protocol, long-job model, and gate boundari
 
 ```bash
 curl -s localhost:28080/healthz                          # sidecar ok (35 tools)
-.venv/bin/python -m agentic_rag_mcp.deploy all           # after 038 implementation: rebuild + publish + battery
+.venv/bin/python -m agentic_rag_mcp.deploy redeploy  # rebuild + health + tool sync
+# publish the DSL to both apps by explicit ID (not name-based deploy all/chatflow)
+.venv/bin/python -m agentic_rag_mcp.deploy verify    # battery
 # Windows host: cli-hub 0.4.1 installed (script donor); task-gateway-service Scheduled Task running
 curl -s http://172.17.0.1:8080/api/healthz                # {"status":"ok"}
 ```
@@ -55,4 +57,4 @@ curl -s http://172.17.0.1:8080/api/healthz                # {"status":"ok"}
 - `tools/list`: **39 tools** (35 + the four `task_*`), existing schemas byte-identical (Principle I pin).
 - 034's powershell suite re-runs green against the shared never-list module (R3 pin).
 - Every battery trial, including A1/A4 refusals, leaves its audit row.
-- Full pytest suite green minus the 3 pre-existing contract pins (+ known office X1 flake in the live battery, pre-existing).
+- Full pytest suite is green (the former 3 baseline contract pins were repaired 2026-11-21; current suite 1,245 passed). Known office X1 live-battery flake remains tracked separately.

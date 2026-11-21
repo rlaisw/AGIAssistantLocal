@@ -51,7 +51,7 @@ Pinned classes:
 ## D. Verification flow
 
 1. Units red → implement → green; full suite green (house gate).
-2. `deploy all` (tool count changes; DSL publish).
+2. `.venv/bin/python -m agentic_rag_mcp.deploy redeploy` (tool count changes), publish by explicit app ID, then `.venv/bin/python -m agentic_rag_mcp.deploy verify`.
 3. Run B and C in order (E2E-1/2 need no owner interaction; 3-4 and EH-3/4/6 need the owner confirming or declining).
 4. Audit cross-check: every B/C case leaves the expected row (`grep windows-mcp ~/.config/…/audit.jsonl`).
 

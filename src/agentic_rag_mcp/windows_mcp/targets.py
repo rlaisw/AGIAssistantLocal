@@ -60,6 +60,7 @@ TARGETS: dict[str, dict] = {
     "personalization": {"kind": "settings_page",
                          "identifier": "personalization"},
     "devices settings": {"kind": "settings_page", "identifier": "devices"},
+    "printers": {"kind": "settings_page", "identifier": "printers"},
 }
 
 _ASK_BACK = ("blocked: I did not recognize that settings surface. "

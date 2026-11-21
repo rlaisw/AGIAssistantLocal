@@ -57,3 +57,47 @@ def test_status_shape(server):
     assert out["decision_layer"] in ("decision_node", "fallback")
     assert "index" in out and "sources" in out
     assert "documents" in out["index"] and "chunks" in out["index"]
+
+
+def test_mcp_action_schema_is_additive_and_ask_schema_is_unchanged(server):
+    tools = asyncio.run(server.list_tools())
+    by_name = {tool.name: tool for tool in tools}
+
+    assert "mcp_action" in by_name
+    action_schema = by_name["mcp_action"].inputSchema
+    properties = action_schema["properties"]
+    assert set(properties) == {
+        "phase", "conversation_id", "dialogue_count", "query", "action_id", "parameters",
+    }
+    assert set(action_schema["required"]) == {"phase", "conversation_id", "dialogue_count"}
+    assert properties["phase"]["type"] == "string"
+    assert set(properties["phase"]["enum"]) == {"draft", "confirm", "cancel"}
+    assert properties["conversation_id"]["type"] == "string"
+    assert properties["dialogue_count"]["type"] == "integer"
+    assert properties["query"] == {"default": "", "title": "Query", "type": "string"}
+    assert properties["action_id"] == {"default": "", "title": "Action Id", "type": "string"}
+    assert properties["parameters"]["default"] is None
+
+    # C05: adding the tool must not alter the established ask input contract.
+    assert by_name["ask"].inputSchema == {
+        "properties": {
+            "collections": {
+                "anyOf": [
+                    {"items": {"type": "string"}, "type": "array"},
+                    {"type": "null"},
+                ],
+                "default": None,
+                "title": "Collections",
+            },
+            "max_iterations": {
+                "anyOf": [{"type": "integer"}, {"type": "null"}],
+                "default": None,
+                "title": "Max Iterations",
+            },
+            "mode": {"default": "auto", "title": "Mode", "type": "string"},
+            "question": {"title": "Question", "type": "string"},
+        },
+        "required": ["question"],
+        "title": "askArguments",
+        "type": "object",
+    }

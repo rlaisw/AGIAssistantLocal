@@ -113,4 +113,14 @@ describe("splitFollowUp", () => {
     const text = `Answer body without any follow-up question.\n\n${link}`
     expect(splitFollowUp(text)).toEqual({ body: text })
   })
+
+  it("splits the exact MCP-action offer after manual instruction paragraphs", () => {
+    const manualSteps = "1. Open Settings and select Printers & scanners.\n\n2. Select Microsoft Print to PDF and choose Set as default."
+    const offer = "Do you want me to do it automatically for you?"
+
+    expect(splitFollowUp(`${manualSteps}\n\n${offer}`)).toEqual({
+      body: manualSteps,
+      followUp: offer,
+    })
+  })
 })

@@ -5,6 +5,8 @@ description: Migrates React projects and components from Radix UI to Base UI. Us
 
 # Radix UI -> Base UI migration
 
+_Reviewed against current AgenticRAG repository state: 2026-11-21. CLI-managed/upstream guidance preserved._
+
 You migrate shadcn wrappers, hand-rolled radix compositions, and their
 consumers to `@base-ui/react`, keeping the project buildable at every step.
 Be precise; never guess a mapping. When a prop or part is not in these

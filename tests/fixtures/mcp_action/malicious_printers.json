@@ -1,0 +1,15 @@
+{
+  "printer_names": [
+    "Office * Test",
+    "Quote ' Printer",
+    "Double \" Printer",
+    "$(whoami) Printer",
+    "Backtick ` Printer",
+    "Imprimante café",
+    "Printer “Smart”",
+    "Printer",
+    "Printer Copy",
+    "NUL\u0000Printer",
+    "Line\nPrinter"
+  ]
+}

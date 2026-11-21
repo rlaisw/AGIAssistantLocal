@@ -15,9 +15,10 @@ Run in Docker: see Dockerfile next to this file.
 
 from __future__ import annotations
 
+import asyncio
 import os
 import sys
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 
 # Make `agentic_rag_mcp` importable when run straight from the repo checkout.
@@ -33,6 +34,7 @@ from starlette.responses import FileResponse, HTMLResponse, JSONResponse, Respon
 from starlette.routing import Route
 
 from agentic_rag_mcp.config import load_config
+from agentic_rag_mcp.mcp_action.screenshots import get_screenshot_store
 from agentic_rag_mcp.server import build_server
 
 HOST = os.environ.get("MCP_HOST", "0.0.0.0")
@@ -41,6 +43,13 @@ PORT = int(os.environ.get("MCP_PORT", "28080"))
 # stateless_http=True is required so Dify can send stateless requests
 # without session-management errors.
 cfg = load_config()
+screenshot_store = get_screenshot_store()
+exports_url_base = (
+    os.environ.get("PPT_EXPORTS_URL_BASE") or cfg.ppt_exports_url_base
+).rstrip("/")
+public_origin = exports_url_base.removesuffix("/exports")
+# The shared store predates sidecar configuration; only its public URL is configured here.
+screenshot_store._public_base_url = f"{public_origin}/mcp-action/screenshots"
 mcp = build_server(cfg, stateless_http=True, host=HOST, port=PORT)
 
 streamable = mcp.streamable_http_app()  # registers POST /mcp, creates session manager
@@ -134,6 +143,32 @@ async def infographic_page(request) -> Response:
     })
 
 
+_SCREENSHOT_HEADERS = {
+    "Cache-Control": "no-store, max-age=0",
+    "Pragma": "no-cache",
+    "Expires": "0",
+    "Access-Control-Allow-Origin": "*",
+    "Cross-Origin-Resource-Policy": "cross-origin",
+    "X-Content-Type-Options": "nosniff",
+    "Content-Disposition": "inline",
+}
+
+
+async def screenshot_file(request) -> Response:
+    """Serve one temporary screenshot without exposing its storage metadata."""
+    if request.method != "GET":
+        return Response(
+            "method not allowed",
+            status_code=405,
+            headers={"Allow": "GET", "Cache-Control": "no-store"},
+        )
+    image = screenshot_store.resolve(request.path_params["token"])
+    if image is None:
+        return Response("not found", status_code=404,
+                        headers={"Cache-Control": "no-store"})
+    return Response(image.data, media_type=image.mime_type, headers=_SCREENSHOT_HEADERS)
+
+
 async def mcp_get(request) -> Response:
     """Browsers/probes that GET /mcp get a clean 405 instead of a confusing
     JSON-RPC 406. Per MCP streamable-HTTP spec, servers without the optional
@@ -145,11 +180,25 @@ async def mcp_get(request) -> Response:
     )
 
 
+async def _screenshot_cleanup_loop():
+    while True:
+        await asyncio.sleep(30)
+        screenshot_store.cleanup()
+
+
 @asynccontextmanager
 async def lifespan(app):
-    # Streamable HTTP needs its session manager started for the app's lifetime.
-    async with mcp.session_manager.run():
-        yield
+    screenshot_store.cleanup()
+    janitor = asyncio.create_task(_screenshot_cleanup_loop())
+    try:
+        # Streamable HTTP needs its session manager started for the app's lifetime.
+        async with mcp.session_manager.run():
+            yield
+    finally:
+        janitor.cancel()
+        with suppress(asyncio.CancelledError):
+            await janitor
+        screenshot_store.cleanup()
 
 
 app = Starlette(
@@ -161,6 +210,11 @@ app = Starlette(
         Route("/decks/{project_id}/{stem}/slides/{filename}", completion_slide,
               methods=["GET"]),
         Route("/infographics/{id}/", infographic_page, methods=["GET"]),
+        Route(
+            "/mcp-action/screenshots/{token:path}",
+            screenshot_file,
+            methods=["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "TRACE"],
+        ),
         *streamable.routes,
         *sse.routes,
     ],

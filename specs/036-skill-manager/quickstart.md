@@ -8,7 +8,9 @@ Runnable validation proving the Skill Manager end-to-end. Test cases live in [03
 
 ```bash
 curl -s localhost:28080/healthz                                        # sidecar ok
-python -m agentic_rag_mcp.deploy all                                   # rebuild + publish + battery
+.venv/bin/python -m agentic_rag_mcp.deploy redeploy  # rebuild + health + tool sync
+# publish the DSL to both apps by explicit ID (not name-based deploy all/chatflow)
+.venv/bin/python -m agentic_rag_mcp.deploy verify    # battery
 # then the staleness rule: rebuild tools rows in Dify for the 4 new tools
 # + restart docker-api-1 / docker-worker-1
 ```

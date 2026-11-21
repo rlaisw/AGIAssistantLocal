@@ -1,0 +1,25 @@
+{
+  "pending_offer": {
+    "conversation_id": "sanitized-conversation",
+    "dialogue_count": 4,
+    "next_dialogue_count": 5,
+    "items": [
+      {
+        "tool": "mcp_action",
+        "tool_input": {"phase": "draft"},
+        "output": "{\"status\":\"pending-confirmation\",\"offer\":\"Do you want me to do it automatically for you?\",\"expires_in_s\":900}"
+      }
+    ]
+  },
+  "research_only": {
+    "conversation_id": "sanitized-conversation",
+    "dialogue_count": 4,
+    "items": [
+      {
+        "tool": "web_search",
+        "tool_input": {"query": "sanitized research"},
+        "output": "{\"results\":[]}"
+      }
+    ]
+  }
+}

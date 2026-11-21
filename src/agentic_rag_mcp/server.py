@@ -9,6 +9,7 @@ import re
 import time
 import uuid
 from pathlib import Path
+from typing import Literal
 from urllib.parse import urljoin
 
 
@@ -32,6 +33,9 @@ from .errors import FeatureDisabledError, NotFoundError, SourceAuthError
 from .ingestion.pipeline import IngestionPipeline
 from .ingestion.watchers import Watcher
 from .logging_setup import configure_logging, current_setup
+from .mcp_action.actions import ReviewedActions
+from .mcp_action.screenshots import get_screenshot_store
+from .mcp_action.service import McpActionService, ScreenshotCapture, WindowsDisplay
 from .office_state import OfficeState
 from .routing import decision as decision_mod
 from .search.embeddings import Embedder
@@ -2311,6 +2315,44 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
         progress or completion. conversation_id required (audited).
         """
         return get_task_lane().job_status(job_id, conversation_id)
+
+    mcp_action_audit = HermesAudit(cfg.hermes_audit_path)
+    # Preserve the no-arg registration-test seam while sharing one dependency set.
+    mcp_action_service = McpActionService()
+    mcp_action_service.actions = ReviewedActions()
+    mcp_action_service.display = WindowsDisplay(
+        office_proxy=get_office_proxy, audit=mcp_action_audit
+    )
+    mcp_action_service.screenshots = ScreenshotCapture(
+        store=get_screenshot_store(),
+        audit=mcp_action_audit,
+    )
+    mcp_action_service.audit = mcp_action_audit
+
+    @mcp.tool()
+    async def mcp_action(
+        phase: Literal["draft", "confirm", "cancel"],
+        conversation_id: str,
+        dialogue_count: int,
+        query: str = "",
+        action_id: str = "",
+        parameters: dict | None = None,
+    ) -> dict:
+        """Prepare or resolve a reviewed desktop-action proposal.
+
+        Draft performs only read-only target validation and stores the exact
+        action. Confirm and cancel use only the stored proposal from the
+        immediately preceding turn; confirmed reviewed actions execute once,
+        serialized across the shared Windows desktop.
+        """
+        return await mcp_action_service.handle(
+            phase=phase,
+            conversation_id=conversation_id,
+            dialogue_count=dialogue_count,
+            query=query,
+            action_id=action_id,
+            parameters=parameters,
+        )
 
     return mcp
 
