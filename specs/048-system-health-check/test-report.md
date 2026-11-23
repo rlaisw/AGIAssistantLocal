@@ -143,3 +143,11 @@ Updated `AGENTS.md`, `ai-chat-landing/AGENTS.md`, `README.md`, `DEPLOY.md`, and 
 - Live E04 (owner-present harness): **1 passed**, `status=ok`, `report=published`, `display=displayed`, `screenshot=captured`, report **20,413 bytes**.
 - Affected suites: **585 passed**; Ruff and `git diff --check` clean.
 - Live Dify chat verification is currently blocked by Windows MCP `CONTROL_UNAVAILABLE` (host control session), not by the script/report code; restart `windows-mcp-server`/session recovery is pending.
+
+## Reminder and finished messages (2026-11-23)
+
+- The health draft returns a `notice`; the Dify finalizer inserts it immediately above the exact offer.
+- The completed health answer appends `System-Self-Check finished — the complete report is above…` after the full HTML.
+- Deployed sidecar has `_HEALTH_WAIT_NOTICE`; both live app exports contain `healthDraftNotice` and `System-Self-Check finished`.
+- Live owner test: full HTML report and reminder message found.
+- Focused tests: **177 passed**; MCP-Action/contract suite **581 passed**; Ruff and `git diff --check` clean.

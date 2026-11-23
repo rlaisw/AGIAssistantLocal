@@ -1321,6 +1321,10 @@ async def test_health_draft_has_no_parameters_and_no_host_effects(
     assert out["action_id"] == HEALTH_ACTION
     assert out["effect"] == HEALTH_EFFECT
     assert out["offer"] == OFFER
+    assert out["notice"] == (
+        "Please wait about 2-5 minutes and do not use the keyboard or mouse "
+        "during System-Self-Check is running\nuntil the report is finished"
+    )
     assert out["expires_in_s"] == 900
     assert any("sensitive" in caveat.casefold() for caveat in out["caveats"])
 

@@ -35,6 +35,7 @@ Draft response:
   "status": "pending-confirmation",
   "action_id": "system_health_check",
   "effect": "Run a read-only desktop health check, publish a temporary report, and display Reliability Monitor. The check does not repair or change the system; HelpDesk can help with repairs.",
+  "notice": "Please wait about 2-5 minutes and do not use the keyboard or mouse during System-Self-Check is running\nuntil the report is finished",
   "offer": "Do you want me to do it automatically for you?",
   "expires_in_s": 900,
   "caveats": ["The report may contain sensitive system and reliability details."]

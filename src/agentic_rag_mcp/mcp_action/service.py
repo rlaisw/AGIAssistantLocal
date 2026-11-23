@@ -16,6 +16,10 @@ from .state import ProposalStore
 
 _OFFER = "Do you want me to do it automatically for you?"
 _EXPIRES_IN_S = 900
+_HEALTH_WAIT_NOTICE = (
+    "Please wait about 2-5 minutes and do not use the keyboard or mouse during "
+    "System-Self-Check is running\nuntil the report is finished"
+)
 _ACTION_PARAMETERS = {
     "windows_default_printer": frozenset({"printer"}),
     "word_printer_duplex": frozenset({"printer", "orientation"}),
@@ -562,6 +566,7 @@ class McpActionService:
                 "status": "pending-confirmation",
                 "action_id": proposal.action_id,
                 "effect": proposal.effect,
+                "notice": _HEALTH_WAIT_NOTICE,
                 "offer": _OFFER,
                 "expires_in_s": _EXPIRES_IN_S,
                 "caveats": proposal.caveats,

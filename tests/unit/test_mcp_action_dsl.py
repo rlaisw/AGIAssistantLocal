@@ -1220,6 +1220,34 @@ def test_health_honesty_guard_tracks_real_health_evidence(graph: dict):
     ), "screenshot claims require real capture evidence"
 
 
+def test_offline_honesty_inserts_health_wait_notice_before_offer(graph: dict):
+    code = _honesty_code(_nodes(graph))
+    notice = (
+        "Please wait about 2-5 minutes and do not use the keyboard or mouse "
+        "during System-Self-Check is running\nuntil the report is finished"
+    )
+    result = {
+        "status": "pending-confirmation",
+        "action_id": "system_health_check",
+        "offer": "Do you want me to do it automatically for you?",
+        "notice": notice,
+    }
+    answer = (
+        "Manual diagnostic steps.\n\n"
+        "Do you want me to do it automatically for you?"
+    )
+
+    guarded = _run_honesty(code, answer, result)
+
+    assert guarded.count(notice) == 1
+    assert guarded.index(notice) < guarded.index(
+        "Do you want me to do it automatically for you?"
+    )
+    assert guarded.rstrip().endswith(
+        "Do you want me to do it automatically for you?"
+    )
+
+
 def test_offline_honesty_appends_a_missing_report_file_path(graph: dict):
     code = _honesty_code(_nodes(graph))
     result = _health_execution_result()
@@ -1302,6 +1330,9 @@ def test_offline_honesty_appends_the_full_html_report_verbatim(graph: dict):
     assert guarded.count(report_html) == 1
     assert r"C:\Users\Test\AppData\Local\Temp\selfcheck.html" in guarded
     assert HEALTH_URL not in guarded
+    assert guarded.rstrip().endswith(
+        "System-Self-Check finished — the complete report is above."
+    )
 
 
 def test_offline_honesty_allows_negated_repair_statement_with_full_report(graph: dict):
