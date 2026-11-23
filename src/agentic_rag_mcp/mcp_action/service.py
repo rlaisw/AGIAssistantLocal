@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import time
 
 from ..office_lanes.proxy import OfficeProxy
 from ..windows_mcp.client import CapturedImage, call_tool
 from ..windows_mcp.open import open_settings
 from .actions import parse_marked_json
+from .health import HEALTH_ACTION_ID
 from .screenshots import get_screenshot_store
 from .state import ProposalStore
 
@@ -17,6 +19,7 @@ _EXPIRES_IN_S = 900
 _ACTION_PARAMETERS = {
     "windows_default_printer": frozenset({"printer"}),
     "word_printer_duplex": frozenset({"printer", "orientation"}),
+    HEALTH_ACTION_ID: frozenset(),
 }
 _INTERNAL_ERROR = "Internal MCP-Action error; no automatic action was performed."
 _EXECUTION_ERROR = (
@@ -24,9 +27,16 @@ _EXECUTION_ERROR = (
 )
 _DEFAULT_PRINTER = "windows_default_printer"
 _WORD_DUPLEX = "word_printer_duplex"
+_HEALTH = HEALTH_ACTION_ID
 _TOTAL_BUDGET_S = 240.0
 _DEFAULT_ACTION_BUDGET_S = 60.0
 _WORD_ACTION_BUDGET_S = 90.0
+_HEALTH_ACTION_BUDGET_S = 180.0
+_ACTION_BUDGETS = {
+    _DEFAULT_PRINTER: _DEFAULT_ACTION_BUDGET_S,
+    _WORD_DUPLEX: _WORD_ACTION_BUDGET_S,
+    _HEALTH: _HEALTH_ACTION_BUDGET_S,
+}
 _DISPLAY_STATUSES = frozenset(
     {"displayed", "partial", "unverified", "attempted-but-failed", "skipped"}
 )
@@ -158,6 +168,45 @@ class WindowsDisplay:
                 "reason": "Windows printer settings could not be displayed.",
             }
 
+    async def show_reliability_monitor(self, conversation_id: str) -> dict:
+        try:
+            opened = await open_settings("reliability monitor", conversation_id, self.audit)
+            if not isinstance(opened, dict) or opened.get("status") != "ok":
+                return {
+                    "status": "attempted-but-failed",
+                    "reason": "Reliability Monitor could not be opened.",
+                }
+            waited = await call_tool(
+                "WaitFor",
+                {
+                    "condition": "window",
+                    "window_name": "Reliability Monitor",
+                    "timeout": 20,
+                    "interval": 0.5,
+                    "use_dom": False,
+                },
+                conversation_id,
+                self.audit,
+                consent_attempts=2,
+            )
+            text = waited.get("text", "") if isinstance(waited, dict) else ""
+            if (
+                isinstance(waited, dict)
+                and waited.get("status") == "ok"
+                and "reliability monitor" in text.casefold()
+            ):
+                return {"status": "displayed"}
+            return {
+                "status": "unverified",
+                "reason": "The Reliability Monitor window could not be verified.",
+            }
+        except Exception:  # noqa: BLE001 - display failures stay separate
+            return {
+                "status": "attempted-but-failed",
+                "reason": "Reliability Monitor could not be displayed.",
+            }
+
+
     def show_word_print(self) -> dict:
         """Map bounded OfficeProxy evidence without exposing COM/transport text."""
         try:
@@ -282,8 +331,20 @@ class _EvidenceUnavailable:
             "reason": "Screenshot capture integration is not configured.",
         }
 
+    async def show_reliability_monitor(self, conversation_id: str) -> dict:
+        return {
+            "status": "attempted-but-failed",
+            "reason": "Reliability Monitor display integration is not configured.",
+        }
+
 
 def _effect(action_id: str, parameters: dict) -> str:
+    if action_id == _HEALTH:
+        return (
+            "Run a read-only desktop health check, publish a temporary report, and display "
+            "Reliability Monitor. The check does not repair or change the system; HelpDesk "
+            "can help with repairs."
+        )
     printer = parameters["printer"].strip()
     if action_id == _DEFAULT_PRINTER:
         return (
@@ -332,6 +393,7 @@ class McpActionService:
         actions=None,
         display=None,
         screenshots=None,
+        reports=None,
         audit=None,
         clock=None,
     ):
@@ -341,6 +403,7 @@ class McpActionService:
         self.screenshots = (
             screenshots if screenshots is not None else _EvidenceUnavailable()
         )
+        self.reports = reports
         self.audit = audit
         self._clock = clock if clock is not None else time.monotonic
         self._desktop_lock = asyncio.Lock()
@@ -477,6 +540,32 @@ class McpActionService:
                 "status": "unsupported",
                 "reason": "No reviewed automatic action exists for action_id.",
             }
+        if action_id == _HEALTH:
+            if parameters is None:
+                parameters = {}
+            if not isinstance(parameters, dict):
+                return {"status": "error", "reason": "parameters must be an object."}
+            if parameters:
+                return {
+                    "status": "error",
+                    "reason": "system_health_check accepts no parameters.",
+                }
+            proposal = self.store.create(
+                conversation_id,
+                action_id,
+                {},
+                _effect(action_id, {}),
+                dialogue_count,
+                caveats=["The report may contain sensitive system and reliability details."],
+            )
+            return {
+                "status": "pending-confirmation",
+                "action_id": proposal.action_id,
+                "effect": proposal.effect,
+                "offer": _OFFER,
+                "expires_in_s": _EXPIRES_IN_S,
+                "caveats": proposal.caveats,
+            }
         if parameters is None:
             return {"status": "ask-back", "reason": "Missing required parameter: printer."}
         if not isinstance(parameters, dict):
@@ -555,11 +644,7 @@ class McpActionService:
         async with self._desktop_lock:
             execution_started = self._clock()
             queue_wait_s = execution_started - queued_at
-            action_budget_s = (
-                _DEFAULT_ACTION_BUDGET_S
-                if proposal.action_id == _DEFAULT_PRINTER
-                else _WORD_ACTION_BUDGET_S
-            )
+            action_budget_s = _ACTION_BUDGETS.get(proposal.action_id, _WORD_ACTION_BUDGET_S)
             if queue_wait_s > _TOTAL_BUDGET_S - action_budget_s:
                 finished = self._clock()
                 return {
@@ -574,7 +659,9 @@ class McpActionService:
                 }
 
             try:
-                if proposal.action_id == _DEFAULT_PRINTER:
+                if proposal.action_id == _HEALTH:
+                    raw_result = await self.actions.execute_system_health_check()
+                elif proposal.action_id == _DEFAULT_PRINTER:
                     raw_result = await self.actions.execute_default_printer(
                         proposal.parameters["printer"]
                     )
@@ -585,6 +672,19 @@ class McpActionService:
                     )
             except Exception:  # noqa: BLE001 - host details never cross the tool boundary
                 raw_result = None
+
+            if proposal.action_id == _HEALTH:
+                result, stage_times = await self._health_execute(
+                    raw_result,
+                    conversation_id,
+                    execution_started,
+                    action_budget_s,
+                )
+                finished = self._clock()
+                result["timing"] = _timing(
+                    queued_at, execution_started, finished, **stage_times
+                )
+                return result
 
             result = self._action_envelope(raw_result, proposal.action_id)
             stage_times = {"display_s": None, "screenshot_s": None}
@@ -604,6 +704,138 @@ class McpActionService:
                 queued_at, execution_started, finished, **stage_times
             )
             return result
+
+    def _health_envelope(self, raw_result: object) -> dict:
+        if not isinstance(raw_result, dict) or raw_result.get("status") not in {"ok", "partial"}:
+            return {
+                "status": "error",
+                "action_id": _HEALTH,
+                "changed": False,
+                "reason": "The system health check failed or returned malformed health data.",
+                "display": {"status": "skipped"},
+                "screenshot": {"status": "skipped"},
+            }
+        health = raw_result.get("health")
+        if not isinstance(health, dict) or not isinstance(health.get("counts"), dict):
+            return {
+                "status": "error",
+                "action_id": _HEALTH,
+                "changed": False,
+                "reason": "The system health check returned an invalid health summary.",
+                "display": {"status": "skipped"},
+                "screenshot": {"status": "skipped"},
+            }
+        return {
+            "status": raw_result.get("status", "ok"),
+            "action_id": _HEALTH,
+            "changed": False,
+            "verification": "reported",
+            "health": {
+                "status": health.get("status"),
+                "score": health.get("score"),
+                "counts": dict(health.get("counts") or {}),
+                "confidence": health.get("confidence"),
+            },
+            "helpdesk": _bounded(
+                raw_result.get("helpdesk"),
+                "HelpDesk can help with any repairs or system changes.",
+            ),
+            "remediation": _caveats(raw_result.get("remediation")),
+            "caveats": _caveats(raw_result.get("caveats")),
+        }
+
+    async def _health_execute(
+        self,
+        raw_result: object,
+        conversation_id: str,
+        execution_started: float,
+        action_budget_s: float,
+    ) -> tuple[dict, dict]:
+        result = self._health_envelope(raw_result)
+        stage_times = {"display_s": None, "screenshot_s": None}
+        if result["status"] == "error":
+            return result, stage_times
+
+        report_html = raw_result.get("report_html") if isinstance(raw_result, dict) else None
+        report = self._publish_health_report(report_html)
+        report_text = ""
+        if isinstance(report_html, bytes):
+            try:
+                report_text = report_html.decode("utf-8-sig")
+            except UnicodeDecodeError:
+                report_text = ""
+        elif isinstance(report_html, str):
+            report_text = report_html
+        if not isinstance(report, dict) or report.get("status") != "published":
+            result["report"] = {
+                "status": "failed",
+                "reason": "The temporary health report could not be published.",
+            }
+        else:
+            url = report.get("report_url")
+            result["report"] = {
+                "status": "published",
+                "report_url": url,
+                "expires_in_s": report.get("expires_in_s", _EXPIRES_IN_S),
+                "usage": (
+                    "When report.host_path_status is 'written', present "
+                    "report.host_path once as 'Complete report file: <path>' "
+                    "and do not include a /mcp-action/reports/ URL. "
+                    "The complete HTML report is in report.html and is appended "
+                    "verbatim by the finalizer. If no host path was written, "
+                    "a temporary report link may be used once."
+                ),
+            }
+        if report_text:
+            result["report"]["html"] = report_text
+        report_file = (
+            raw_result.get("report_file") if isinstance(raw_result, dict) else None
+        )
+        if isinstance(report_file, dict):
+            result["report"]["host_path"] = report_file.get("path")
+            result["report"]["host_path_status"] = report_file.get("status")
+        if result["report"]["status"] != "published":
+            result["status"] = "partial"
+
+        display_started = self._clock()
+        try:
+            display = self.display.show_reliability_monitor(conversation_id)
+            if inspect.isawaitable(display):
+                display = await display
+        except Exception:  # noqa: BLE001 - display failure is independent
+            display = None
+        display = self._display_envelope(display)
+        display_s = max(0.0, self._clock() - display_started)
+        result["display"] = display
+        if display["status"] != "displayed":
+            result["screenshot"] = {"status": "skipped-display-unverified"}
+            result["status"] = "partial"
+            return result, {"display_s": display_s, "screenshot_s": None}
+
+        if self._clock() - execution_started >= action_budget_s:
+            result["screenshot"] = {"status": "skipped"}
+            result["budget_exhausted"] = True
+            result["status"] = "partial"
+            return result, {"display_s": display_s, "screenshot_s": None}
+
+        screenshot_started = self._clock()
+        try:
+            screenshot = await self.screenshots.capture(conversation_id)
+        except Exception:  # noqa: BLE001 - capture failure is independent
+            screenshot = None
+        screenshot_s = max(0.0, self._clock() - screenshot_started)
+        screenshot = self._screenshot_envelope(screenshot)
+        result["screenshot"] = screenshot
+        if (
+            result.get("status") == "ok"
+            and screenshot["status"] == "captured"
+            and result["report"]["status"] == "published"
+            and display["status"] == "displayed"
+        ):
+            result["status"] = "ok"
+        else:
+            result["status"] = "partial"
+        return result, {"display_s": display_s, "screenshot_s": screenshot_s}
 
     def _action_envelope(self, raw_result, action_id: str) -> dict:
         empty_state = (
@@ -702,6 +934,22 @@ class McpActionService:
             {"display_s": display_s, "screenshot_s": screenshot_s},
         )
 
+    def _publish_health_report(self, report_html: object) -> dict:
+        if self.reports is None or not isinstance(report_html, (str, bytes)):
+            return {"status": "failed"}
+        try:
+            if hasattr(self.reports, "publish"):
+                return self.reports.publish(report_html)
+            data = report_html.encode("utf-8") if isinstance(report_html, str) else report_html
+            artifact = self.reports.save(data)
+            return {
+                "status": "published",
+                "report_url": artifact.report_url,
+                "expires_in_s": _EXPIRES_IN_S,
+            }
+        except Exception:  # noqa: BLE001 - sanitize publisher/store failures
+            return {"status": "failed"}
+
     @staticmethod
     def _display_envelope(value) -> dict:
         if not isinstance(value, dict) or value.get("status") not in _DISPLAY_STATUSES:
@@ -745,7 +993,11 @@ class McpActionService:
             action_id = result.get("action_id")
             if action_id not in _ACTION_PARAMETERS:
                 action_id = ""
-            if status in {"pending-confirmation", "cancelled", "ok", "partial"}:
+            if status == "pending-confirmation":
+                decision = "proposed"
+            elif status == "cancelled":
+                decision = "cancelled"
+            elif status in {"ok", "partial"}:
                 decision = "executed"
             elif status in {"blocked", "queued-timeout", "ask-back", "unsupported"}:
                 decision = "blocked"
@@ -769,6 +1021,18 @@ class McpActionService:
                 f"{label}:verification={verification}:display={display_status}"
                 f":screenshot={screenshot_status}"
             )
+            health = result.get("health")
+            if isinstance(health, dict):
+                counts = health.get("counts") if isinstance(health.get("counts"), dict) else {}
+                outcome += (
+                    f":health={health.get('status')}:score={health.get('score')}"
+                    f":pass={counts.get('pass')}:warn={counts.get('warn')}"
+                    f":fail={counts.get('fail')}:skip={counts.get('skip')}"
+                    f":confidence={health.get('confidence')}"
+                )
+            report = result.get("report")
+            if isinstance(report, dict):
+                outcome += f":report={report.get('status')}"
             kwargs = {"outcome": outcome}
             if decision != "executed":
                 kwargs["reason"] = (

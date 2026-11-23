@@ -14,6 +14,7 @@ from uuid import uuid4
 _ACTION_PARAMETERS = {
     "windows_default_printer": frozenset({"printer"}),
     "word_printer_duplex": frozenset({"printer", "orientation"}),
+    "system_health_check": frozenset(),
 }
 _AFFIRMATIVE = frozenset(
     {"yes", "yeah", "yep", "ok", "okay", "confirm", "proceed", "go ahead"}
@@ -144,8 +145,12 @@ class ProposalStore:
         if not isinstance(action_id, str) or action_id not in _ACTION_PARAMETERS:
             raise ValueError("Unsupported action_id")
         expected = _ACTION_PARAMETERS[action_id]
+        if parameters is None:
+            parameters = {}
         if not isinstance(parameters, dict) or set(parameters) != expected:
             raise ValueError("Parameters do not match the action's closed schema")
+        if not expected:
+            return {}
 
         printer = parameters.get("printer")
         if not isinstance(printer, str):

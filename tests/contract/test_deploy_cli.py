@@ -62,6 +62,46 @@ def test_registry_matches_contract():
     assert [name for name, _ in battery.registry(skip_chat=True)] == CONTRACT_SCENARIOS[:-1]
 
 
+def _fake_response(status_code, headers=None):
+    class _Response:
+        def __init__(self):
+            self.status_code = status_code
+            self.headers = headers or {}
+
+    return _Response()
+
+
+def test_honest_errors_checks_report_route_404_no_store(monkeypatch):
+    calls = []
+
+    def fake_get(url, timeout=10):
+        calls.append(url)
+        if "/mcp-action/reports/" in url:
+            return _fake_response(404, {"cache-control": "no-store"})
+        return _fake_response(404)
+
+    monkeypatch.setattr(battery.httpx, "get", fake_get)
+    ok, evidence = battery.scenario_honest_errors(DeployConfig())
+
+    assert ok, evidence
+    assert any("/mcp-action/reports/" in url for url in calls)
+    assert "report=404" in evidence
+    assert "no-store" in evidence
+
+
+def test_honest_errors_rejects_report_route_without_no_store(monkeypatch):
+    def fake_get(url, timeout=10):
+        if "/mcp-action/reports/" in url:
+            return _fake_response(200, {"cache-control": "max-age=60"})
+        return _fake_response(404)
+
+    monkeypatch.setattr(battery.httpx, "get", fake_get)
+    ok, evidence = battery.scenario_honest_errors(DeployConfig())
+
+    assert not ok
+    assert "report=200" in evidence
+
+
 def test_tools_surface_requires_mcp_action(monkeypatch):
     from agentic_rag_mcp.deploy import tool_sync
 

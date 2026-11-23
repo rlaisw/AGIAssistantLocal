@@ -207,3 +207,45 @@ def test_mcp_action_redaction_keeps_other_paths_and_existing_rules(tmp_path):
     assert "Authorization: Bearer [REDACTED:token]" in text and bearer not in text
     assert text.count("[REDACTED:secret]") == 2
     assert "secret-value-123" not in text and "k-12345" not in text
+
+
+def test_mcp_action_report_capability_redaction(tmp_path):
+    """T014: the report route keeps its prefix, never its 43-char capability."""
+    _, path = _configure(tmp_path)
+    token = "A" * 43
+    route = f"/mcp-action/reports/{token}"
+    url = f"https://sidecar.test{route}"
+    _emit("GET %s HTTP/1.1", route)
+    _emit("audit report report_url=%s", url)
+    for h in logging.getLogger().handlers:
+        h.flush()
+    text = _file_text(path)
+    marker = "/mcp-action/reports/[REDACTED:report-token]"
+    assert text.count(marker) == 2
+    assert token not in text
+    assert route not in text and url not in text
+
+
+def test_mcp_action_report_redaction_keeps_other_paths_and_existing_rules(tmp_path):
+    """T014: only exact report capabilities are masked; other redactions remain."""
+    _, path = _configure(tmp_path)
+    paths = [
+        "/mcp-action/reports/" + "A" * 42,
+        "/mcp-action/reports/" + "A" * 44,
+        "/mcp-action/reports/not-a-capability",
+        "/mcp-action/other/" + "A" * 43,
+    ]
+    for value in paths:
+        _emit("GET %s HTTP/1.1", value)
+    screenshot = "/mcp-action/screenshots/" + "B" * 43
+    _emit("GET %s HTTP/1.1", screenshot)
+    bearer = "eyJhbGciOiJIUzI1NiJ9.secret-token-value"
+    _emit('Authorization: Bearer %s client_secret="secret-value-123"', bearer)
+    for h in logging.getLogger().handlers:
+        h.flush()
+    text = _file_text(path)
+    for value in paths:
+        assert f"GET {value} HTTP/1.1" in text
+    assert text.count("/mcp-action/screenshots/[REDACTED:screenshot-token]") == 1
+    assert "Authorization: Bearer [REDACTED:token]" in text and bearer not in text
+    assert "[REDACTED:secret]" in text and "secret-value-123" not in text

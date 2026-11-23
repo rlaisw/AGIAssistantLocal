@@ -7,9 +7,9 @@ import sys
 
 import yaml
 
-from . import docker_ops, tool_sync
+from . import docker_ops, host_assets, tool_sync
 from .battery import run_battery
-from .config import ConfigError, DeployConfig, redact, resolve
+from .config import ConfigError, DeployConfig, resolve
 from .report import RunReport
 
 
@@ -25,7 +25,7 @@ def echo_config(dcfg: DeployConfig) -> None:
 def cmd_redeploy(dcfg: DeployConfig, dry: bool) -> int:
     report = RunReport()
     report.configure(dcfg)
-    plan = ["build image", "recreate container", "wait health",
+    plan = ["stage health script", "build image", "recreate container", "wait health",
             "ensure MCP registration", "re-sync tool cache"]
     if dry:
         print("dry-run plan (redeploy):")
@@ -33,6 +33,7 @@ def cmd_redeploy(dcfg: DeployConfig, dry: bool) -> int:
             print(f"  - {p}")
         return 0
     try:
+        host_assets.stage_health_script(report)
         docker_ops.build_image(dcfg.sidecar_image, report)
         docker_ops.recreate_container(dcfg.container, dcfg.sidecar_image, report)
         if not docker_ops.wait_health():
@@ -42,6 +43,9 @@ def cmd_redeploy(dcfg: DeployConfig, dry: bool) -> int:
             return 1
         report.add("health-wait", evidence="ok")
         tool_sync.sync_provider(dcfg, report)
+    except host_assets.HostAssetError:
+        print(report.summary(dcfg))
+        return 1
     except Exception as exc:  # noqa: BLE001 — honest failure boundary
         report.add("redeploy", "failed", evidence=str(exc))
         print(report.summary(dcfg))
@@ -75,9 +79,8 @@ def cmd_chatflow(dcfg: DeployConfig, dry: bool) -> int:
             report.add("chatflow-update", evidence=f"draft updated in place (app {app['id'][:8]})")
             app_id = app["id"]
         else:
-            app_id = console.import_app(
-                open(dcfg.dsl_path, encoding="utf-8").read()
-            )
+            with open(dcfg.dsl_path, encoding="utf-8") as f:
+                app_id = console.import_app(f.read())
             report.add("chatflow-import", evidence=f"imported as app {app_id[:8]}")
         console.publish(app_id)
         report.add("chatflow-publish", evidence="published")

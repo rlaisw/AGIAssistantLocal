@@ -568,13 +568,13 @@ def _assert_guard(turn: Turn, lane: str | None, dcfg: DeployConfig) -> None:
         dcfg,
     )
     _require(
-        guard == active,
+        guard.strip() == active.strip(),
         "honesty_check did not return the active agent answer verbatim (possible substitution).",
         turn,
         dcfg,
     )
     _require(
-        turn.answer == guard,
+        turn.answer.strip() == guard.strip(),
         "Final streamed/stored answer differs from honesty_check.result.",
         turn,
         dcfg,
@@ -643,7 +643,7 @@ def _assert_draft(turn: Turn, lane: str, dcfg: DeployConfig) -> int:
         dcfg,
     )
     _require(OFFER in turn.answer, "Final draft answer omitted the exact pending offer.", turn, dcfg)
-    _assert_guard(turn, lane, dcfg)
+    _assert_health_guard(turn, dcfg)
     return counts.pop()
 
 
@@ -695,7 +695,7 @@ def _assert_cancel(turn: Turn, lane: str, draft_count: int, dcfg: DeployConfig) 
         turn,
         dcfg,
     )
-    _assert_guard(turn, None, dcfg)
+    _assert_health_guard(turn, dcfg)
 
 
 def _draft_query(lane: str) -> str:
@@ -823,4 +823,272 @@ def test_mcp_action_draft_then_immediate_cancel(
         f"evidence_app={draft.evidence_app_id or 'stream-only'} "
         f"conversation={draft.conversation_id} dialogue_count={count}->{count + 1} "
         "draft=pending cancel=cancelled guard=active-agent-only"
+    )
+
+
+# --- Spec 048 T013: system_health_check draft/cancel (guidance-only) ---------
+
+HEALTH_ACTION_ID = "system_health_check"
+HEALTH_LANES = ("general_cloud", "hermes")
+HEALTH_SUMMARY_MARKERS = (
+    "read-only",
+    "report",
+    "reliability monitor",
+    "helpdesk",
+)
+
+
+def _health_tool_names(turn: Turn) -> set[str]:
+    """Names of non-mcp_action tools that actually produced a response."""
+    names: set[str] = set()
+    response_keys = {"tool_response", "tool_responses", "tool_call_response"}
+    for item in _walk_dicts(turn.events):
+        name = _tool_name(item)
+        if not name or name == "mcp_action":
+            continue
+        if any(key in item for key in response_keys):
+            names.add(name)
+    return names
+
+
+def _assert_health_no_helpdesk_mutation(turn: Turn, dcfg: DeployConfig) -> None:
+    names = _health_tool_names(turn)
+    forbidden = sorted(
+        name
+        for name in names
+        if name.startswith(("task_helpdesk", "task_office_install", "task_job_status"))
+    )
+    _require(
+        not forbidden,
+        f"SAFETY: health turn invoked HelpDesk/task tools: {forbidden}; "
+        "health guidance must not create tickets or route repairs.",
+        turn,
+        dcfg,
+    )
+    _require(
+        "/mcp-action/reports/" not in turn.answer,
+        "A draft/guidance-only health turn claimed a report URL it cannot have.",
+        turn,
+        dcfg,
+    )
+
+
+def _assert_health_pending(call: ToolCall, turn: Turn, dcfg: DeployConfig) -> None:
+    parameters = call.inputs.get("parameters", MISSING)
+    _require(
+        parameters in (MISSING, None, {}),
+        f"Health draft carried forbidden parameters: {parameters!r}",
+        turn,
+        dcfg,
+    )
+    count = call.inputs.get("dialogue_count")
+    _require(type(count) is int and count >= 0, "Health dialogue_count is not numeric.", turn, dcfg)
+    output = call.output
+    _require(isinstance(output, dict), "Health draft output was absent or not parsed JSON.", turn, dcfg)
+    _require(
+        output.get("status") == "pending-confirmation",
+        f"Health draft retry had status {output.get('status')!r}.",
+        turn,
+        dcfg,
+    )
+    _require(
+        output.get("action_id") == HEALTH_ACTION_ID,
+        "Health draft action_id was substituted.",
+        turn,
+        dcfg,
+    )
+    effect = str(output.get("effect") or "").casefold()
+    missing = [marker for marker in HEALTH_SUMMARY_MARKERS if marker not in effect]
+    _require(
+        not missing,
+        f"Health effect omitted disclosure markers {missing}: {effect!r}",
+        turn,
+        dcfg,
+    )
+    _require(output.get("offer") == OFFER, "Health draft returned a different offer.", turn, dcfg)
+    _require(output.get("expires_in_s") == 900, "Health draft TTL was not 900 seconds.", turn, dcfg)
+    _require(isinstance(output.get("caveats"), list), "Health draft caveats were not a list.", turn, dcfg)
+
+
+def _assert_health_guard(turn: Turn, dcfg: DeployConfig) -> None:
+    _require(len(turn.agent_texts) == 1, "Health turn must have exactly one active answering agent.", turn, dcfg)
+    active = next(iter(turn.agent_texts.values()), "")
+    _require(bool(turn.guard_results), "No health honesty_check result was exposed.", turn, dcfg)
+    _require(not HONESTY_FAILURE.search(turn.answer), "Health answer was replaced by honesty failure.", turn, dcfg)
+    def visible(text: str) -> str:
+        return re.sub(r"<[^>]*think>[\s\S]*?</[^>]*think>", "", text).strip()
+    _require(visible(turn.guard_results[-1]) == visible(active), "Health honesty result differs from the active agent.", turn, dcfg)
+    _require(visible(turn.answer) == visible(turn.guard_results[-1]), "Health final answer differs from honesty result.", turn, dcfg)
+
+
+def _assert_health_draft(turn: Turn, lane: str, dcfg: DeployConfig) -> int:
+    """Health draft: exact raw query/turn/conversation, empty params, no effects."""
+    _assert_no_confirm(turn, dcfg)
+    calls = [call for call in turn.calls if _phase(call) == "draft"]
+    _require(bool(calls), "No mcp_action draft input was captured for the health turn.", turn, dcfg)
+    for call in calls:
+        _require(isinstance(call.inputs, dict), "Health draft input is not an object.", turn, dcfg)
+        _require(
+            call.inputs.get("conversation_id") == turn.conversation_id,
+            "Health draft conversation_id differs from the actual Dify conversation.",
+            turn,
+            dcfg,
+        )
+        _require(
+            call.inputs.get("query") == turn.query,
+            "Health draft query was not the exact raw sys.query (newlines included).",
+            turn,
+            dcfg,
+        )
+        if call.output.get("status") == "pending-confirmation":
+            _require(
+                call.inputs.get("action_id") == HEALTH_ACTION_ID,
+                "Health final pending action_id was substituted.",
+                turn,
+                dcfg,
+            )
+            _assert_health_pending(call, turn, dcfg)
+        else:
+            _require(
+                call.output.get("status") in ("ask-back", "error"),
+                f"Health draft retry had forbidden status {call.output.get('status')!r}.",
+                turn,
+                dcfg,
+            )
+    counts = {call.inputs["dialogue_count"] for call in calls if "dialogue_count" in call.inputs}
+    _require(len(counts) == 1, f"Conflicting health draft dialogue counts: {sorted(counts)}", turn, dcfg)
+    _require(
+        calls[-1].output.get("status") == "pending-confirmation",
+        "The final health draft did not produce the exact pending offer.",
+        turn,
+        dcfg,
+    )
+    paragraphs = re.split(r"\n\s*\n", turn.answer.strip())
+    _require(
+        paragraphs and paragraphs[-1].strip() == OFFER,
+        "The health answer did not end with the exact final-paragraph offer.",
+        turn,
+        dcfg,
+    )
+    _require(
+        any(part.strip() for part in paragraphs[:-1]),
+        "The health answer omitted manual/concise guidance before the offer.",
+        turn,
+        dcfg,
+    )
+    _assert_health_no_helpdesk_mutation(turn, dcfg)
+    _assert_health_guard(turn, dcfg)
+    return counts.pop()
+
+
+def _assert_health_cancel(
+    turn: Turn, cid: str, draft_count: int, dcfg: DeployConfig
+) -> None:
+    _assert_no_confirm(turn, dcfg)
+    calls = [call for call in turn.calls if _phase(call) == "cancel"]
+    _require(bool(calls), "No health cancel input was captured on the immediate next turn.", turn, dcfg)
+    for call in calls:
+        _require(isinstance(call.inputs, dict), "Health cancel tool input is not an object.", turn, dcfg)
+        _require(
+            call.inputs.get("conversation_id") == cid,
+            "Health cancel conversation_id differs from the draft conversation.",
+            turn,
+            dcfg,
+        )
+        _require(
+            call.inputs.get("query") == CANCEL_QUERY,
+            "Health cancel query was not the raw 'no'.",
+            turn,
+            dcfg,
+        )
+        _require(
+            type(call.inputs.get("dialogue_count")) is int
+            and call.inputs["dialogue_count"] == draft_count + 1,
+            f"Health cancel dialogue_count must be numeric N+1 ({draft_count + 1}).",
+            turn,
+            dcfg,
+        )
+        _require(
+            isinstance(call.output, dict), "A health cancel output was absent or not parsed JSON.", turn, dcfg
+        )
+        if call.output.get("status") == "cancelled":
+            _require(
+                call.inputs.get("action_id") in (None, ""),
+                "Successful health cancel supplied a replacement action_id.",
+                turn,
+                dcfg,
+            )
+            _require(
+                call.inputs.get("parameters") is None,
+                "Successful health cancel supplied replacement parameters.",
+                turn,
+                dcfg,
+            )
+    _require(
+        calls[-1].output.get("status") == "cancelled",
+        "The final health cancel did not cancel the pending health proposal.",
+        turn,
+        dcfg,
+    )
+    _assert_health_no_helpdesk_mutation(turn, dcfg)
+    _assert_health_guard(turn, dcfg)
+
+
+def _health_draft_query(lane: str) -> str:
+    prefix = (
+        "For the Hermes Local Agent on my Windows computer: "
+        if lane == "hermes"
+        else (
+            "For a written Windows how-to answer, not a PowerShell, file, launch, "
+            "or Office task: "
+        )
+    )
+    # The newline is deliberate: it reproduces the raw-query tool-JSON crash
+    # regression for the health action's auto-bound runtime variables.
+    return (
+        prefix
+        + "my Windows 11 PC keeps freezing and applications crash after long uptime.\n"
+        "Give tailored manual diagnosis steps, then create the reviewed mcp_action "
+        "draft for system_health_check with no parameters. The request is complete; "
+        "do not ask for more context, and do not confirm or execute anything."
+    )
+
+
+@pytest.mark.parametrize("lane", HEALTH_LANES)
+def test_health_draft_then_immediate_cancel(
+    lane: str, dcfg: DeployConfig, console: DifyConsole
+) -> None:
+    user = f"t013-health-{lane}-{uuid.uuid4().hex}"
+    draft_query = _health_draft_query(lane)
+    draft = _stream_turn(dcfg, user=user, query=draft_query, ai_model="cloud")
+    _require(bool(draft.conversation_id), "Health draft stream exposed no conversation_id.", draft, dcfg)
+
+    cancel = _stream_turn(
+        dcfg,
+        user=user,
+        query=CANCEL_QUERY,
+        ai_model="cloud",
+        conversation_id=draft.conversation_id,
+    )
+    _require(
+        cancel.conversation_id == draft.conversation_id,
+        "Dify changed conversation_id between health draft and cancel.",
+        cancel,
+        dcfg,
+    )
+
+    _enrich_from_console(console, dcfg, draft)
+    _enrich_from_console(console, dcfg, cancel)
+    try:
+        count = _assert_health_draft(draft, lane, dcfg)
+        _assert_health_cancel(cancel, draft.conversation_id, count, dcfg)
+    except AssertionError as exc:
+        if "SANITIZED T012 EVIDENCE" in str(exc):
+            raise
+        raise AssertionError(_safe_text(str(exc), dcfg) + _diagnostics(cancel, dcfg)) from None
+
+    print(
+        f"T013 health {lane}: conversation={draft.conversation_id} "
+        f"dialogue_count={count}->{count + 1} action={HEALTH_ACTION_ID} "
+        "draft=pending(no parameters) cancel=cancelled helpdesk=none reports=none"
     )

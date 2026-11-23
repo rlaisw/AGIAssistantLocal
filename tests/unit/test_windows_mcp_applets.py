@@ -50,7 +50,8 @@ class TestOpenTier:
             "reliability monitor", "conv-rel"))
         assert out["status"] == "ok"
         assert captured["args"]["command"] == (
-            "Start-Process mmc.exe -ArgumentList 'perfmon.msc','/rel'")
+            "Start-Process control.exe -ArgumentList "
+            "'/name','Microsoft.ActionCenter','/page','pageReliabilityView'")
 
     def test_owners_natural_phrasings_resolve(self):
         # open-the-installed-programs-applet (2026-11-16): the natural

@@ -453,7 +453,7 @@ def test_honesty_guard_handles_observed_dify_tool_call_shapes(graph: dict):
 
 def test_honesty_guard_unwraps_bounded_tool_response_json(graph: dict):
     code = _honesty_code(_nodes(graph))
-    assert "var MAX_TOOL_OUTPUT_CHARS = 100000;" in code
+    assert "var MAX_TOOL_OUTPUT_CHARS = 250000;" in code
     assert "text.length > MAX_TOOL_OUTPUT_CHARS" in code
     assert "text.indexOf('{')" in code
     assert "text.lastIndexOf('}')" in code
@@ -1008,3 +1008,382 @@ def test_offline_honesty_word_patterns_preserve_manual_conditional_and_hidden_te
     graph: dict, answer: str
 ):
     assert _run_honesty(_honesty_code(_nodes(graph)), answer, None) == answer
+
+
+HEALTH_URL = "http://sidecar:8080/mcp-action/reports/" + "H" * 43
+HEALTH_FORGED_URL = "http://sidecar:8080/mcp-action/reports/" + "X" * 43
+HEALTH_SHOT_URL = "http://sidecar:8080/mcp-action/screenshots/" + "I" * 43
+HEALTH_COUNTS = {"pass": 8, "warn": 3, "fail": 1, "info": 2, "skip": 2}
+
+
+def _health_execution_result(
+    *,
+    health_status: str = "warn",
+    score: int = 72,
+    report_status: str = "published",
+    display_status: str = "displayed",
+    screenshot_status: str = "captured",
+    report_html: str = "",
+) -> dict:
+    report = {
+        "status": report_status,
+        "expires_in_s": 900,
+        "host_path": r"C:\Users\Test\AppData\Local\Temp\selfcheck.html",
+        "host_path_status": "written",
+    }
+    if report_status == "published":
+        report["report_url"] = HEALTH_URL
+    if report_html:
+        report["html"] = report_html
+    result = {
+        "status": "ok",
+        "action_id": "system_health_check",
+        "changed": False,
+        "verification": "reported",
+        "health": {
+            "status": health_status,
+            "score": score,
+            "counts": dict(HEALTH_COUNTS),
+            "confidence": "reduced",
+        },
+        "report": report,
+        "display": {"status": display_status},
+        "screenshot": {"status": screenshot_status},
+        "helpdesk": "Disk and Reliability need review; HelpDesk can help with repairs.",
+    }
+    if screenshot_status == "captured":
+        result["screenshot"]["image_url"] = HEALTH_SHOT_URL
+    return result
+
+
+def test_health_check_protocol_is_present_only_in_approved_lanes(graph: dict):
+    nodes = _nodes(graph)
+    for node_id in MCP_ACTION_AGENTS:
+        prompt = _prompt(nodes[node_id])
+        assert "system_health_check" in prompt, (
+            f"{node_id} must expose the reviewed system health check"
+        )
+        assert re.search(r"\bReliability Monitor\b", prompt, re.IGNORECASE)
+        assert re.search(r"\bread[- ]only\b", prompt, re.IGNORECASE)
+
+    for node_id in MCP_ACTION_EXCLUDED_AGENTS:
+        serialized = yaml.safe_dump(nodes[node_id]).lower()
+        assert "system_health_check" not in serialized
+        assert "mcp-action/reports" not in serialized
+        assert "reliability monitor" not in serialized
+
+
+@pytest.mark.parametrize("node_id", MCP_ACTION_AGENTS)
+def test_health_check_prompt_limits_eligibility_and_asks_first(
+    graph: dict, node_id: str
+):
+    prompt = _prompt(_nodes(graph)[node_id])
+
+    assert re.search(
+        r"\b(?:freez(?:e|es|ing)?|hang(?:s|ing)?|crash(?:es|ing)?|"
+        r"bsod|blue screen|unstable|instability)\b",
+        prompt,
+        re.IGNORECASE,
+    ), "health help must be scoped to Windows instability symptoms"
+    assert re.search(
+        r"\b(?:explicit|direct)(?:ly)?\b[\s\S]{0,120}\b(?:system )?health check\b"
+        r"|\brun a system health check\b",
+        prompt,
+        re.IGNORECASE,
+    ), "explicit health-check requests must be eligible"
+    assert re.search(
+        r"\b(?:one|two|1|2)\b[\s\S]{0,100}\b(?:targeted )?questions?\b",
+        prompt,
+        re.IGNORECASE,
+    ), "missing symptom context must trigger targeted questions"
+    assert re.search(
+        r"\b(?:end|stop)\b[\s\S]{0,80}\b(?:that |the )?(?:turn|reply)\b"
+        r"[\s\S]{0,140}\b(?:no|without|not)\b[\s\S]{0,60}"
+        r"\b(?:run|draft|execute|check)\b",
+        prompt,
+        re.IGNORECASE,
+    ), "an ask-back turn must not run or draft the health check"
+    assert re.search(
+        r"\b(?:out[- ]of[- ]scope|outside|not eligible|ineligible)\b"
+        r"[\s\S]{0,220}\b(?:no|never|do not)\b[\s\S]{0,80}\boffer\b",
+        prompt,
+        re.IGNORECASE,
+    ), "out-of-scope requests must not receive the health offer"
+
+
+@pytest.mark.parametrize("node_id", MCP_ACTION_AGENTS)
+def test_health_check_prompt_uses_no_parameters_and_the_exact_offer(
+    graph: dict, node_id: str
+):
+    prompt = _prompt(_nodes(graph)[node_id])
+
+    assert "action_id=system_health_check" in prompt
+    assert re.search(r"parameters\s*=\s*\{\s*\}", prompt), (
+        f"{node_id} health draft must use an empty parameter object"
+    )
+    assert re.search(
+        r"\b(?:no|never|must not|do not)\b[\s\S]{0,120}"
+        r"\b(?:parameters|printer|orientation|logging|event window)\b",
+        prompt,
+        re.IGNORECASE,
+    ), "health must not accept or ask for diagnostic parameters"
+    assert OFFER in prompt
+    assert re.search(
+        re.escape(OFFER) + r"[\s\S]{0,80}\b(?:final paragraph|standalone)\b"
+        r"|\b(?:final paragraph|standalone)\b[\s\S]{0,120}" + re.escape(OFFER),
+        prompt,
+        re.IGNORECASE,
+    ), "the offer must remain the standalone final paragraph"
+
+
+@pytest.mark.parametrize("node_id", MCP_ACTION_AGENTS)
+def test_health_check_prompt_overrides_automatic_helpdesk_routing(
+    graph: dict, node_id: str
+):
+    prompt = _prompt(_nodes(graph)[node_id])
+
+    assert re.search(
+        r"\bhealth(?:[- ]check)?\b[\s\S]{0,600}"
+        r"\b(?:override|overrides|do not|never|does not apply)\b"
+        r"[\s\S]{0,300}\btask_helpdesk_tier[12]\b",
+        prompt,
+        re.IGNORECASE,
+    ), "a health turn must override the ordinary automatic HelpDesk routing"
+    assert re.search(
+        r"\bHelpDesk\b[\s\S]{0,150}"
+        r"\b(?:guidance[- ]only|only guidance|can help with repairs)\b",
+        prompt,
+        re.IGNORECASE,
+    ), "repairs must remain HelpDesk guidance only"
+    assert re.search(
+        r"\b(?:never|do not|no)\b[\s\S]{0,150}"
+        r"\b(?:automatic )?(?:ticket|repair request|task_helpdesk)\b",
+        prompt,
+        re.IGNORECASE,
+    ), "health must never create a ticket, repair, or HelpDesk task"
+    assert re.search(
+        r"\b(?:later|subsequent|explicit repair request|separate repair)\b"
+        r"[\s\S]{0,300}\brepair\b[\s\S]{0,300}"
+        r"\b(?:normal|ordinary|existing)\b",
+        prompt,
+        re.IGNORECASE,
+    ), "a later explicit repair request must still use normal HelpDesk routing"
+
+
+@pytest.mark.parametrize("node_id", MCP_ACTION_AGENTS)
+def test_health_check_prompt_requires_real_report_link_evidence(
+    graph: dict, node_id: str
+):
+    prompt = _prompt(_nodes(graph)[node_id])
+
+    assert "/mcp-action/reports/" in prompt
+    assert re.search(r"\b43\b", prompt), "the report token grammar must be documented"
+    assert re.search(
+        r"report\.status[\s\S]{0,100}\bpublished\b", prompt, re.IGNORECASE
+    ), "the report link requires a published report result"
+    assert re.search(
+        r"\bappend\b[\s\S]{0,150}\b(?:once|link|report)\b",
+        prompt,
+        re.IGNORECASE,
+    ), "a published report link omitted from the answer must be appended once"
+    assert re.search(
+        r"\b(?:full|complete)\b[\s\S]{0,100}\bhtml report\b", prompt, re.IGNORECASE
+    ), "the full HTML report must be returned, not summarized away"
+    assert re.search(r"report\.host_path", prompt), "the saved report path must be the visible reference"
+    assert re.search(
+        r"do not include any /mcp-action/reports/ URL", prompt, re.IGNORECASE
+    ), "the temporary URL must not be presented when the host file is written"
+    assert re.search(
+        r"\b(?:never|do not)\b[\s\S]{0,150}"
+        r"\b(?:fabricate|forge|invent|make up)\b[\s\S]{0,120}"
+        r"\b(?:report|score|display|count)\b",
+        prompt,
+        re.IGNORECASE,
+    ), "health report, score, and display claims must be evidence-bound"
+
+
+def test_health_honesty_guard_tracks_real_health_evidence(graph: dict):
+    code = _honesty_code(_nodes(graph))
+
+    assert "system_health_check" in code
+    assert "/mcp-action/reports/" in code
+    assert re.search(
+        r"\breport\.status\s*===?\s*['\"]published['\"]", code
+    ), "a report URL must require report.status == published"
+    assert re.search(r"\bhealth\.status\b", code)
+    assert re.search(r"\b(?:score|counts)\b", code)
+    assert re.search(
+        r"\bdisplay\.status\s*===?\s*['\"]displayed['\"]", code
+    ), "Reliability Monitor claims require real display evidence"
+    assert re.search(
+        r"\bscreenshot\.status\s*===?\s*['\"]captured['\"]", code
+    ), "screenshot claims require real capture evidence"
+
+
+def test_offline_honesty_appends_a_missing_report_file_path(graph: dict):
+    code = _honesty_code(_nodes(graph))
+    result = _health_execution_result()
+    answer = (
+        "Overall: WARN (score 72). Disk and Reliability need attention; "
+        "HelpDesk can help with repairs. Reliability Monitor is open. "
+        "Screenshot: captured.\n"
+        f"![Reliability Monitor]({HEALTH_SHOT_URL})"
+    )
+
+    guarded = _run_honesty(code, answer, result)
+
+    assert guarded.startswith(answer)
+    assert guarded.count(r"C:\Users\Test\AppData\Local\Temp\selfcheck.html") == 1
+    assert HEALTH_URL not in guarded
+
+
+def test_offline_honesty_accepts_warn_overall_with_count_labels(graph: dict):
+    code = _honesty_code(_nodes(graph))
+    result = _health_execution_result()
+    answer = (
+        "Overall health: WARN. Score: 72. Pass: 8, Warn: 3, Fail: 1, "
+        "Info: 2, Skip: 2. Disk and Reliability need review; HelpDesk can "
+        "help with repairs. Reliability Monitor is open. Screenshot: captured."
+    )
+
+    guarded = _run_honesty(code, answer, result)
+
+    assert guarded.startswith(answer)
+    assert guarded.count(r"C:\Users\Test\AppData\Local\Temp\selfcheck.html") == 1
+    assert HEALTH_URL not in guarded
+
+
+def test_offline_honesty_accepts_fail_overall_with_count_labels(graph: dict):
+    code = _honesty_code(_nodes(graph))
+    result = _health_execution_result(health_status="fail", score=55)
+    answer = (
+        "Overall health: FAIL. Score: 55. Pass: 5, Warn: 2, Fail: 2, "
+        "Info: 1, Skip: 1. Disk needs attention; HelpDesk can help with repairs."
+    )
+
+    guarded = _run_honesty(code, answer, result)
+
+    assert guarded.startswith(answer)
+    assert guarded.count(r"C:\Users\Test\AppData\Local\Temp\selfcheck.html") == 1
+    assert HEALTH_URL not in guarded
+
+
+def test_offline_honesty_blocks_a_false_pass_claim_with_count_labels(graph: dict):
+    code = _honesty_code(_nodes(graph))
+    result = _health_execution_result()
+    answer = (
+        "Overall health: PASS. Score: 72. Pass: 8, Warn: 3, Fail: 1. "
+        "HelpDesk can help with repairs."
+    )
+
+    guarded = _run_honesty(code, answer, result)
+
+    assert guarded != answer
+    assert "did not match" in guarded
+    assert HEALTH_URL not in guarded
+
+
+def test_offline_honesty_appends_the_full_html_report_verbatim(graph: dict):
+    code = _honesty_code(_nodes(graph))
+    report_html = (
+        "<!DOCTYPE html><html><head><title>Desktop Self-Check</title></head>"
+        "<body><h1>Overall: WARN - score 70/100</h1><table><tr><td>C:</td>"
+        "<td>206.7 GB free</td></tr></table></body></html>"
+    )
+    result = _health_execution_result(report_html=report_html)
+    answer = (
+        "Overall health: WARN. Score: 72. Pass: 8, Warn: 3, Fail: 1. "
+        "HelpDesk can help with repairs."
+    )
+
+    guarded = _run_honesty(code, answer, result)
+
+    assert guarded.startswith(answer)
+    assert guarded.count(report_html) == 1
+    assert r"C:\Users\Test\AppData\Local\Temp\selfcheck.html" in guarded
+    assert HEALTH_URL not in guarded
+
+
+def test_offline_honesty_allows_negated_repair_statement_with_full_report(graph: dict):
+    code = _honesty_code(_nodes(graph))
+    report_html = "<!DOCTYPE html><html><body><h1>Desktop Self-Check</h1></body></html>"
+    result = _health_execution_result(report_html=report_html)
+    answer = (
+        "Overall health: WARN. Score: 72. HelpDesk can help with repairs. "
+        "No repair was performed."
+    )
+
+    guarded = _run_honesty(code, answer, result)
+
+    assert guarded.startswith(answer)
+    assert report_html in guarded
+    assert r"C:\Users\Test\AppData\Local\Temp\selfcheck.html" in guarded
+
+
+def test_offline_honesty_does_not_guess_an_ambiguous_overall_status(graph: dict):
+    code = _honesty_code(_nodes(graph))
+    result = _health_execution_result()
+    answer = (
+        "Overall: 8 pass, 3 warn, 1 fail. Score: 72. "
+        "HelpDesk can help with repairs."
+    )
+
+    guarded = _run_honesty(code, answer, result)
+
+    assert guarded.startswith(answer)
+    assert guarded.count(r"C:\Users\Test\AppData\Local\Temp\selfcheck.html") == 1
+    assert HEALTH_URL not in guarded
+
+
+def test_offline_honesty_blocks_a_forged_health_report_url(graph: dict):
+    code = _honesty_code(_nodes(graph))
+    result = _health_execution_result()
+    answer = (
+        "Overall: WARN (score 72).\n"
+        f"[Open the system health report]({HEALTH_FORGED_URL})"
+    )
+
+    guarded = _run_honesty(code, answer, result)
+
+    assert guarded != answer
+    assert HEALTH_FORGED_URL not in guarded
+    assert HEALTH_URL not in guarded
+    assert r"C:\Users\Test\AppData\Local\Temp\selfcheck.html" in guarded
+
+
+def test_offline_honesty_blocks_a_report_url_when_publication_failed(graph: dict):
+    code = _honesty_code(_nodes(graph))
+    result = _health_execution_result(report_status="failed")
+    answer = f"[Open the system health report]({HEALTH_URL})"
+
+    guarded = _run_honesty(code, answer, result)
+
+    assert guarded != answer
+    assert HEALTH_URL not in guarded
+    assert r"C:\Users\Test\AppData\Local\Temp\selfcheck.html" in guarded
+
+
+def test_offline_honesty_blocks_fabricated_health_score_and_display(graph: dict):
+    code = _honesty_code(_nodes(graph))
+    result = _health_execution_result(
+        display_status="unverified", screenshot_status="skipped-display-unverified"
+    )
+    answer = "Overall health: PASS, score 100. Reliability Monitor is open."
+
+    guarded = _run_honesty(code, answer, result)
+
+    assert guarded != answer
+    assert "score 100" not in guarded.casefold()
+    assert "reliability monitor is open" not in guarded.casefold()
+
+
+def test_offline_honesty_blocks_health_repair_and_helpdesk_ticket_claims(graph: dict):
+    code = _honesty_code(_nodes(graph))
+    result = _health_execution_result(health_status="fail", score=55)
+    answer = "I created a HelpDesk ticket and repaired the disk."
+
+    guarded = _run_honesty(code, answer, result)
+
+    assert guarded != answer
+    assert "created a helpdesk ticket" not in guarded.casefold()
+    assert "repaired the disk" not in guarded.casefold()

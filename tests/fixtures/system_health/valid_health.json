@@ -1,0 +1,32 @@
+{
+  "status": "ok",
+  "host": "TEST-PC",
+  "overall": "warn",
+  "score": 70,
+  "checks": [
+    {"area": "System", "name": "OS", "status": "PASS", "detail": "Windows 11 test build"},
+    {"area": "Disk", "name": "FreeSpaceC", "status": "WARN", "detail": "C: 12 GB free", "recommendation": "Free disk space"},
+    {"area": "Reliability", "name": "RecentFailures", "status": "FAIL", "detail": "3 app crashes in 7 days", "recommendation": "HelpDesk review"},
+    {"area": "Security", "name": "BitLocker", "status": "SKIP", "detail": "Not readable"},
+    {"area": "Updates", "name": "WindowsUpdate", "status": "INFO", "detail": "Not queried"}
+  ],
+  "inventory": {
+    "computer": {"name": "TEST-PC", "os": "Windows 11", "ipAddress": "10.0.0.10"},
+    "user": {"login": "TEST\\user", "email": "user@example.test"},
+    "hardware": {"cpu": "Test CPU", "ramGB": 16}
+  },
+  "reliability": {
+    "available": true,
+    "recordCount": 3,
+    "summary": {"failuresLast24h": 1, "failuresLast7d": 3, "lastFailure": "2026-11-22 10:00:00", "topProducts": ["app.exe x2", "word.exe"]},
+    "timeline": [
+      {"date": "2026-11-21", "failures": 2, "informational": 1, "products": ["app.exe x2"]},
+      {"date": "2026-11-22", "failures": 1, "informational": 0, "products": ["word.exe x1"]}
+    ],
+    "records": [
+      {"time": "2026-11-22 10:00:00", "source": "AppHang", "product": "app.exe", "eventId": 1000, "message": "Application hang", "correlatedEventCount": 1, "correlatedEvents": []}
+    ]
+  },
+  "events": {"available": true, "recent": []},
+  "remediation": ["Free disk space", "HelpDesk review for recurring crashes"]
+}

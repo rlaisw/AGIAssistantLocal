@@ -5,9 +5,11 @@ from __future__ import annotations
 import base64
 import json
 import re
+import uuid
 from typing import Any
 
 from ..windows_mcp.client import call_tool
+from . import health
 
 _ACTION_ID = "windows_default_printer"
 _WORD_ACTION_ID = "word_printer_duplex"
@@ -576,6 +578,34 @@ def _duplex_execution_result(
     return result
 
 
+
+def _health_error(reason: str) -> dict[str, Any]:
+    return {
+        "status": "error",
+        "action_id": health.HEALTH_ACTION_ID,
+        "changed": False,
+        "reason": reason[:500],
+    }
+
+
+async def _cleanup_health_artifacts(run_id: str) -> dict[str, str]:
+    try:
+        out = await call_tool(
+            "PowerShell",
+            {"command": health.build_cleanup_script(run_id), "timeout": 20},
+            "mcp-action-system-health-check",
+            audit=None,
+            consent_attempts=2,
+        )
+        if isinstance(out, dict) and out.get("status") == "ok":
+            marker = parse_marked_json(out.get("text", ""))
+            if isinstance(marker, dict) and marker.get("status") == "ok":
+                return {"status": "removed"}
+    except Exception:  # noqa: BLE001 - cleanup is best-effort and sanitized
+        return {"status": "failed"}
+    return {"status": "failed"}
+
+
 class ReviewedActions:
     """The confirmed Windows handlers; no arbitrary caller script is accepted."""
 
@@ -645,3 +675,67 @@ class ReviewedActions:
                 "the mutation outcome is unknown and was not retried.",
                 orientation,
             )
+
+
+    async def execute_system_health_check(self) -> dict[str, Any]:
+        """Run the fixed read-only health check once and retain only bounded evidence."""
+        run_id = uuid.uuid4().hex
+        out = None
+        try:
+            out = await call_tool(
+                "PowerShell",
+                {"command": health.build_health_wrapper(run_id), "timeout": health.WRAPPER_TIMEOUT_S},
+                "mcp-action-system-health-check",
+                audit=None,
+                consent_attempts=4,
+            )
+            if not isinstance(out, dict) or out.get("status") != "ok":
+                raise _ActionError("health host transport failed")
+            marker = parse_marked_json(out.get("text", ""))
+        except Exception:  # noqa: BLE001 - no host text crosses the boundary
+            return _health_error("The system health check failed or returned malformed structured output; it was not retried.")
+
+        if not isinstance(marker, dict) or marker.get("status") != "ok":
+            detail = str(marker.get("reason") or marker.get("error") or "") if isinstance(marker, dict) else ""
+            if "timeout" in detail.casefold():
+                return _health_error("The system health check timeout occurred and was not retried.")
+            return _health_error("The system health check failed before producing valid artifacts.")
+
+        try:
+            payload = health.read_health_json(run_id)
+            summary = health.normalize_health_payload(payload)
+        except Exception:  # noqa: BLE001 - malformed host data is untrusted
+            return _health_error("The system health check returned malformed health data.")
+
+        try:
+            html_bytes = health.read_health_html(run_id)
+        except Exception:  # noqa: BLE001 - report failure must not discard summary
+            html_bytes = None
+        cleanup = await _cleanup_health_artifacts(run_id)
+
+        result: dict[str, Any] = {
+            "status": "ok" if html_bytes is not None else "partial",
+            "action_id": health.HEALTH_ACTION_ID,
+            "changed": False,
+            "verification": "reported",
+            "health": {
+                "status": summary["status"],
+                "score": summary["score"],
+                "counts": summary["counts"],
+                "confidence": summary["confidence"],
+            },
+            "checks": summary["checks"],
+            "reliability": summary["reliability"],
+            "events": summary["events"],
+            "inventory": summary["inventory"],
+            "cleanup": cleanup,
+        }
+        if html_bytes is not None:
+            result["report_html"] = html_bytes
+            result["report_file"] = {
+                "path": marker.get("userHtmlPath") or health.HOST_USER_REPORT_PATH,
+                "status": "written" if marker.get("userHtml") is True else "unverified",
+            }
+        else:
+            result["reason"] = "The health summary is available, but the report could not be published."
+        return result

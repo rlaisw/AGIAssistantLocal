@@ -5,8 +5,14 @@ Run only with the owner at the interactive Windows desktop after deployment::
     RUN_MCP_ACTION_E2E=1 .venv/bin/python -m pytest \
         tests/integration/test_mcp_action_e2e.py -q -s
 
-Microsoft Print to PDF and one other installed printer are required. The sole
-non-PDF printer discovered through read-only CIM is used automatically; when
+Spec 048 health journeys are separately opt-in (``-k health``)::
+
+    RUN_SYSTEM_HEALTH_CHECK_E2E=1 .venv/bin/python -m pytest \
+        tests/integration/test_mcp_action_e2e.py -q -s -k health
+
+Microsoft Print to PDF and one other installed printer are required for the
+printer cases. The sole non-PDF printer discovered through read-only CIM is
+used automatically; when
 there are several, ``MCP_ACTION_TEST_PRINTER`` must name the owner-approved one
 exactly. Word cases use ``MCP_ACTION_DUPLEX_PRINTER`` (default ``HP LaserJet
 M610 TCPIP``), which must be an installed, owner-approved duplex test printer.
@@ -28,6 +34,7 @@ import math
 import os
 import re
 import threading
+import time
 import uuid
 from pathlib import Path
 from typing import Self
@@ -40,9 +47,20 @@ import test_mcp_action_dify_contract as dify_probe
 from agentic_rag_mcp.hermes_audit import HermesAudit
 from agentic_rag_mcp.windows_mcp.client import call_tool
 
+_E2E_ENABLED = (
+    os.environ.get("RUN_MCP_ACTION_E2E") == "1"
+    or os.environ.get("RUN_SYSTEM_HEALTH_CHECK_E2E") == "1"
+)
 pytestmark = pytest.mark.skipif(
-    os.environ.get("RUN_MCP_ACTION_E2E") != "1",
-    reason="owner-present live tests: set RUN_MCP_ACTION_E2E=1",
+    not _E2E_ENABLED,
+    reason=(
+        "owner-present live tests: set RUN_MCP_ACTION_E2E=1 "
+        "or RUN_SYSTEM_HEALTH_CHECK_E2E=1"
+    ),
+)
+HEALTH_LIVE = pytest.mark.skipif(
+    os.environ.get("RUN_SYSTEM_HEALTH_CHECK_E2E") != "1",
+    reason="owner-present health E2E: set RUN_SYSTEM_HEALTH_CHECK_E2E=1",
 )
 
 # Reuse the deployed-Dify credential/console fixtures and its sanitized event
@@ -334,6 +352,8 @@ class LivePrinterHarness:
         self.ambiguous: str | None = None
 
     async def __aenter__(self) -> Self:
+        if os.environ.get("RUN_MCP_ACTION_E2E") != "1":
+            pytest.skip("printer journeys: set RUN_MCP_ACTION_E2E=1")
         self.initial = await self.read()
         original = _default_printer(self.initial)
         if original is None:
@@ -470,6 +490,8 @@ class LiveWordHarness:
         self.printer: str
 
     async def __aenter__(self) -> Self:
+        if os.environ.get("RUN_MCP_ACTION_E2E") != "1":
+            pytest.skip("Word journeys: set RUN_MCP_ACTION_E2E=1")
         self.initial = await self.read()
         matches = self.initial["matches"]
         if len(matches) != 1:
@@ -828,7 +850,7 @@ def _assert_sanitized_audit(
     assert rows and any(row.get("operation") == "mcp-action" for row in rows)
     assert any(action_id in json.dumps(row) for row in rows)
     assert any("duration_s" in row or "timing" in row for row in rows)
-    rendered = json.dumps(rows, ensure_ascii=False)
+    rendered = json.dumps(rows, ensure_ascii=False).replace(cid, "<conversation_id>")
     for forbidden in (
         str(harness.root),
         "/mcp-action/screenshots/",
@@ -2124,3 +2146,862 @@ async def test_t056_word_duplex_benchmark(live_word) -> None:
         report["restoration"] = await _word_restoration_status(live_word)
         _write_benchmark_report(WORD_ACTION_ID, report)
 
+
+
+# ---------------------------------------------------------------------------
+# Spec 048 T012: owner-present read-only system health check (H-E01..H-E16)
+# Run only with RUN_SYSTEM_HEALTH_CHECK_E2E=1. Nothing here changes settings,
+# services, the registry, or user files; only owned host run artifacts are
+# removed, and the action's own read-only report is published temporarily.
+# ---------------------------------------------------------------------------
+
+HEALTH_ACTION_ID = "system_health_check"
+HEALTH_SCRIPT_PATH = Path("/mnt/c/ProgramData/agentic-rag/health/health-check.ps1")
+HEALTH_REPORT_DIR = Path("/mnt/c/ProgramData/agentic-rag/health/reports")
+HEALTH_REPORT_URL_BASE = os.environ.get(
+    "MCP_ACTION_REPORT_BASE_URL", "http://localhost:28080/mcp-action/reports"
+)
+REPORT_PATH_RE = re.compile(r"/mcp-action/reports/[A-Za-z0-9_-]{43}")
+HEALTH_RUN_ARTIFACT_RE = re.compile(r"(?:health-)?[0-9a-f]{32}\.(?:json|html)")
+HEALTH_MARKER = "MCP_HEALTH_E2E_JSON:"
+HEALTH_EFFECT_MARKERS = ("read-only", "report", "reliability monitor", "does not repair", "helpdesk")
+HEALTH_PII_PATTERNS = (
+    re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"),
+    re.compile(r"\b\d{1,3}(?:\.\d{1,3}){3}\b"),
+    re.compile(r"(?i)serial(?:number)?|passwordexpir|lastlogon|eventid|crashdump"),
+)
+
+READ_SERVICES_SCRIPT = r"""
+$ErrorActionPreference = 'Stop'
+$services = @(Get-Service | Sort-Object Name)
+$state = ($services | ForEach-Object { "$($_.Name)=$($_.Status)" }) -join "`n"
+$sha = [Security.Cryptography.SHA256]::Create()
+try {
+    $hash = $sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($state))
+} finally {
+    $sha.Dispose()
+}
+$digest = ([BitConverter]::ToString($hash)).Replace('-', '').ToLowerInvariant()
+$json = @{ count = $services.Count; digest = $digest } | ConvertTo-Json -Compress
+Write-Output ('MCP_HEALTH_E2E_JSON:' +
+    [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($json)))
+"""
+
+
+class _FakeClock:
+    """Deterministic absolute clock for the temporary report store (900s TTL)."""
+
+    def __init__(self, start: float) -> None:
+        self.now = start
+
+    def __call__(self) -> float:
+        return self.now
+
+    def advance(self, seconds: float) -> None:
+        self.now += seconds
+
+
+class LiveHealthHarness:
+    """Read-only health journey harness with an isolated real audit and store.
+
+    Expected spec-048 surfaces (tasks T017/T018/T021/T022/T023):
+    ``mcp_action.reports.ReportStore(root=, clock=, public_base_url=)``,
+    ``McpActionService(..., reports=<store>)``,
+    ``ReviewedActions.execute_system_health_check()`` and
+    ``WindowsDisplay.show_reliability_monitor()``.
+    """
+
+    def __init__(self, root: Path) -> None:
+        self.root = root
+        self.audit_path = root / "health-audit.jsonl"
+        self.store_clock = _FakeClock(time.monotonic())
+        self.host_online = False
+        self.host_reason = ""
+        self.initial: dict | None = None
+        self.initial_services: dict | None = None
+        self.report_dir_before: set[str] = set()
+        self.script_staged = HEALTH_SCRIPT_PATH.exists()
+        self.reports = None
+        self.actions = None
+        self.display = None
+        self.screenshots = None
+        self.service = None
+
+    async def __aenter__(self) -> Self:
+        if not self.script_staged:
+            pytest.skip(
+                "health-check.ps1 is not staged under C:\\ProgramData\\agentic-rag\\health; "
+                "run the spec-048 host staging step first"
+            )
+        read_cid = f"health-probe-{uuid.uuid4().hex}"
+        try:
+            self.initial = await _read_state(read_cid)
+            self.host_online = True
+        except Exception as exc:  # noqa: BLE001 - environment probe only
+            self.host_reason = type(exc).__name__
+        if self.host_online:
+            try:
+                self.initial_services = await _read_services(f"{read_cid}-services")
+            except Exception as exc:  # noqa: BLE001 - optional read-only evidence
+                self.host_reason = f"services:{type(exc).__name__}"
+        if HEALTH_REPORT_DIR.is_dir():
+            self.report_dir_before = {item.name for item in HEALTH_REPORT_DIR.iterdir()}
+
+        from agentic_rag_mcp.mcp_action.actions import ReviewedActions
+        from agentic_rag_mcp.mcp_action.reports import ReportStore
+        from agentic_rag_mcp.mcp_action.screenshots import get_screenshot_store
+        from agentic_rag_mcp.mcp_action.service import (
+            McpActionService,
+            ScreenshotCapture,
+            WindowsDisplay,
+        )
+
+        self.audit = HermesAudit(self.audit_path)
+        self.reports = ReportStore(
+            root=self.root / "reports",
+            clock=self.store_clock,
+            public_base_url=HEALTH_REPORT_URL_BASE,
+        )
+        self.actions = ReviewedActions()
+        self.display = WindowsDisplay(audit=self.audit)
+        self.screenshots = ScreenshotCapture(store=get_screenshot_store(), audit=self.audit)
+        self._service_class = McpActionService
+        self.service = self.make_service()
+        return self
+
+    def make_service(self, *, actions=None, display=None, screenshots=None, reports=None):
+        return self._service_class(
+            actions=actions if actions is not None else self.actions,
+            display=display if display is not None else self.display,
+            screenshots=screenshots if screenshots is not None else self.screenshots,
+            audit=self.audit,
+            reports=reports if reports is not None else self.reports,
+        )
+
+    def require_host(self) -> None:
+        if not self.host_online:
+            pytest.skip(f"Windows host unreachable for health E2E ({self.host_reason or 'unknown'})")
+
+    async def read_printers(self) -> dict:
+        return await _read_state(f"health-read-{uuid.uuid4().hex}")
+
+    async def read_services(self) -> dict:
+        return await _read_services(f"health-read-{uuid.uuid4().hex}")
+
+    async def draft(self, cid: str, count: int = 10) -> dict:
+        return await self.service.handle(
+            phase="draft",
+            conversation_id=cid,
+            dialogue_count=count,
+            action_id=HEALTH_ACTION_ID,
+            parameters={},
+        )
+
+    async def resolve(self, phase: str, cid: str, count: int, query: str) -> dict:
+        return await self.service.handle(
+            phase=phase,
+            conversation_id=cid,
+            dialogue_count=count,
+            query=query,
+        )
+
+    def new_report_artifacts(self) -> list[Path]:
+        if not HEALTH_REPORT_DIR.is_dir():
+            return []
+        return sorted(
+            path
+            for path in HEALTH_REPORT_DIR.iterdir()
+            if path.name not in self.report_dir_before
+            and HEALTH_RUN_ARTIFACT_RE.fullmatch(path.name)
+        )
+
+    async def __aexit__(self, exc_type, exception, traceback) -> bool:
+        leftovers = self.new_report_artifacts()
+        removed = 0
+        for path in leftovers:
+            try:
+                path.unlink()
+                removed += 1
+            except OSError:
+                pass
+        remaining = [path.name for path in self.new_report_artifacts()]
+        print(
+            f"Health cleanup: owned_run_artifacts_removed={removed}; "
+            f"remaining={remaining or 'none'}; host_settings=unchanged"
+        )
+        return False
+
+
+@pytest.fixture
+def live_health(tmp_path: Path) -> LiveHealthHarness:
+    return LiveHealthHarness(tmp_path)
+
+
+async def _read_services(conversation_id: str) -> dict:
+    out = None
+    for attempt in range(3):
+        out = await call_tool(
+            "PowerShell",
+            {"command": READ_SERVICES_SCRIPT, "timeout": 30},
+            conversation_id,
+            audit=None,
+        )
+        if out.get("status") == "ok":
+            break
+        if attempt < 2:
+            await asyncio.sleep(2 * (attempt + 1))
+    assert out is not None and out.get("status") == "ok", (
+        "Independent read-only service query failed after three bounded attempts"
+    )
+    assert out.get("truncated") is False
+    match = re.search(re.escape(HEALTH_MARKER) + r"([A-Za-z0-9+/=]+)", out.get("text", ""))
+    assert match, "Independent service query returned no marked structured state"
+    try:
+        state = json.loads(base64.b64decode(match.group(1), validate=True).decode("utf-8"))
+    except (ValueError, UnicodeDecodeError, json.JSONDecodeError):
+        raise AssertionError("Independent service state was malformed") from None
+    assert isinstance(state.get("count"), int) and state["count"] > 0
+    assert isinstance(state.get("digest"), str) and re.fullmatch(
+        r"[0-9a-f]{64}", state["digest"]
+    )
+    return {"count": state["count"], "digest": state["digest"]}
+
+
+def _report_token(url: str) -> str:
+    parsed = urlsplit(url)
+    return parsed.path.rsplit("/", 1)[-1]
+
+
+def _assert_report_url(report: dict, *, usage: bool = False) -> str:
+    assert report.get("status") == "published", report
+    url = report.get("report_url")
+    assert isinstance(url, str)
+    parsed = urlsplit(url)
+    assert parsed.scheme in {"http", "https"} and parsed.netloc
+    assert REPORT_PATH_RE.fullmatch(parsed.path), "report URL is not the capability route"
+    assert report.get("expires_in_s") == 900
+    if usage:
+        text = report.get("usage")
+        assert isinstance(text, str)
+        assert "Open the system health report" in text
+        assert "15 minutes" in text
+    return url
+
+
+def _stored_report_data(stored) -> bytes:
+    data = getattr(stored, "data", None)
+    if data is None:
+        data = getattr(stored, "html", None)
+    assert data is not None, "report store resolution exposed no report content"
+    return data.encode("utf-8") if isinstance(data, str) else data
+
+
+def _load_report(harness: LiveHealthHarness, url: str) -> tuple[str, bytes]:
+    """Return report bytes from the public route or the host-owned store."""
+    token = _report_token(url)
+    response = None
+    try:
+        response = httpx.get(url, timeout=30, follow_redirects=False)
+    except httpx.HTTPError:
+        response = None
+    if response is not None and response.status_code == 200:
+        assert response.headers.get("content-type", "").split(";", 1)[0] == "text/html"
+        assert "no-store" in response.headers.get("cache-control", "").casefold()
+        assert "sandbox" in response.headers.get("content-security-policy", "").casefold()
+        body = response.content
+        assert body.lstrip()[:1] == b"<"
+        return "route", body
+    assert response is None or response.status_code == 404, (
+        f"published report URL returned HTTP {response.status_code}"
+    )
+    stored = harness.reports.resolve(token)
+    assert stored is not None, "published report URL is served by neither route nor host store"
+    return "host-store", _stored_report_data(stored)
+
+
+def _assert_health_pending(result: dict) -> None:
+    assert result["status"] == "pending-confirmation", result.get("reason", result["status"])
+    assert result["action_id"] == HEALTH_ACTION_ID
+    assert result["offer"] == OFFER
+    assert result["expires_in_s"] == 900
+    effect = result["effect"].casefold()
+    missing = [marker for marker in HEALTH_EFFECT_MARKERS if marker not in effect]
+    assert not missing, f"health effect omitted disclosure markers {missing}"
+    assert isinstance(result.get("caveats"), list)
+
+
+def _assert_health_summary(result: dict) -> dict:
+    health = result.get("health")
+    assert isinstance(health, dict), "health summary missing"
+    assert health.get("status") in {"pass", "warn", "fail", "unknown"}
+    assert type(health.get("score")) is int and 0 <= health["score"] <= 100
+    counts = health.get("counts")
+    assert isinstance(counts, dict)
+    for key in ("pass", "warn", "fail", "info", "skip"):
+        assert type(counts.get(key)) is int and counts[key] >= 0
+    assert health.get("confidence") in {"high", "reduced", "low"}
+    return health
+
+
+def _assert_health_result(result: dict, *, allowed=("ok", "partial")) -> dict:
+    assert result["status"] in allowed, result.get("reason", result["status"])
+    assert result["action_id"] == HEALTH_ACTION_ID
+    assert result["changed"] is False
+    assert result["verification"] == "reported"
+    assert isinstance(result.get("report"), dict)
+    display = result.get("display")
+    screenshot = result.get("screenshot")
+    assert isinstance(display, dict) and display.get("status")
+    assert isinstance(screenshot, dict) and screenshot.get("status")
+    _assert_health_summary(result)
+    _assert_timing(result["timing"])
+    assert isinstance(result.get("caveats"), list)
+    if result["status"] == "ok":
+        assert display["status"] == "displayed"
+        assert screenshot["status"] == "captured"
+        _assert_report_url(result["report"])
+    report = result["report"]
+    if report["status"] != "published":
+        assert "report_url" not in report
+    print(
+        f"Health outcome: status={result['status']}; health={result['health']['status']}:"
+        f"{result['health']['score']}; report={report['status']}; "
+        f"display={display['status']}; screenshot={screenshot['status']}; "
+        f"timing={result['timing']}"
+    )
+    return result
+
+
+def _assert_health_failure(result: dict) -> None:
+    assert result.get("status") in {"error", "blocked", "queued-timeout"}
+    assert result.get("changed") is not True
+    rendered = json.dumps(result)
+    assert "report_url" not in rendered and "/mcp-action/reports/" not in rendered
+    health = result.get("health")
+    assert health is None or health.get("status") == "unknown"
+    assert result.get("verification") in {None, "reported", "not-run", "unavailable"}
+    assert result.get("display", {}).get("status") != "displayed"
+    assert result.get("screenshot", {}).get("status") != "captured"
+    reason = result.get("reason")
+    assert isinstance(reason, str) and 0 < len(reason) <= 500
+    for forbidden in ("INJECTED", "/mnt/c/", "C:\\ProgramData", "Traceback"):
+        assert forbidden not in rendered
+
+
+def _assert_health_audit(harness: LiveHealthHarness, cid: str, *, executed: bool) -> None:
+    assert harness.audit_path.exists(), "no real audit file was written"
+    entries = [
+        json.loads(line)
+        for line in harness.audit_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    rows = [entry for entry in entries if entry.get("conversation_id") == cid]
+    assert rows and any(row.get("operation") == "mcp-action" for row in rows)
+    rendered = json.dumps(rows, ensure_ascii=False).replace(cid, "<conversation_id>")
+    for forbidden in (
+        "/mcp-action/reports/",
+        "report_url",
+        "<html",
+        "<table",
+        str(harness.root),
+        "/mnt/c/",
+        "C:\\ProgramData",
+        "health-check.ps1",
+        "task_helpdesk",
+    ):
+        assert forbidden not in rendered, f"{forbidden!r} reached the audit"
+    assert not TOKEN_RE.search(rendered), "a capability token reached the audit"
+    assert all("query" not in row for row in rows)
+    for pattern in HEALTH_PII_PATTERNS:
+        assert not pattern.search(rendered), f"PII pattern {pattern.pattern!r} reached the audit"
+    if executed:
+        assert "health=" in rendered or any("health" in row for row in rows)
+        assert "report=" in rendered
+    print(
+        f"Health audit: rows={len(rows)}; executed={executed}; "
+        "summary-only=true; tokens=absent; pii=absent"
+    )
+
+
+def _health_calls(turn) -> list:
+    return [
+        call
+        for call in turn.calls
+        if isinstance(call.inputs, dict)
+        and call.inputs.get("action_id") == HEALTH_ACTION_ID
+    ]
+
+
+def _final_paragraph(answer: str) -> str:
+    paragraphs = re.split(r"\n\s*\n", answer.strip())
+    return paragraphs[-1].strip() if paragraphs else ""
+
+
+def _assert_no_health_offer(turn) -> None:
+    assert _final_paragraph(turn.answer) != OFFER, "an ineligible turn ended with the health offer"
+    assert not _health_calls(turn), "an ineligible turn created a health proposal"
+    assert "/mcp-action/reports/" not in turn.answer
+    assert not dify_probe._health_tool_names(turn)
+    _assert_no_desktop_side_effects(turn)
+
+
+@HEALTH_LIVE
+@pytest.mark.asyncio
+async def test_health_e01_direct_request_decline_has_no_evidence(dcfg, console) -> None:
+    user = f"health-e01-{uuid.uuid4().hex}"
+    draft = await _dify_turn(
+        dcfg, user=user, query=dify_probe._health_draft_query("general_cloud")
+    )
+    cancel = await _dify_turn(
+        dcfg, user=user, query="no", conversation_id=draft.conversation_id
+    )
+    await _enrich(console, dcfg, draft, cancel)
+    count = dify_probe._assert_health_draft(draft, "general_cloud", dcfg)
+    dify_probe._assert_health_cancel(cancel, draft.conversation_id, count, dcfg)
+    assert "/mcp-action/reports/" not in cancel.answer
+    assert not re.search(r"/mcp-action/screenshots/", cancel.answer)
+    assert not dify_probe._health_tool_names(cancel)
+    _assert_no_desktop_side_effects(cancel)
+
+    # The discarded proposal must not be executable by a later bare yes.
+    later_yes = await _dify_turn(
+        dcfg, user=user, query="yes", conversation_id=draft.conversation_id
+    )
+    await _enrich(console, dcfg, later_yes)
+    health_evidence = [
+        call
+        for call in later_yes.calls
+        if isinstance(call.inputs, dict)
+        and call.inputs.get("action_id") == HEALTH_ACTION_ID
+    ]
+    assert not health_evidence, "a cancelled health proposal was re-created by a later yes"
+    later_confirms = _dify_calls(later_yes, "confirm")
+    assert all(
+        call.output.get("status") in {"blocked", "error"} for call in later_confirms
+    ), "a cancelled health proposal was executed by a later bare yes"
+    assert "/mcp-action/reports/" not in later_yes.answer
+    _assert_no_desktop_side_effects(later_yes)
+
+
+@HEALTH_LIVE
+@pytest.mark.asyncio
+async def test_health_e02_instability_ask_first_has_no_offer(dcfg, console) -> None:
+    user = f"health-e02-{uuid.uuid4().hex}"
+    turn = await _dify_turn(
+        dcfg,
+        user=user,
+        query="My Windows 11 machine freezes and apps crash randomly. What should I do?",
+        ai_model="cloud",
+    )
+    await _enrich(console, dcfg, turn)
+    assert "?" in turn.answer or "？" in turn.answer, "expected targeted context questions"
+    _assert_no_health_offer(turn)
+    dify_probe._assert_guard(turn, None, dcfg)
+
+
+@HEALTH_LIVE
+@pytest.mark.asyncio
+async def test_health_e03_out_of_scope_request_has_no_health_offer(dcfg, console) -> None:
+    user = f"health-e03-{uuid.uuid4().hex}"
+    turn = await _dify_turn(
+        dcfg,
+        user=user,
+        query=(
+            "Check the system health of my Ubuntu Linux server and repair "
+            "anything broken there."
+        ),
+        ai_model="cloud",
+    )
+    await _enrich(console, dcfg, turn)
+    _assert_no_health_offer(turn)
+    dify_probe._assert_guard(turn, None, dcfg)
+
+
+@HEALTH_LIVE
+@pytest.mark.asyncio
+async def test_health_e04_accepted_check_reports_url_monitor_and_screenshot(
+    live_health,
+) -> None:
+    async with live_health as harness:
+        harness.require_host()
+        cid = f"health-e04-{uuid.uuid4().hex}"
+        _assert_health_pending(await harness.draft(cid))
+        assert harness.new_report_artifacts() == [], "a draft created host run artifacts"
+        result = await harness.resolve("confirm", cid, 11, "yes")
+        _assert_health_result(result, allowed=("ok",))
+        url = _assert_report_url(result["report"])
+        assert result["report"]["host_path_status"] == "written"
+        assert result["report"]["host_path"].endswith(r"\AppData\Local\Temp\selfcheck.html")
+        assert "report.host_path" in result["report"]["usage"]
+        assert REPORT_PATH_RE.search(result["report"]["usage"]) is None
+        source, body = _load_report(harness, url)
+        assert b"<" in body and len(body) <= 5 * 1024 * 1024
+        assert "<html" in result["report"]["html"].casefold(), "the full report HTML was not returned"
+        assert result["report"]["html"] == body.decode("utf-8-sig")
+        _assert_screenshot(result["screenshot"], required=True)
+        assert "HelpDesk" in json.dumps(result), "missing guidance-only repair referral"
+        _assert_health_audit(harness, cid, executed=True)
+        print(f"Health E04: report_source={source}; report_bytes={len(body)}")
+
+
+@HEALTH_LIVE
+@pytest.mark.asyncio
+async def test_health_e05_findings_remain_action_ok_with_helpdesk_guidance_only(
+    live_health,
+) -> None:
+    async with live_health as harness:
+        harness.require_host()
+        cid = f"health-e05-{uuid.uuid4().hex}"
+        _assert_health_pending(await harness.draft(cid))
+        result = await harness.resolve("confirm", cid, 11, "yes")
+        _assert_health_result(result, allowed=("ok",))
+        assert result["health"]["status"] in {"pass", "warn", "fail", "unknown"}
+        assert "HelpDesk" in json.dumps(result)
+        assert "task_helpdesk" not in json.dumps(result).casefold()
+        _assert_health_audit(harness, cid, executed=True)
+
+
+@HEALTH_LIVE
+@pytest.mark.asyncio
+async def test_health_e06_report_publication_failure_is_partial(live_health) -> None:
+    async with live_health as harness:
+        harness.require_host()
+        from agentic_rag_mcp.mcp_action.reports import ReportStore
+
+        class FailingReportStore(ReportStore):
+            def save(self, *args, **kwargs):
+                raise OSError("INJECTED report store failure")
+
+        store = FailingReportStore(
+            root=harness.root / "reports-failing",
+            clock=harness.store_clock,
+            public_base_url=HEALTH_REPORT_URL_BASE,
+        )
+        harness.service = harness.make_service(reports=store)
+        cid = f"health-e06-{uuid.uuid4().hex}"
+        _assert_health_pending(await harness.draft(cid))
+        result = await harness.resolve("confirm", cid, 11, "yes")
+        assert result["status"] == "partial", "a failed report must not be reported as ok"
+        assert result["report"]["status"] in {"failed", "skipped"}
+        assert "report_url" not in result["report"]
+        _assert_health_summary(result)
+        assert result["health"]["status"] in {"pass", "warn", "fail", "unknown"}
+        _assert_health_audit(harness, cid, executed=True)
+
+
+@HEALTH_LIVE
+@pytest.mark.asyncio
+async def test_health_e07_display_failure_is_partial_and_skips_screenshot(
+    live_health,
+) -> None:
+    async with live_health as harness:
+        harness.require_host()
+
+        class UnverifiedReliabilityDisplay:
+            def __init__(self) -> None:
+                self.calls = 0
+
+            def show_reliability_monitor(self, *args, **kwargs) -> dict:
+                self.calls += 1
+                return {
+                    "status": "unverified",
+                    "reason": "INJECTED monitor verification failure",
+                }
+
+        display = UnverifiedReliabilityDisplay()
+        harness.service = harness.make_service(display=display)
+        cid = f"health-e07-{uuid.uuid4().hex}"
+        _assert_health_pending(await harness.draft(cid))
+        result = await harness.resolve("confirm", cid, 11, "yes")
+        assert result["status"] == "partial"
+        assert result["display"]["status"] == "unverified"
+        assert result["screenshot"]["status"] == "skipped-display-unverified"
+        assert "image_url" not in result["screenshot"]
+        assert result["report"]["status"] == "published"
+        _assert_report_url(result["report"])
+        assert display.calls == 1, "a failed display verification was retried"
+        _assert_health_audit(harness, cid, executed=True)
+
+
+@HEALTH_LIVE
+@pytest.mark.asyncio
+async def test_health_e08_screenshot_failure_is_partial_with_report_retained(
+    live_health,
+) -> None:
+    async with live_health as harness:
+        harness.require_host()
+        from agentic_rag_mcp.mcp_action.screenshots import ScreenshotStore
+        from agentic_rag_mcp.mcp_action.service import ScreenshotCapture
+
+        class FailingStore(ScreenshotStore):
+            def save(self, data: bytes, mime_type: str = ""):
+                raise OSError("INJECTED screenshot storage failure")
+
+        store = FailingStore(root=harness.root / "screenshot-store")
+        harness.service = harness.make_service(
+            screenshots=ScreenshotCapture(store=store, audit=harness.audit)
+        )
+        cid = f"health-e08-{uuid.uuid4().hex}"
+        _assert_health_pending(await harness.draft(cid))
+        result = await harness.resolve("confirm", cid, 11, "yes")
+        assert result["status"] == "partial"
+        assert result["display"]["status"] == "displayed"
+        assert result["screenshot"]["status"] == "attempted-but-failed"
+        assert "image_url" not in result["screenshot"]
+        assert result["report"]["status"] == "published"
+        _assert_report_url(result["report"])
+        assert list(store.root.iterdir()) == []
+        _assert_health_audit(harness, cid, executed=True)
+
+
+@HEALTH_LIVE
+@pytest.mark.asyncio
+async def test_health_e09_hash_mismatch_missing_script_and_host_offline_are_sanitized(
+    live_health, monkeypatch
+) -> None:
+    async with live_health as harness:
+        import agentic_rag_mcp.mcp_action.actions as actions_module
+        import agentic_rag_mcp.mcp_action.health as health_module
+        from agentic_rag_mcp.windows_mcp import client as windows_client
+
+        cases = (
+            ("hash", "HEALTH_SCRIPT_SHA256", "0" * 64),
+            ("missing", "HOST_SCRIPT_PATH", str(harness.root / "absent-health-check.ps1")),
+        )
+        for label, attribute, value in cases:
+            cid = f"health-e09-{label}-{uuid.uuid4().hex}"
+            _assert_health_pending(await harness.draft(cid))
+            with monkeypatch.context() as injected:
+                injected.setattr(health_module, attribute, value)
+                injected.setattr(actions_module, attribute, value, raising=False)
+                result = await harness.resolve("confirm", cid, 11, "yes")
+            _assert_health_failure(result)
+            _assert_health_audit(harness, cid, executed=False)
+
+        cid = f"health-e09-offline-{uuid.uuid4().hex}"
+        _assert_health_pending(await harness.draft(cid))
+        with monkeypatch.context() as injected:
+            injected.setattr(
+                windows_client, "BRIDGE_SSE_URL", "http://127.0.0.1:1/sse"
+            )
+            result = await harness.resolve("confirm", cid, 11, "yes")
+        _assert_health_failure(result)
+        _assert_health_audit(harness, cid, executed=False)
+
+
+@HEALTH_LIVE
+@pytest.mark.asyncio
+async def test_health_e10_malformed_or_truncated_output_is_never_fabricated(
+    live_health,
+) -> None:
+    async with live_health as harness:
+        harness.require_host()
+
+        class MalformedHealthActions:
+            def __init__(self, mode: str) -> None:
+                self.mode = mode
+                self.calls = 0
+
+            async def execute_system_health_check(self, *args, **kwargs):
+                self.calls += 1
+                if self.mode == "raise":
+                    raise ValueError("INJECTED malformed host JSON}")
+                return {"status": "error", "reason": "INJECTED truncated host JSON"}
+
+        for mode in ("raise", "truncated"):
+            actions = MalformedHealthActions(mode)
+            harness.service = harness.make_service(actions=actions)
+            cid = f"health-e10-{mode}-{uuid.uuid4().hex}"
+            _assert_health_pending(await harness.draft(cid))
+            result = await harness.resolve("confirm", cid, 11, "yes")
+            _assert_health_failure(result)
+            assert actions.calls == 1, "a malformed host result was retried"
+            _assert_health_audit(harness, cid, executed=False)
+
+
+@HEALTH_LIVE
+@pytest.mark.asyncio
+async def test_health_e11_child_timeout_is_honest_and_bounded(live_health) -> None:
+    async with live_health as harness:
+        harness.require_host()
+
+        class TimeoutHealthActions:
+            def __init__(self) -> None:
+                self.calls = 0
+
+            async def execute_system_health_check(self, *args, **kwargs):
+                self.calls += 1
+                await asyncio.sleep(0.05)
+                raise TimeoutError("INJECTED health child timeout")
+
+        actions = TimeoutHealthActions()
+        harness.service = harness.make_service(actions=actions)
+        cid = f"health-e11-{uuid.uuid4().hex}"
+        _assert_health_pending(await harness.draft(cid))
+        started = time.monotonic()
+        result = await harness.resolve("confirm", cid, 11, "yes")
+        elapsed = time.monotonic() - started
+        _assert_health_failure(result)
+        assert result["status"] != "queued-timeout"
+        assert actions.calls == 1, "a timed-out health run was retried"
+        assert elapsed < 180, "health timeout handling exceeded the action budget"
+        assert result["timing"]["total_s"] < 180
+        _assert_health_audit(harness, cid, executed=False)
+
+
+@HEALTH_LIVE
+@pytest.mark.asyncio
+async def test_health_e12_report_url_expires_after_900s_and_token_is_never_logged(
+    live_health,
+) -> None:
+    async with live_health as harness:
+        harness.require_host()
+        cid = f"health-e12-{uuid.uuid4().hex}"
+        _assert_health_pending(await harness.draft(cid))
+        result = await harness.resolve("confirm", cid, 11, "yes")
+        _assert_health_result(result)
+        assert result["report"]["status"] == "published", "the report did not publish"
+        url = _assert_report_url(result["report"])
+        token = _report_token(url)
+        assert TOKEN_RE.fullmatch(token)
+        _load_report(harness, url)
+
+        harness.store_clock.advance(899.99)
+        assert harness.reports.resolve(token) is not None, "report expired before 900 seconds"
+        _load_report(harness, url)
+
+        harness.store_clock.advance(0.02)
+        assert harness.reports.resolve(token) is None, "report outlived the 900-second TTL"
+        try:
+            expired = await asyncio.to_thread(
+                httpx.get, url, timeout=15, follow_redirects=False
+            )
+        except httpx.HTTPError:
+            expired = None
+        if expired is not None:
+            assert expired.status_code == 404, "an expired report URL was still served"
+
+        _assert_health_audit(harness, cid, executed=True)
+        leftover = harness.new_report_artifacts()
+        assert leftover == [], f"host run artifacts were not cleaned: {[p.name for p in leftover]}"
+        assert token not in harness.audit_path.read_text(encoding="utf-8")
+
+
+@HEALTH_LIVE
+@pytest.mark.asyncio
+async def test_health_e13_read_only_invariants_are_preserved(live_health) -> None:
+    async with live_health as harness:
+        harness.require_host()
+        before = await harness.read_printers()
+        if harness.initial_services is None:
+            pytest.skip("read-only service evidence is unavailable on this host")
+        before_services = harness.initial_services
+        cid = f"health-e13-{uuid.uuid4().hex}"
+        _assert_health_pending(await harness.draft(cid))
+        result = await harness.resolve("confirm", cid, 11, "yes")
+        _assert_health_result(result)
+
+        after = await harness.read_printers()
+        after_services = await harness.read_services()
+        assert {p["name"] for p in after["printers"]} == {
+            p["name"] for p in before["printers"]
+        }, "the read-only health check changed the installed printer set"
+        assert _default_printer(after) == _default_printer(before), (
+            "the read-only health check changed the default printer"
+        )
+        assert _managed_semantics(after) == _managed_semantics(before), (
+            "the read-only health check changed managed-default semantics"
+        )
+        assert after_services == before_services, "the health check changed a service state"
+        assert harness.new_report_artifacts() == [], "health run artifacts were left on the host"
+        _assert_health_audit(harness, cid, executed=True)
+
+
+@HEALTH_LIVE
+@pytest.mark.asyncio
+async def test_health_e14_duplicate_parallel_confirms_execute_once(live_health) -> None:
+    async with live_health as harness:
+        harness.require_host()
+
+        class CountingHealthActions:
+            def __init__(self) -> None:
+                self.calls = 0
+                self.inflight = 0
+                self.max_inflight = 0
+                self.entered = asyncio.Event()
+
+            async def execute_system_health_check(self, *args, **kwargs):
+                self.calls += 1
+                self.inflight += 1
+                self.max_inflight = max(self.max_inflight, self.inflight)
+                self.entered.set()
+                try:
+                    await asyncio.sleep(0.2)
+                    return await harness.actions.execute_system_health_check()
+                finally:
+                    self.inflight -= 1
+
+        actions = CountingHealthActions()
+        harness.service = harness.make_service(actions=actions)
+        cid = f"health-e14-{uuid.uuid4().hex}"
+        _assert_health_pending(await harness.draft(cid))
+
+        first_task = asyncio.create_task(harness.resolve("confirm", cid, 11, "yes"))
+        await asyncio.wait_for(actions.entered.wait(), timeout=10)
+        duplicate_task = asyncio.create_task(harness.resolve("confirm", cid, 11, "yes"))
+        first, duplicate = await asyncio.gather(first_task, duplicate_task)
+
+        assert actions.calls == 1, "a duplicate health confirmation executed twice"
+        assert actions.max_inflight == 1, "two health executions overlapped"
+        assert first["status"] in {"ok", "partial"}
+        assert duplicate["status"] in {"blocked", "queued-timeout"}, duplicate["status"]
+        assert duplicate.get("changed") is not True
+        assert "report_url" not in json.dumps(duplicate)
+        _assert_health_audit(harness, cid, executed=True)
+
+
+@HEALTH_LIVE
+@pytest.mark.asyncio
+async def test_health_e15_report_link_is_single_bare_url_with_expiry_warning(
+    live_health,
+) -> None:
+    async with live_health as harness:
+        harness.require_host()
+        cid = f"health-e15-{uuid.uuid4().hex}"
+        _assert_health_pending(await harness.draft(cid))
+        result = await harness.resolve("confirm", cid, 11, "yes")
+        _assert_health_result(result, allowed=("ok",))
+        url = _assert_report_url(result["report"])
+        assert result["report"]["host_path_status"] == "written"
+        assert result["report"]["host_path"].endswith(r"\AppData\Local\Temp\selfcheck.html")
+        assert REPORT_PATH_RE.search(result["report"]["usage"]) is None
+        assert "/mcp-action/screenshots/" not in result["report"].get("usage", "")
+        assert "<html" in result["report"]["html"].casefold()
+        assert "<table" in result["report"]["html"].casefold()
+        assert json.dumps(result).count(url) == 1
+        _load_report(harness, url)
+        _assert_health_audit(harness, cid, executed=True)
+
+
+@HEALTH_LIVE
+@pytest.mark.asyncio
+async def test_health_e16_privacy_scan_keeps_pii_out_of_persistent_audit(
+    live_health,
+) -> None:
+    async with live_health as harness:
+        harness.require_host()
+        cid = f"health-e16-{uuid.uuid4().hex}"
+        _assert_health_pending(await harness.draft(cid))
+        result = await harness.resolve("confirm", cid, 11, "yes")
+        _assert_health_result(result)
+        _assert_health_audit(harness, cid, executed=True)
+
+        url = result["report"].get("report_url")
+        if url:
+            token = _report_token(url)
+            audit_text = harness.audit_path.read_text(encoding="utf-8")
+            assert url not in audit_text and token not in audit_text
+            _, body = _load_report(harness, url)
+            # The HTML report may retain owner-approved fields; only the
+            # persistent audit must be free of them.
+            assert len(body) <= 5 * 1024 * 1024

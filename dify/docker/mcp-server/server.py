@@ -34,6 +34,7 @@ from starlette.responses import FileResponse, HTMLResponse, JSONResponse, Respon
 from starlette.routing import Route
 
 from agentic_rag_mcp.config import load_config
+from agentic_rag_mcp.mcp_action.reports import get_report_store
 from agentic_rag_mcp.mcp_action.screenshots import get_screenshot_store
 from agentic_rag_mcp.server import build_server
 
@@ -44,12 +45,14 @@ PORT = int(os.environ.get("MCP_PORT", "28080"))
 # without session-management errors.
 cfg = load_config()
 screenshot_store = get_screenshot_store()
+report_store = get_report_store()
 exports_url_base = (
     os.environ.get("PPT_EXPORTS_URL_BASE") or cfg.ppt_exports_url_base
 ).rstrip("/")
 public_origin = exports_url_base.removesuffix("/exports")
-# The shared store predates sidecar configuration; only its public URL is configured here.
+# The shared stores predate sidecar configuration; only their public URLs are configured here.
 screenshot_store._public_base_url = f"{public_origin}/mcp-action/screenshots"
+report_store._public_base_url = f"{public_origin}/mcp-action/reports"
 mcp = build_server(cfg, stateless_http=True, host=HOST, port=PORT)
 
 streamable = mcp.streamable_http_app()  # registers POST /mcp, creates session manager
@@ -169,6 +172,43 @@ async def screenshot_file(request) -> Response:
     return Response(image.data, media_type=image.mime_type, headers=_SCREENSHOT_HEADERS)
 
 
+_REPORT_HEADERS = {
+    "Cache-Control": "no-store, max-age=0",
+    "Pragma": "no-cache",
+    "Expires": "0",
+    "Content-Disposition": 'inline; filename="system-health-report.html"',
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+    "X-Frame-Options": "DENY",
+    "Cross-Origin-Resource-Policy": "same-origin",
+    "X-Robots-Tag": "noindex, nofollow, noarchive",
+    "Content-Security-Policy": (
+        "default-src 'none'; style-src 'unsafe-inline'; img-src data:; "
+        "script-src 'none'; object-src 'none'; base-uri 'none'; "
+        "form-action 'none'; frame-ancestors 'none'; sandbox"
+    ),
+}
+
+
+async def report_file(request) -> Response:
+    """Serve one temporary self-contained HTML report as exact stored bytes."""
+    if request.method != "GET":
+        return Response(
+            "method not allowed",
+            status_code=405,
+            headers={"Allow": "GET", "Cache-Control": "no-store"},
+        )
+    report = report_store.resolve(request.path_params["token"])
+    if report is None:
+        return Response("not found", status_code=404,
+                        headers={"Cache-Control": "no-store"})
+    return Response(
+        report.data,
+        media_type="text/html; charset=utf-8",
+        headers=_REPORT_HEADERS,
+    )
+
+
 async def mcp_get(request) -> Response:
     """Browsers/probes that GET /mcp get a clean 405 instead of a confusing
     JSON-RPC 406. Per MCP streamable-HTTP spec, servers without the optional
@@ -180,16 +220,18 @@ async def mcp_get(request) -> Response:
     )
 
 
-async def _screenshot_cleanup_loop():
+async def _cleanup_loop():
     while True:
         await asyncio.sleep(30)
         screenshot_store.cleanup()
+        report_store.cleanup()
 
 
 @asynccontextmanager
 async def lifespan(app):
     screenshot_store.cleanup()
-    janitor = asyncio.create_task(_screenshot_cleanup_loop())
+    report_store.cleanup()
+    janitor = asyncio.create_task(_cleanup_loop())
     try:
         # Streamable HTTP needs its session manager started for the app's lifetime.
         async with mcp.session_manager.run():
@@ -199,6 +241,7 @@ async def lifespan(app):
         with suppress(asyncio.CancelledError):
             await janitor
         screenshot_store.cleanup()
+        report_store.cleanup()
 
 
 app = Starlette(
@@ -213,6 +256,11 @@ app = Starlette(
         Route(
             "/mcp-action/screenshots/{token:path}",
             screenshot_file,
+            methods=["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "TRACE"],
+        ),
+        Route(
+            "/mcp-action/reports/{token:path}",
+            report_file,
             methods=["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "TRACE"],
         ),
         *streamable.routes,

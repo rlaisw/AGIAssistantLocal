@@ -16,6 +16,8 @@ import pytest
 from agentic_rag_mcp.mcp_action.state import ProposalStore
 
 EFFECT = "Change the requested printer setting, then display the result."
+HEALTH = "system_health_check"
+HEALTH_EFFECT = "Run a read-only desktop health check and publish a temporary report."
 
 
 def _create(store, conversation_id="c1", dialogue_count=4):
@@ -401,3 +403,87 @@ def test_new_store_after_restart_fails_closed():
     _create(old_store)
     restarted_store = ProposalStore()
     _assert_blocked(restarted_store.resolve("c1", 5, "yes"))
+
+
+@pytest.mark.parametrize("parameters", [None, {}])
+def test_health_check_accepts_only_an_empty_parameter_mapping(parameters):
+    store = ProposalStore(clock=lambda: 1000.0)
+    proposal = store.create("c1", HEALTH, parameters, HEALTH_EFFECT, 4)
+
+    assert proposal.action_id == HEALTH
+    assert proposal.parameters == {}
+    assert proposal.effect == HEALTH_EFFECT
+    assert proposal.created_dialogue_count == 4
+    assert proposal.expires_at_monotonic == pytest.approx(1900.0)
+
+
+@pytest.mark.parametrize(
+    "parameters",
+    [
+        {"printer": "Printer A"},
+        {"orientation": "long-edge"},
+        {"foo": "bar"},
+        {"health": True},
+        {"": ""},
+        [],
+        ["printer"],
+        "printer",
+    ],
+)
+def test_health_check_rejects_every_nonempty_or_nonmapping_parameter(parameters):
+    with pytest.raises(ValueError):
+        ProposalStore().create("c1", HEALTH, parameters, HEALTH_EFFECT, 4)
+
+
+@pytest.mark.parametrize(
+    ("action_id", "parameters"),
+    [
+        ("windows_default_printer", {}),
+        ("windows_default_printer", {"printer": "Printer A", "health": {}}),
+        ("word_printer_duplex", {"health": "system_health_check"}),
+        (
+            "word_printer_duplex",
+            {"printer": "Printer A", "orientation": "long-edge", "health": {}},
+        ),
+    ],
+)
+def test_health_parameters_are_not_accepted_on_printer_actions(action_id, parameters):
+    with pytest.raises(ValueError):
+        ProposalStore().create("c1", action_id, parameters, EFFECT, 4)
+
+
+def test_health_check_requires_the_immediately_following_turn():
+    store = ProposalStore()
+    store.create("c1", HEALTH, {}, HEALTH_EFFECT, 4)
+
+    _assert_blocked(store.resolve("c1", 4, "yes"))
+    _assert_blocked(store.resolve("c1", 5, "yes"))
+
+
+def test_health_check_keeps_the_existing_900_second_expiry_boundary():
+    now = [100.0]
+    store = ProposalStore(clock=lambda: now[0])
+    proposal = store.create("c1", HEALTH, {}, HEALTH_EFFECT, 4)
+
+    now[0] += 899.99
+    decision = store.resolve("c1", 5, "yes")
+    assert decision.status == "reserved"
+    assert decision.proposal is proposal
+
+    later = ProposalStore(clock=lambda: now[0])
+    later.create("c1", HEALTH, None, HEALTH_EFFECT, 4)
+    now[0] += 900.0
+    _assert_blocked(later.resolve("c1", 5, "yes"))
+
+
+def test_health_check_supersedes_and_keeps_wrong_conversation_protection():
+    store = ProposalStore()
+    first = store.create("c1", HEALTH, {}, HEALTH_EFFECT, 4)
+    second = store.create("c1", HEALTH, None, HEALTH_EFFECT, 8)
+
+    _assert_blocked(store.resolve("other", 9, "yes"))
+    decision = store.resolve("c1", 9, "yes")
+    assert decision.status == "reserved"
+    assert decision.proposal is second
+    assert decision.proposal.proposal_id != first.proposal_id
+    assert decision.proposal.parameters == {}

@@ -1,0 +1,13 @@
+{
+  "status": "ok",
+  "host": "TEST-PC",
+  "overall": "pass",
+  "score": 100,
+  "checks": [
+    {"area": "System", "name": "OS", "status": "PASS", "detail": "Windows 11"}
+  ],
+  "inventory": {"computer": {"name": "TEST-PC"}},
+  "reliability": {"available": false, "note": "Win32_ReliabilityRecords unavailable"},
+  "events": {"available": false},
+  "remediation": []
+}

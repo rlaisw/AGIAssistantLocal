@@ -1096,3 +1096,527 @@ async def test_validation_error_audit_marks_all_stages_not_attempted(word_harnes
     )
     assert row["timing"] is None
     assert "private host text" not in json.dumps(row)
+
+
+HEALTH_ACTION = "system_health_check"
+HEALTH_EFFECT = (
+    "Run a read-only desktop health check, publish a temporary report, and display "
+    "Reliability Monitor. The check does not repair or change the system; HelpDesk "
+    "can help with repairs."
+)
+HEALTH_REPORT_URL = (
+    "http://sidecar:8080/mcp-action/reports/" + "R" * 43
+)
+HEALTH_FORGED_REPORT_URL = (
+    "http://evil.example/mcp-action/reports/" + "F" * 43
+)
+HEALTH_SCREENSHOT_URL = (
+    "https://example.test/mcp-action/screenshots/" + "S" * 43
+)
+HEALTH_COUNTS = {"pass": 8, "warn": 3, "fail": 1, "info": 2, "skip": 2}
+HEALTH_REPORT_HTML = (
+    "<!DOCTYPE html><html><head><title>System health</title></head><body>"
+    "<p>User: TEST\\user</p><p>Email: user@example.test</p>"
+    "<p>IP: 10.0.0.10</p><p>Serial: SN-SECRET</p>"
+    "<p>Crash: app.exe</p></body></html>"
+)
+_HEALTH_OMITTED = object()
+
+
+def _health_action_result(
+    health_status: str = "warn", score: int = 72, confidence: str = "reduced"
+) -> dict:
+    return {
+        "status": "ok",
+        "health": {
+            "status": health_status,
+            "score": score,
+            "counts": dict(HEALTH_COUNTS),
+            "confidence": confidence,
+        },
+        "report_html": HEALTH_REPORT_HTML,
+        "report_file": {
+            "path": r"C:\Users\Test\AppData\Local\Temp\selfcheck.html",
+            "status": "written",
+        },
+        "helpdesk": (
+            "Disk and Reliability need review; HelpDesk can help with repairs."
+        ),
+        "remediation": ["Disk", "Reliability"],
+    }
+
+
+class _FakeHealthActions:
+    def __init__(self, clock, trace):
+        self.clock = clock
+        self.trace = trace
+        self.calls = 0
+        self.outcome = _health_action_result()
+        self.error = None
+        self.started = asyncio.Event()
+        self.release = asyncio.Event()
+        self.gate_first = False
+        self.advance_s = 0.0
+        self.active = 0
+        self.max_active = 0
+
+    async def execute_system_health_check(self):
+        self.calls += 1
+        self.active += 1
+        self.max_active = max(self.max_active, self.active)
+        self.trace.append("execute")
+        try:
+            if self.gate_first and self.calls == 1:
+                self.started.set()
+                await self.release.wait()
+            if self.advance_s:
+                self.clock.advance(self.advance_s)
+            if self.error is not None:
+                raise self.error
+            return deepcopy(self.outcome)
+        finally:
+            self.active -= 1
+
+
+class _FakeHealthReports:
+    def __init__(self, trace):
+        self.trace = trace
+        self.calls = []
+        self.outcome = {
+            "status": "published",
+            "report_url": HEALTH_REPORT_URL,
+            "expires_in_s": 900,
+        }
+        self.error = None
+
+    def publish(self, html: str) -> dict:
+        self.calls.append(html)
+        self.trace.append("report")
+        if self.error is not None:
+            raise self.error
+        return deepcopy(self.outcome)
+
+
+class _FakeHealthDisplay:
+    def __init__(self, clock, trace):
+        self.clock = clock
+        self.trace = trace
+        self.calls = []
+        self.outcome = {"status": "displayed"}
+        self.error = None
+        self.advance_s = 0.0
+
+    async def show_reliability_monitor(self, conversation_id: str) -> dict:
+        self.calls.append(conversation_id)
+        self.trace.append("display")
+        if self.advance_s:
+            self.clock.advance(self.advance_s)
+        if self.error is not None:
+            raise self.error
+        return deepcopy(self.outcome)
+
+
+class _FakeHealthScreenshots:
+    def __init__(self, trace):
+        self.trace = trace
+        self.calls = []
+        self.outcome = {
+            "status": "captured",
+            "capture_scope": "foreground-window",
+            "image_url": HEALTH_SCREENSHOT_URL,
+            "expires_in_s": 900,
+        }
+        self.error = None
+
+    async def capture(self, conversation_id: str) -> dict:
+        self.calls.append(conversation_id)
+        self.trace.append("screenshot")
+        if self.error is not None:
+            raise self.error
+        return deepcopy(self.outcome)
+
+
+@pytest.fixture
+def health_harness(host_effects):
+    clock = _FakeClock()
+    trace = []
+    actions = _FakeHealthActions(clock, trace)
+    display = _FakeHealthDisplay(clock, trace)
+    screenshots = _FakeHealthScreenshots(trace)
+    reports = _FakeHealthReports(trace)
+    audit = Mock()
+    service = McpActionService(
+        store=ProposalStore(clock=clock),
+        actions=actions,
+        display=display,
+        screenshots=screenshots,
+        reports=reports,
+        audit=audit,
+        clock=clock,
+    )
+    return SimpleNamespace(
+        service=service,
+        actions=actions,
+        display=display,
+        screenshots=screenshots,
+        reports=reports,
+        audit=audit,
+        clock=clock,
+        trace=trace,
+        host_effects=host_effects,
+    )
+
+
+async def _health_draft(
+    harness, conversation_id: str = "c1", parameters=_HEALTH_OMITTED
+) -> dict:
+    kwargs = {}
+    if parameters is not _HEALTH_OMITTED:
+        kwargs["parameters"] = parameters
+    return await harness.service.handle(
+        phase="draft",
+        conversation_id=conversation_id,
+        dialogue_count=4,
+        action_id=HEALTH_ACTION,
+        **kwargs,
+    )
+
+
+async def _health_confirm(harness, conversation_id: str = "c1") -> dict:
+    return await harness.service.handle(
+        phase="confirm",
+        conversation_id=conversation_id,
+        dialogue_count=5,
+        query="yes",
+    )
+
+
+def _assert_no_health_effects(harness) -> None:
+    assert harness.actions.calls == 0
+    assert harness.display.calls == []
+    assert harness.screenshots.calls == []
+    assert harness.reports.calls == []
+    _assert_no_host_effects(harness.host_effects)
+
+
+def test_health_service_accepts_a_report_publisher():
+    reports = Mock()
+    service = McpActionService(reports=reports)
+
+    assert service.reports is reports
+
+
+@pytest.mark.parametrize(
+    "parameters", [_HEALTH_OMITTED, None, {}], ids=["omitted", "none", "empty"]
+)
+@pytest.mark.asyncio
+async def test_health_draft_has_no_parameters_and_no_host_effects(
+    health_harness, parameters
+):
+    h = health_harness
+
+    out = await _health_draft(h, parameters=parameters)
+
+    assert out["status"] == "pending-confirmation"
+    assert out["action_id"] == HEALTH_ACTION
+    assert out["effect"] == HEALTH_EFFECT
+    assert out["offer"] == OFFER
+    assert out["expires_in_s"] == 900
+    assert any("sensitive" in caveat.casefold() for caveat in out["caveats"])
+
+    reserved = h.service.store.resolve("c1", 5, "yes")
+    assert reserved.status == "reserved"
+    assert reserved.proposal.action_id == HEALTH_ACTION
+    assert reserved.proposal.parameters == {}
+    assert reserved.proposal.created_dialogue_count == 4
+    _assert_no_health_effects(h)
+
+
+@pytest.mark.asyncio
+async def test_health_confirm_returns_summary_published_report_display_and_screenshot(
+    health_harness,
+):
+    h = health_harness
+    assert (await _health_draft(h))["status"] == "pending-confirmation"
+
+    out = await _health_confirm(h)
+
+    assert out["status"] == "ok"
+    assert out["action_id"] == HEALTH_ACTION
+    assert out["changed"] is False
+    assert out["verification"] == "reported"
+    health = out["health"]
+    assert health["status"] == "warn"
+    assert health["score"] == 72
+    assert health["counts"] == HEALTH_COUNTS
+    assert health["confidence"] == "reduced"
+    assert out["report"]["status"] == "published"
+    assert out["report"]["report_url"] == HEALTH_REPORT_URL
+    assert out["report"]["expires_in_s"] == 900
+    assert out["display"] == {"status": "displayed"}
+    assert out["screenshot"]["status"] == "captured"
+    assert out["screenshot"]["image_url"] == HEALTH_SCREENSHOT_URL
+    assert out["helpdesk"] == h.actions.outcome["helpdesk"]
+    assert h.actions.calls == 1
+    assert h.reports.calls == [HEALTH_REPORT_HTML]
+    assert h.display.calls == ["c1"]
+    assert h.screenshots.calls == ["c1"]
+    assert "report_html" not in out
+    assert out["report"]["html"] == HEALTH_REPORT_HTML
+    assert out["report"]["host_path"] == r"C:\Users\Test\AppData\Local\Temp\selfcheck.html"
+    _assert_no_host_effects(h.host_effects)
+
+
+@pytest.mark.asyncio
+async def test_health_machine_fail_is_still_an_ok_action(health_harness):
+    h = health_harness
+    h.actions.outcome = _health_action_result("fail", score=55)
+    assert (await _health_draft(h))["status"] == "pending-confirmation"
+
+    out = await _health_confirm(h)
+
+    assert out["status"] == "ok"
+    assert out["health"]["status"] == "fail"
+    assert out["health"]["score"] == 55
+    assert out["report"]["status"] == "published"
+    assert out["display"]["status"] == "displayed"
+    assert out["screenshot"]["status"] == "captured"
+    assert h.actions.calls == 1
+    _assert_no_host_effects(h.host_effects)
+
+
+@pytest.mark.asyncio
+async def test_health_report_publication_failure_is_partial_with_summary_retained(
+    health_harness,
+):
+    h = health_harness
+    h.reports.outcome = {
+        "status": "failed",
+        "reason": "The temporary report could not be published.",
+    }
+    assert (await _health_draft(h))["status"] == "pending-confirmation"
+
+    out = await _health_confirm(h)
+
+    assert out["status"] == "partial"
+    assert out["health"]["status"] == "warn"
+    assert out["report"]["status"] == "failed"
+    assert "report_url" not in out["report"]
+    assert out["display"]["status"] == "displayed"
+    assert out["screenshot"]["status"] == "captured"
+    assert len(h.reports.calls) == 1
+    _assert_no_host_effects(h.host_effects)
+
+
+@pytest.mark.asyncio
+async def test_health_display_failure_is_partial_and_skips_screenshot(health_harness):
+    h = health_harness
+    h.display.outcome = {
+        "status": "attempted-but-failed",
+        "reason": "Reliability Monitor could not be opened.",
+    }
+    assert (await _health_draft(h))["status"] == "pending-confirmation"
+
+    out = await _health_confirm(h)
+
+    assert out["status"] == "partial"
+    assert out["report"]["status"] == "published"
+    assert out["report"]["report_url"] == HEALTH_REPORT_URL
+    assert out["display"]["status"] == "attempted-but-failed"
+    assert out["screenshot"]["status"] == "skipped-display-unverified"
+    assert h.display.calls == ["c1"]
+    assert h.screenshots.calls == []
+    _assert_no_host_effects(h.host_effects)
+
+
+@pytest.mark.asyncio
+async def test_health_screenshot_failure_is_partial_with_report_and_display_retained(
+    health_harness,
+):
+    h = health_harness
+    h.screenshots.outcome = {
+        "status": "attempted-but-failed",
+        "reason": "The Reliability Monitor evidence could not be captured.",
+    }
+    assert (await _health_draft(h))["status"] == "pending-confirmation"
+
+    out = await _health_confirm(h)
+
+    assert out["status"] == "partial"
+    assert out["report"]["status"] == "published"
+    assert out["display"]["status"] == "displayed"
+    assert out["screenshot"]["status"] == "attempted-but-failed"
+    assert "image_url" not in out["screenshot"]
+    assert h.display.calls == ["c1"]
+    assert h.screenshots.calls == ["c1"]
+    _assert_no_host_effects(h.host_effects)
+
+
+@pytest.mark.asyncio
+async def test_health_display_launches_reliability_monitor_exactly_once(health_harness):
+    h = health_harness
+    h.display.outcome = {
+        "status": "unverified",
+        "reason": "The Reliability Monitor window could not be verified.",
+    }
+    assert (await _health_draft(h))["status"] == "pending-confirmation"
+
+    out = await _health_confirm(h)
+
+    assert out["status"] == "partial"
+    assert out["display"]["status"] == "unverified"
+    assert out["screenshot"]["status"] == "skipped-display-unverified"
+    assert h.display.calls == ["c1"]
+    assert h.screenshots.calls == []
+    _assert_no_host_effects(h.host_effects)
+
+
+@pytest.mark.parametrize(
+    ("queued_seconds", "expected_status"),
+    [(60.0, "ok"), (60.01, "queued-timeout")],
+)
+@pytest.mark.asyncio
+async def test_health_budget_reserves_180_seconds_leaving_only_60_seconds_to_queue(
+    health_harness, queued_seconds, expected_status
+):
+    h = health_harness
+    h.actions.gate_first = True
+    assert (await _health_draft(h, "c1"))["status"] == "pending-confirmation"
+    assert (await _health_draft(h, "c2"))["status"] == "pending-confirmation"
+
+    first = asyncio.create_task(_health_confirm(h, "c1"))
+    second = None
+    try:
+        await asyncio.wait_for(h.actions.started.wait(), timeout=1)
+        second = asyncio.create_task(_health_confirm(h, "c2"))
+        await asyncio.sleep(0)
+        h.clock.advance(queued_seconds)
+    finally:
+        h.actions.release.set()
+
+    first_result, second_result = await asyncio.wait_for(
+        asyncio.gather(first, second), timeout=1
+    )
+
+    assert first_result["status"] == "ok"
+    assert second_result["status"] == expected_status
+    assert second_result["timing"]["queue_wait_s"] == pytest.approx(queued_seconds)
+    assert h.actions.max_active == 1
+    if expected_status == "ok":
+        assert h.actions.calls == 2
+        assert len(h.reports.calls) == 2
+        assert h.display.calls == ["c1", "c2"]
+        assert h.screenshots.calls == ["c1", "c2"]
+    else:
+        assert h.actions.calls == 1
+        assert len(h.reports.calls) == 1
+        assert h.display.calls == ["c1"]
+        assert h.screenshots.calls == ["c1"]
+        assert second_result["changed"] is False
+        assert second_result["verification"] == "not-run"
+        assert second_result["display"] == {"status": "skipped"}
+        assert second_result["screenshot"] == {"status": "skipped"}
+        assert second_result["timing"]["execution_s"] == 0.0
+
+
+@pytest.mark.asyncio
+async def test_health_stage_deadline_stops_before_screenshot_and_reports_partial(
+    health_harness,
+):
+    h = health_harness
+    h.actions.advance_s = 150.0
+    h.display.advance_s = 40.0
+    assert (await _health_draft(h))["status"] == "pending-confirmation"
+
+    out = await _health_confirm(h)
+
+    assert out["status"] == "partial"
+    assert out.get("budget_exhausted") is True
+    assert out["health"]["status"] == "warn"
+    assert out["report"]["status"] == "published"
+    assert out["report"]["report_url"] == HEALTH_REPORT_URL
+    assert out["screenshot"]["status"] == "skipped"
+    assert len(h.display.calls) == 1
+    assert h.screenshots.calls == []
+    _assert_no_host_effects(h.host_effects)
+
+
+@pytest.mark.asyncio
+async def test_health_helpdesk_is_guidance_only_and_calls_no_task_tool(health_harness):
+    h = health_harness
+    h.actions.outcome = _health_action_result("fail", score=55)
+    assert (await _health_draft(h))["status"] == "pending-confirmation"
+
+    out = await _health_confirm(h)
+
+    assert out["status"] == "ok"
+    assert out["changed"] is False
+    assert "HelpDesk" in out["helpdesk"]
+    assert "Disk" in out["helpdesk"]
+    serialized = json.dumps(out)
+    assert "task_helpdesk" not in serialized
+    assert "ticket" not in serialized.casefold()
+    _assert_no_host_effects(h.host_effects)
+
+
+@pytest.mark.asyncio
+async def test_health_audit_is_summary_only_without_report_url_or_pii(health_harness):
+    h = health_harness
+    assert (await _health_draft(h))["status"] == "pending-confirmation"
+    out = await _health_confirm(h)
+    assert out["status"] == "ok"
+
+    row = h.audit.write_attempt.call_args_list[-1].kwargs
+    outcome = row["outcome"]
+    for fragment in (
+        "health=warn",
+        "score=72",
+        "pass=8",
+        "warn=3",
+        "fail=1",
+        "skip=2",
+        "confidence=reduced",
+        "report=published",
+        "display=displayed",
+        "screenshot=captured",
+    ):
+        assert fragment in outcome
+    assert isinstance(row["timing"]["display_s"], (int, float))
+    assert isinstance(row["timing"]["screenshot_s"], (int, float))
+    audit_text = json.dumps(
+        [call.kwargs for call in h.audit.write_attempt.call_args_list]
+    )
+    for secret in (
+        HEALTH_REPORT_URL,
+        "R" * 43,
+        "/mcp-action/reports/",
+        "TEST\\user",
+        "user@example.test",
+        "10.0.0.10",
+        "SN-SECRET",
+        "app.exe",
+        "<html",
+    ):
+        assert secret not in audit_text
+    _assert_no_host_effects(h.host_effects)
+
+
+@pytest.mark.asyncio
+async def test_health_returns_only_the_published_report_link_and_ignores_forged_url(
+    health_harness,
+):
+    h = health_harness
+    h.actions.outcome["report_url"] = HEALTH_FORGED_REPORT_URL
+    h.actions.outcome["report"] = {
+        "status": "published",
+        "report_url": HEALTH_FORGED_REPORT_URL,
+    }
+    assert (await _health_draft(h))["status"] == "pending-confirmation"
+
+    out = await _health_confirm(h)
+
+    assert out["status"] == "ok"
+    assert out["report"]["report_url"] == HEALTH_REPORT_URL
+    assert HEALTH_FORGED_REPORT_URL not in json.dumps(out)
+    assert h.reports.calls == [HEALTH_REPORT_HTML]
+    _assert_no_host_effects(h.host_effects)

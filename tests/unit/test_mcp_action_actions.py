@@ -19,13 +19,16 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import inspect
 import json
+import re
 from pathlib import Path
 from unittest.mock import AsyncMock
 
 import pytest
 
 from agentic_rag_mcp.mcp_action import actions as actions_module
+from agentic_rag_mcp.mcp_action import health as health_module
 from agentic_rag_mcp.windows_mcp import client as windows_client
 
 FIXTURE = (
@@ -344,7 +347,7 @@ def test_managed_default_is_diagnostic_caveat_only_without_registry_writes(
     else:
         assert any(caveat_text in caveat.lower() for caveat in result["caveats"])
         assert any("may not persist" in caveat.lower() for caveat in result["caveats"])
-    serialized = json.dumps(result)
+    serialized = json.dumps({key: value for key, value in result.items() if key != "report_html"})
     assert SECRET not in serialized and SECRET_PATH not in serialized
     _assert_no_registry_writes_or_escape_hatches(_host_script(host))
 
@@ -539,7 +542,7 @@ def test_verified_execution_retains_managed_default_caveats_without_registry_wri
     assert result["status"] == "ok"
     assert result["verification"] == "verified"
     assert any(caveat_text in caveat.lower() for caveat in result["caveats"])
-    serialized = json.dumps(result)
+    serialized = json.dumps({key: value for key, value in result.items() if key != "report_html"})
     assert SECRET not in serialized and SECRET_PATH not in serialized
     _assert_no_registry_writes_or_escape_hatches(_host_script(host))
 
@@ -1133,3 +1136,354 @@ def test_duplex_methods_reject_missing_orientation_and_unknown_parameters(
     with pytest.raises(TypeError):
         method("Printer", "long-edge", mode="TwoSidedLongEdge")
     host.assert_not_awaited()
+
+
+# --- Spec 048 T008: fixed read-only system-health executor -----------------
+
+HEALTH_FIXTURES = Path(__file__).parents[1] / "fixtures" / "system_health"
+VALID_HEALTH_BYTES = (HEALTH_FIXTURES / "valid_health.json").read_bytes()
+MISSING_RELIABILITY_BYTES = (
+    HEALTH_FIXTURES / "missing_reliability.json"
+).read_bytes()
+MALFORMED_HEALTH_BYTES = (HEALTH_FIXTURES / "malformed_health.json").read_bytes()
+VALID_REPORT_BYTES = (HEALTH_FIXTURES / "valid_report.html").read_bytes()
+MALICIOUS_REPORT_BYTES = (HEALTH_FIXTURES / "malicious_report.html").read_bytes()
+BOM = b"\xef\xbb\xbf"
+HEALTH_RUN_ID_RE = re.compile(r"(?<![0-9a-f])[0-9a-f]{32}(?![0-9a-f])")
+
+
+@pytest.fixture
+def health_root(tmp_path, monkeypatch):
+    """Artifacts are read only through the fixed read-only /mnt/c location."""
+    monkeypatch.setattr(
+        health_module, "HOST_REPORT_DIR_WSL", str(tmp_path), raising=False
+    )
+    monkeypatch.setattr(
+        actions_module, "HOST_REPORT_DIR_WSL", str(tmp_path), raising=False
+    )
+    return tmp_path
+
+
+def _install_health_host(
+    host,
+    root,
+    *,
+    json_bytes=None,
+    html_bytes=None,
+    exec_error=None,
+    exit_code=0,
+    cleanup_error=None,
+):
+    """Mock the fixed host wrapper plus its fixed cleanup call."""
+    commands = []
+
+    def side_effect(tool, arguments, *args, **kwargs):
+        commands.append((tool, dict(arguments)))
+        command = arguments.get("command", "")
+        if "-NoReliabilityMonitor" not in command:
+            if cleanup_error is not None:
+                return _marked({"status": "error", "error": cleanup_error})
+            return _marked({"status": "ok", "removed": True})
+
+        match = HEALTH_RUN_ID_RE.search(command)
+        assert match, "the wrapper must carry a generated 32-hex run id"
+        run_id = match.group(0)
+        if json_bytes is not None:
+            (root / f"{run_id}.json").write_bytes(json_bytes)
+        if html_bytes is not None:
+            (root / f"{run_id}.html").write_bytes(html_bytes)
+        if exec_error is not None:
+            return _marked(
+                {
+                    "status": "error",
+                    "error": exec_error,
+                    "reason": exec_error,
+                    "run_id": run_id,
+                    "exit_code": exit_code,
+                }
+            )
+        return _marked(
+            {
+                "status": "ok",
+                "run_id": run_id,
+                "exit_code": exit_code,
+                "json_exists": json_bytes is not None,
+                "html_exists": html_bytes is not None,
+            }
+        )
+
+    host.side_effect = side_effect
+    return commands
+
+
+def _execution_commands(commands):
+    return [
+        (tool, arguments)
+        for tool, arguments in commands
+        if "-NoReliabilityMonitor" in arguments.get("command", "")
+    ]
+
+
+def _health_result(reviewed_actions):
+    return _run(reviewed_actions.execute_system_health_check())
+
+
+def test_system_health_executor_takes_no_parameters(reviewed_actions):
+    method = reviewed_actions.execute_system_health_check
+
+    assert list(inspect.signature(method).parameters) == []
+
+
+def test_system_health_uses_one_fixed_wrapper_without_interpolation(
+    reviewed_actions, host, health_root
+):
+    commands = _install_health_host(
+        host,
+        health_root,
+        json_bytes=VALID_HEALTH_BYTES,
+        html_bytes=VALID_REPORT_BYTES,
+    )
+
+    first = _health_result(reviewed_actions)
+    second = _health_result(reviewed_actions)
+
+    assert first["status"] == "ok"
+    assert second["status"] == "ok"
+    execution = _execution_commands(commands)
+    assert len(execution) == 2
+    first_tool, first_arguments = execution[0]
+    second_tool, second_arguments = execution[1]
+    assert first_tool == second_tool == "PowerShell"
+    assert set(first_arguments) <= {"command", "timeout"}
+    assert first_arguments["timeout"] == health_module.WRAPPER_TIMEOUT_S
+    assert second_arguments["timeout"] == health_module.WRAPPER_TIMEOUT_S
+
+    script = first_arguments["command"]
+    assert health_module.HOST_SCRIPT_PATH in script
+    assert health_module.HOST_REPORT_DIR in script
+    assert health_module.HEALTH_SCRIPT_SHA256 in script
+    assert "-NoReliabilityMonitor" in script
+    assert HEALTH_RUN_ID_RE.search(script)
+    for forbidden in (SECRET, SECRET_PATH, "user@example.test", "TEST\\user"):
+        assert forbidden not in script
+
+    normalized_first = HEALTH_RUN_ID_RE.sub("<RUN_ID>", script)
+    normalized_second = HEALTH_RUN_ID_RE.sub(
+        "<RUN_ID>", second_arguments["command"]
+    )
+    assert normalized_first == normalized_second
+
+    with pytest.raises(TypeError):
+        _run(reviewed_actions.execute_system_health_check("Printer"))
+
+
+@pytest.mark.parametrize(
+    "json_bytes",
+    [
+        pytest.param(VALID_HEALTH_BYTES, id="utf8"),
+        pytest.param(BOM + VALID_HEALTH_BYTES, id="utf8-bom"),
+    ],
+)
+def test_system_health_normalizes_and_recomputes_the_valid_report(
+    reviewed_actions, host, health_root, json_bytes
+):
+    commands = _install_health_host(
+        host, health_root, json_bytes=json_bytes, html_bytes=VALID_REPORT_BYTES
+    )
+
+    result = _health_result(reviewed_actions)
+
+    assert result["status"] == "ok"
+    assert result["action_id"] == "system_health_check"
+    assert result["changed"] is False
+    assert result["verification"] == "reported"
+    assert result["health"]["status"] == "fail"
+    assert result["health"]["score"] == 80  # recomputed; the host claimed 70
+    assert result["health"]["counts"] == {
+        "pass": 1,
+        "warn": 1,
+        "fail": 1,
+        "info": 1,
+        "skip": 1,
+    }
+    assert result["health"]["confidence"] == "reduced"
+    statuses = [check["status"] for check in result["checks"]]
+    assert len(statuses) == 5
+    assert set(statuses) == {"pass", "warn", "fail", "skip", "info"}
+    assert result["reliability"]["available"] is True
+    assert result["reliability"]["summary"]["failuresLast7d"] == 3
+    assert result["events"]["available"] is True
+    assert result["inventory"]["computer"]["name"] == "TEST-PC"
+    assert result["inventory"]["user"]["email"] == "user@example.test"
+    assert isinstance(result["report_html"], bytes)
+    assert b"<html" in result["report_html"].lower()
+    assert result["cleanup"]["status"] == "removed"
+    assert len(_execution_commands(commands)) == 1  # no blind retry
+    assert len(commands) == 2  # one execution wrapper and one fixed cleanup
+
+
+def test_system_health_reports_missing_reliability_honestly(
+    reviewed_actions, host, health_root
+):
+    _install_health_host(
+        host,
+        health_root,
+        json_bytes=MISSING_RELIABILITY_BYTES,
+        html_bytes=VALID_REPORT_BYTES,
+    )
+
+    result = _health_result(reviewed_actions)
+
+    assert result["status"] == "ok"
+    assert result["reliability"]["available"] is False
+    assert result["health"]["confidence"] == "reduced"
+    assert "pass" in result["health"]["counts"]
+
+
+@pytest.mark.parametrize(
+    "json_bytes",
+    [
+        pytest.param(MALFORMED_HEALTH_BYTES, id="truncated"),
+        pytest.param(MALFORMED_HEALTH_BYTES + b"\0", id="nul"),
+        pytest.param(b"\xff\xfe\x00not-utf8", id="invalid-utf8"),
+        pytest.param(b"[]", id="not-an-object"),
+        pytest.param(b'{"checks": "not-a-list"}', id="bad-shape"),
+        pytest.param(b"", id="empty"),
+    ],
+)
+def test_system_health_malformed_json_fails_closed_without_retry(
+    reviewed_actions, host, health_root, json_bytes
+):
+    commands = _install_health_host(
+        host, health_root, json_bytes=json_bytes, html_bytes=VALID_REPORT_BYTES
+    )
+
+    result = _health_result(reviewed_actions)
+
+    _assert_sanitized_error(result)
+    assert "health" not in result or result.get("health") is None
+    assert not isinstance(result.get("report_html"), bytes)
+    assert len(_execution_commands(commands)) == 1
+
+
+def test_system_health_missing_json_is_an_error(
+    reviewed_actions, host, health_root
+):
+    _install_health_host(host, health_root, html_bytes=VALID_REPORT_BYTES)
+
+    result = _health_result(reviewed_actions)
+
+    _assert_sanitized_error(result)
+    assert not isinstance(result.get("report_html"), bytes)
+
+
+@pytest.mark.parametrize(
+    "error",
+    ["hash-mismatch", "script-missing", "staging-failed", "execution-policy"],
+)
+def test_system_health_hash_and_staging_failures_are_sanitized(
+    reviewed_actions, host, health_root, error
+):
+    commands = _install_health_host(
+        host,
+        health_root,
+        json_bytes=VALID_HEALTH_BYTES,
+        html_bytes=VALID_REPORT_BYTES,
+        exec_error=error,
+    )
+
+    result = _health_result(reviewed_actions)
+
+    _assert_sanitized_error(result)
+    assert "health" not in result or result.get("health") is None
+    assert len(_execution_commands(commands)) == 1
+
+
+def test_system_health_child_timeout_is_reported_without_retry(
+    reviewed_actions, host, health_root
+):
+    commands = _install_health_host(
+        host,
+        health_root,
+        json_bytes=VALID_HEALTH_BYTES,
+        html_bytes=VALID_REPORT_BYTES,
+        exec_error="timeout",
+        exit_code=124,
+    )
+
+    result = _health_result(reviewed_actions)
+
+    _assert_sanitized_error(result)
+    assert "timeout" in result["reason"].lower()
+    assert len(_execution_commands(commands)) == 1
+
+
+@pytest.mark.parametrize(
+    "host_result",
+    [
+        {"status": "error", "reason": f"{SECRET} {SECRET_PATH} " + "x" * 5000},
+        TimeoutError(f"{SECRET} {SECRET_PATH}"),
+    ],
+)
+def test_system_health_transport_timeout_or_exception_is_sanitized(
+    reviewed_actions, host, health_root, host_result
+):
+    if isinstance(host_result, BaseException):
+        host.side_effect = host_result
+    else:
+        host.return_value = host_result
+
+    result = _health_result(reviewed_actions)
+
+    _assert_sanitized_error(result, "x" * 501)
+    if isinstance(host_result, BaseException):
+        assert host.await_count == 1  # timeout/unknown outcome is never retried
+    else:
+        commands = [(call.args[0], call.args[1]) for call in host.await_args_list]
+        assert len(_execution_commands(commands)) == 1
+
+
+@pytest.mark.parametrize(
+    "html_bytes",
+    [
+        pytest.param(None, id="missing"),
+        pytest.param(MALICIOUS_REPORT_BYTES, id="active-content"),
+        pytest.param(b"\xff\xfe<html>", id="invalid-utf8"),
+    ],
+)
+def test_system_health_invalid_html_keeps_the_summary_but_fails_the_report(
+    reviewed_actions, host, health_root, html_bytes
+):
+    _install_health_host(
+        host, health_root, json_bytes=VALID_HEALTH_BYTES, html_bytes=html_bytes
+    )
+
+    result = _health_result(reviewed_actions)
+
+    assert result["status"] == "partial"
+    assert result["health"]["status"] == "fail"
+    assert result["health"]["score"] == 80
+    assert not isinstance(result.get("report_html"), bytes)
+    assert isinstance(result.get("cleanup"), dict)
+    assert result["cleanup"]["status"] in {"removed", "failed"}
+
+
+def test_system_health_cleanup_failure_is_sanitized_and_does_not_undo_the_report(
+    reviewed_actions, host, health_root
+):
+    commands = _install_health_host(
+        host,
+        health_root,
+        json_bytes=VALID_HEALTH_BYTES,
+        html_bytes=VALID_REPORT_BYTES,
+        cleanup_error=f"cleanup-failed {SECRET} {SECRET_PATH}",
+    )
+
+    result = _health_result(reviewed_actions)
+
+    assert result["status"] == "ok"
+    assert isinstance(result["report_html"], bytes)
+    assert result["cleanup"]["status"] == "failed"
+    assert len(_execution_commands(commands)) == 1
+    serialized = json.dumps({key: value for key, value in result.items() if key != "report_html"})
+    assert SECRET not in serialized and SECRET_PATH not in serialized

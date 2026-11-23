@@ -34,6 +34,7 @@ from .ingestion.pipeline import IngestionPipeline
 from .ingestion.watchers import Watcher
 from .logging_setup import configure_logging, current_setup
 from .mcp_action.actions import ReviewedActions
+from .mcp_action.reports import ReportPublisher, get_report_store
 from .mcp_action.screenshots import get_screenshot_store
 from .mcp_action.service import McpActionService, ScreenshotCapture, WindowsDisplay
 from .office_state import OfficeState
@@ -2327,6 +2328,7 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
         store=get_screenshot_store(),
         audit=mcp_action_audit,
     )
+    mcp_action_service.reports = ReportPublisher(get_report_store())
     mcp_action_service.audit = mcp_action_audit
 
     @mcp.tool()

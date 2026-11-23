@@ -173,8 +173,16 @@ def scenario_honest_errors(dcfg: DeployConfig) -> tuple[bool, str]:
     r400 = httpx.get(
         "http://localhost:28080/decks/ghost/none/slides/..%2F..%2Fetc.svg", timeout=10
     )
-    ok = r404.status_code == 404 and r400.status_code in (400, 404)
-    return ok, f"unknown={r404.status_code} traversal={r400.status_code}"
+    report = httpx.get(
+        "http://localhost:28080/mcp-action/reports/not-a-capability", timeout=10
+    )
+    report_cache = report.headers.get("cache-control", "")
+    report_ok = report.status_code == 404 and "no-store" in report_cache
+    ok = r404.status_code == 404 and r400.status_code in (400, 404) and report_ok
+    return ok, (
+        f"unknown={r404.status_code} traversal={r400.status_code} "
+        f"report={report.status_code} cache={report_cache}"
+    )
 
 
 def scenario_chat_ui_liveness(dcfg: DeployConfig) -> tuple[bool, str]:
