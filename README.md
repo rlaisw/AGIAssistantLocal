@@ -32,7 +32,7 @@ System-issue and Office-install requests route to the **task-gateway lane** (spe
 | `search` | Direct vector search over LanceDB |
 | `web_search` | Live web via SearXNG (fallback chain: searxng → tavily → exa) |
 | `fetch_url` | Fetch a live page; returns `date_utc` (HTTP Date header = live UTC clock) |
-| `web_research` | Grouped web research: multi-engine search via the provider chain + per-page outline-preserving scrape (text + belonging image in document order), bounded for the LLM, honest snippet fallbacks, inline rendered HTML artifact (spec 003) |
+| `web_research` | Grouped web research: multi-engine search via the provider chain + per-page outline-preserving scrape (text + belonging image in document order), bounded for the LLM, honest snippet fallbacks, inline rendered HTML artifact (spec 003); every hit also carries an additive ordered `images[]` of `{url, alt, heading}` refs in document order (spec 050) |
 | `sources_add` / `sources_list` / `sources_remove` / `sources_sync` | Knowledge-base source management (local_folder, sqlite, onedrive) |
 | `graph_query` | Optional Graphify layer (enable `[features] graphify = true`; build with the graphify skill) |
 | `specialty_search` | Domain-scoped search: results only from a profile's configured authoritative sites (spec 005) |
