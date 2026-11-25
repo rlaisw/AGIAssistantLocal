@@ -57,3 +57,38 @@ def test_dirty_markup_noise_rules():
     srcs = [b["src"] for b in sec["blocks"] if b["type"] == "img"]
     assert srcs == ["https://docs.example/img/relative-photo.jpg",
                     "https://docs.example/img/lazy-loaded.jpg"]  # data: skipped, data-src honored
+
+
+# ---- spec 050: alt capture for the image-rich answer payload ----
+
+def test_img_block_captures_trimmed_alt():
+    sections, _ = extract_sections(_html("images-alt.html"), PAGE_URL, 6000)
+    imgs = [b for s in sections for b in s["blocks"] if b["type"] == "img"]
+    assert imgs[0]["alt"] == "Open the Trace dialog"          # trimmed
+    assert imgs[1]["alt"] == "Results panel"                  # figure data-src honored
+    assert imgs[1]["src"] == "https://docs.example/img/results-panel.png"
+
+
+def test_missing_alt_is_empty_string_not_none():
+    sections, _ = extract_sections(_html("images-alt.html"), PAGE_URL, 6000)
+    imgs = [b for s in sections for b in s["blocks"] if b["type"] == "img"]
+    no_alt = [b for b in imgs if b["src"].endswith("no-alt.png")]
+    assert no_alt and no_alt[0]["alt"] == ""
+
+
+def test_figure_supplies_data_src_and_alt_once():
+    sections, _ = extract_sections(_html("images-alt.html"), PAGE_URL, 6000)
+    imgs = [b for s in sections for b in s["blocks"] if b["type"] == "img"]
+    assert len([b for b in imgs if b["src"].endswith("results-panel.png")]) == 1
+
+
+def test_data_uri_and_srcless_images_skipped():
+    sections, _ = extract_sections(_html("images-alt.html"), PAGE_URL, 6000)
+    srcs = [b["src"] for s in sections for b in s["blocks"] if b["type"] == "img"]
+    assert all(not s.startswith("data:") for s in srcs)
+    sections, _ = extract_sections(_html("images-noise.html"), PAGE_URL, 6000)
+    srcs = [b["src"] for s in sections for b in s["blocks"] if b["type"] == "img"]
+    # extraction keeps page structure; noise filtering is the projection's job
+    assert all(not x.startswith(("data:", "javascript:")) for x in srcs)
+    assert srcs == ["https://docs.example/pixel.gif", "https://docs.example/1x1.png",
+                    "https://docs.example/tracker.png", "https://docs.example/img/real.png"]

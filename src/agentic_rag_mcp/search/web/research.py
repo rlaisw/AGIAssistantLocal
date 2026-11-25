@@ -62,6 +62,10 @@ def guarded_get(url: str, timeout: float) -> httpx.Response:
 
 _MIN_PARAGRAPH = 30  # substantive text floor
 
+# shared with _fetch_url (server.py): obvious non-content images (spec 050)
+IMG_SKIP = ("pixel", "tracker", "beacon", "spacer", "1x1", "blank.gif")
+_IMG_LIMIT = 40  # per-page image refs handed to the model (spec 050)
+
 
 def extract_sections(html: str, page_url: str, per_page_chars: int) -> tuple[list[dict], bool]:
     """Sections preserve document order: heading, then text blocks and the
@@ -102,12 +106,50 @@ def extract_sections(html: str, page_url: str, per_page_chars: int) -> tuple[lis
             img = el if el.name == "img" else el.find("img")
             if img is None or el.name == "img" and el.find_parent("figure") is not None:
                 continue  # handled via its figure — don't double-count
-            src = img.get("src") or img.get("data-src")
-            if src and not src.startswith("data:"):
-                current["blocks"].append({"type": "img", "src": urljoin(page_url, src)})
+            src = (img.get("src") or img.get("data-src") or "").strip()
+            if not src or src.startswith("data:"):
+                continue
+            abs_src = urljoin(page_url, src)
+            if not abs_src.startswith(("http://", "https://")):
+                continue
+            current["blocks"].append({
+                "type": "img", "src": abs_src,
+                "alt": (img.get("alt") or "").strip(),  # source description only
+            })
     if current["blocks"]:
         sections.append(current)
     return sections, truncated
+
+
+def flatten_images(sections: list, limit: int = _IMG_LIMIT) -> list[dict]:
+    """Ordered, deduped image refs for the model (spec 050, contract 050).
+
+    Projection of the section blocks — never a second extraction path. Every
+    page result is bounded (limit) and noise-filtered; malformed input yields []
+    instead of raising, so one bad page cannot fail a whole research call.
+    """
+    images: list[dict] = []
+    seen: set[str] = set()
+    if not isinstance(sections, list):
+        return images
+    for sec in sections:
+        if not isinstance(sec, dict) or not isinstance(sec.get("blocks"), list):
+            continue
+        heading = sec.get("heading") or ""
+        for block in sec["blocks"]:
+            if not isinstance(block, dict) or block.get("type") != "img":
+                continue
+            url = block.get("src") or ""
+            if not url or url in seen:
+                continue
+            low = url.lower()
+            if any(bad in low for bad in IMG_SKIP):
+                continue
+            seen.add(url)
+            images.append({"url": url, "alt": block.get("alt") or "", "heading": heading})
+            if len(images) >= limit:
+                return images
+    return images
 
 
 def sections_to_text(sections: list[dict]) -> str:

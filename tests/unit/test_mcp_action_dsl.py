@@ -183,7 +183,8 @@ def test_mcp_action_surface_is_absent_from_unapproved_agents(graph: dict, node_i
     if node_id == "agentic_strategy_local":
         assert prompt.startswith("You are a test assistant")
         assert "ANSWER FORMAT — IMAGES" in prompt
-        assert "DEFAULT: always try to include images" in prompt
+        # spec 050 replaced the soft default wording with the binding policy
+        assert "MUST be illustrated with the source images" in prompt
         assert "antv_infographic" in prompt
 
 

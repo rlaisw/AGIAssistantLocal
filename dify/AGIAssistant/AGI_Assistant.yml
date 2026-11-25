@@ -410,31 +410,19 @@ workflow:
               \ using the\n  path or item id from the warning. The system never re-downloads\
               \ on its own.\n\nPick the tool that matches the request, call it, then\
               \ summarize the result\nfor the user. When a tool returns citations,\
-              \ list them. Never invent facts.\n\nANSWER FORMAT — IMAGES (default\
-              \ action):\n- DEFAULT: always try to include images. When answering\
-              \ from web research,\n  prefer web_research (its page scrapes return\
-              \ image URLs in document order)\n  and INLINE the relevant images in\
-              \ your answer as markdown — ![what it shows](URL)\n  — grouped with\
-              \ the text they belong to, in document order.\n- To collect images for\
-              \ a how-to, call fetch_url on the guide/tutorial page FIRST\n  (it needs\
-              \ no search engine and returns an images list with every image on the\n\
-              \  page as absolute URLs). If you only know the topic's main article,\
-              \ fetch it,\n  then follow its tutorial links with fetch_url. Overview\
-              \ articles often carry\n  only icons; the tutorial pages carry the step\
-              \ screenshots — INLINE those.\n- Fetch as many as are useful: include\
-              \ every scraped image that illustrates the\n  steps or facts in your\
-              \ answer, not just one or two. Skip only logos, avatars,\n  trackers,\
-              \ and decorative banners.\n- Reused research keeps its images: when\
-              \ the user repeats a question and you\n  answer from earlier-turn research\
-              \ instead of fresh calls, still INLINE the\n  images those sources provided\
-              \ (they are stable URLs) — never drop them.\n- Dify renders image markdown\
-              \ in the chat.\n- Generated visuals — pick the tool by output type:\
-              \ antv_chart returns image_url\n  (a rendered PNG) — ALWAYS INLINE it\
-              \ in the answer as ![title](image_url).\n  antv_infographic returns\
-              \ an interactive HTML page — give it as a labeled\n  markdown link ([open\
-              \ the infographic](URL)); it cannot be inlined with ![].\n- Skip images\
-              \ only when the web tools returned none or the topic genuinely has\n\
-              \  no visual content.\n\nANSWER FORMAT — CITATIONS:\n- Whenever your\
+              \ list them. Never invent facts.\n\nANSWER FORMAT — IMAGES (binding):\n\
+              - BINDING: a visual question (how-to, troubleshooting, overview, example, appearance) MUST be illustrated with the source images. web_search returns NO images — never answer a visual question from snippets alone. When answering from web research, prefer web_research (its page scrapes return image URLs in document order) and INLINE the relevant images as markdown — ![what it shows](URL) — grouped with the text they belong to, in document order.\n\
+              - web_research also returns a flat images array per hit with url, alt, and heading for every page image; use those URLs and their alt text. Never invent an image URL.\n\
+              - To collect images for a how-to, call fetch_url on the guide/tutorial page FIRST (it needs no search engine and returns an images list with every image on the page as absolute URLs). If you only know the topic's main article, fetch it, then follow its tutorial links with fetch_url. Overview articles often carry only icons; the tutorial pages carry the step screenshots — INLINE those.\n\
+              - Include as many relevant images as the source supports, not just one or two; put each screenshot directly under the step it shows. Skip only logos, avatars, trackers, and decorative banners. CAP: an answer MUST NOT inline more than 10 images — stop at the 10th even when more are relevant, and stop earlier when additional images no longer illustrate the answer.\n\
+              - Do NOT write image markdown or an image list inside your thinking or hidden-reasoning blocks — plan silently; image links in your reasoning never count.\n\
+              - SELF-CHECK before finishing: count only the images in the final answer you show the user (never images mentioned in your thinking); if the topic is visual and the count is 0, or fewer than 3 when the sources had more, fetch more images and inline them.\n\
+              - Alts: every inlined image needs non-empty descriptive alt text — use the source alt when present, otherwise describe what the surrounding text shows.\n\
+              - Reused research keeps its images: when the user repeats a question and you answer from earlier-turn research instead of fresh calls, still INLINE the images those sources provided (they are stable URLs) — never drop them.\n\
+              - Generated visuals — pick the tool by output type: antv_chart returns image_url (a rendered PNG) — ALWAYS INLINE it as ![title](image_url); antv_infographic returns an interactive HTML page — give it as a labeled markdown link ([open the infographic](URL)); it cannot be inlined with ![].\n\
+              - Text-only topics stay text-only. If the sources had no usable images, say so plainly, keep the answer text-only, and never fabricate a URL or description. Skip images only when the web tools returned none or the topic genuinely has no visual content.\n\
+              \n\
+              ANSWER FORMAT — CITATIONS:\n- Whenever your\
               \ answer uses content from ask/search/web_search/web_research/\n  specialty_search/fetch_url\
               \ results, cite the source: knowledge base by file\n  name (e.g. hardwareinventory.xlsx),\
               \ web content by full URL — inline or in a\n  Sources list at the end.\
@@ -1780,31 +1768,19 @@ workflow:
               \ using the\n  path or item id from the warning. The system never re-downloads\
               \ on its own.\n\nPick the tool that matches the request, call it, then\
               \ summarize the result\nfor the user. When a tool returns citations,\
-              \ list them. Never invent facts.\n\nANSWER FORMAT — IMAGES (default\
-              \ action):\n- DEFAULT: always try to include images. When answering\
-              \ from web research,\n  prefer web_research (its page scrapes return\
-              \ image URLs in document order)\n  and INLINE the relevant images in\
-              \ your answer as markdown — ![what it shows](URL)\n  — grouped with\
-              \ the text they belong to, in document order.\n- To collect images for\
-              \ a how-to, call fetch_url on the guide/tutorial page FIRST\n  (it needs\
-              \ no search engine and returns an images list with every image on the\n\
-              \  page as absolute URLs). If you only know the topic's main article,\
-              \ fetch it,\n  then follow its tutorial links with fetch_url. Overview\
-              \ articles often carry\n  only icons; the tutorial pages carry the step\
-              \ screenshots — INLINE those.\n- Fetch as many as are useful: include\
-              \ every scraped image that illustrates the\n  steps or facts in your\
-              \ answer, not just one or two. Skip only logos, avatars,\n  trackers,\
-              \ and decorative banners.\n- Reused research keeps its images: when\
-              \ the user repeats a question and you\n  answer from earlier-turn research\
-              \ instead of fresh calls, still INLINE the\n  images those sources provided\
-              \ (they are stable URLs) — never drop them.\n- Dify renders image markdown\
-              \ in the chat.\n- Generated visuals — pick the tool by output type:\
-              \ antv_chart returns image_url\n  (a rendered PNG) — ALWAYS INLINE it\
-              \ in the answer as ![title](image_url).\n  antv_infographic returns\
-              \ an interactive HTML page — give it as a labeled\n  markdown link ([open\
-              \ the infographic](URL)); it cannot be inlined with ![].\n- Skip images\
-              \ only when the web tools returned none or the topic genuinely has\n\
-              \  no visual content.\n\nANSWER FORMAT — CITATIONS:\n- Whenever your\
+              \ list them. Never invent facts.\n\nANSWER FORMAT — IMAGES (binding):\n\
+              - BINDING: a visual question (how-to, troubleshooting, overview, example, appearance) MUST be illustrated with the source images. web_search returns NO images — never answer a visual question from snippets alone. When answering from web research, prefer web_research (its page scrapes return image URLs in document order) and INLINE the relevant images as markdown — ![what it shows](URL) — grouped with the text they belong to, in document order.\n\
+              - web_research also returns a flat images array per hit with url, alt, and heading for every page image; use those URLs and their alt text. Never invent an image URL.\n\
+              - To collect images for a how-to, call fetch_url on the guide/tutorial page FIRST (it needs no search engine and returns an images list with every image on the page as absolute URLs). If you only know the topic's main article, fetch it, then follow its tutorial links with fetch_url. Overview articles often carry only icons; the tutorial pages carry the step screenshots — INLINE those.\n\
+              - Include as many relevant images as the source supports, not just one or two; put each screenshot directly under the step it shows. Skip only logos, avatars, trackers, and decorative banners. CAP: an answer MUST NOT inline more than 10 images — stop at the 10th even when more are relevant, and stop earlier when additional images no longer illustrate the answer.\n\
+              - Do NOT write image markdown or an image list inside your thinking or hidden-reasoning blocks — plan silently; image links in your reasoning never count.\n\
+              - SELF-CHECK before finishing: count only the images in the final answer you show the user (never images mentioned in your thinking); if the topic is visual and the count is 0, or fewer than 3 when the sources had more, fetch more images and inline them.\n\
+              - Alts: every inlined image needs non-empty descriptive alt text — use the source alt when present, otherwise describe what the surrounding text shows.\n\
+              - Reused research keeps its images: when the user repeats a question and you answer from earlier-turn research instead of fresh calls, still INLINE the images those sources provided (they are stable URLs) — never drop them.\n\
+              - Generated visuals — pick the tool by output type: antv_chart returns image_url (a rendered PNG) — ALWAYS INLINE it as ![title](image_url); antv_infographic returns an interactive HTML page — give it as a labeled markdown link ([open the infographic](URL)); it cannot be inlined with ![].\n\
+              - Text-only topics stay text-only. If the sources had no usable images, say so plainly, keep the answer text-only, and never fabricate a URL or description. Skip images only when the web tools returned none or the topic genuinely has no visual content.\n\
+              \n\
+              ANSWER FORMAT — CITATIONS:\n- Whenever your\
               \ answer uses content from ask/search/web_search/web_research/\n  specialty_search/fetch_url\
               \ results, cite the source: knowledge base by file\n  name (e.g. hardwareinventory.xlsx),\
               \ web content by full URL — inline or in a\n  Sources list at the end.\
@@ -3779,7 +3755,19 @@ workflow:
       type: custom
       width: 242
     - data:
-        code: "function main({answer, items, general_answer, general_items}) {\n \
+        code: "function main({answer, items, general_answer, general_items}) {\n\
+          \  var IMAGE_CAP = 10;\n\
+          \  function capInlineImages(text) {\n\
+          \    var seen = 0, depth = 0;\n\
+          \    return String(text).replace(/<\\/?think>|!\\[[^\\]]*\\]\\((?:[^()]|\\([^()]*\\))*\\)/g, function (match) {\n\
+          \      if (match === '<think>') { depth++; return match; }\n\
+          \      if (match === '</think>') { depth = Math.max(0, depth - 1); return match; }\n\
+          \      if (depth > 0 || match.indexOf('/mcp-action/screenshots/') !== -1) { return match; }\n\
+          \      seen++;\n\
+          \      return seen <= IMAGE_CAP ? match : '';\n\
+          \    }).replace(/[ \\t]+\\n/g, '\\n').replace(/\\n{3,}/g, '\\n\\n');\n\
+          \  }\n\
+          \n \
           \ var candidates = [\n    {text: general_answer, json: general_items},\n\
           \    {text: answer, json: items}\n  ];\n  answer = '';\n  items = [];\n\
           \  for (var c = 0; c < candidates.length; c++) {\n    if (candidates[c].text\
@@ -3952,8 +3940,7 @@ workflow:
           \ printer (was |has been )changed|settings (was |were )opened|print preview\
           \ (was |were )opened/i;\n    if (prematureAction.test(visible)) {\n    \
           \  return {result: 'Honesty check: a pending MCP-ACTION draft cannot claim\
-          \ an action was already performed before confirmation.'};\n    }\n    return\
-          \ {result: visible};\n  }\n  var claimText = visible.replace(/no action\
+          \ an action was already performed before confirmation.'};\n    }\n    return {result: capInlineImages(visible)};\n  }\n  var claimText = visible.replace(/no action\
           \ (was )?executed/ig, '').replace(/no setting (was )?changed/ig, '').replace(/no\
           \ (printer )?setting (was |has been )?(changed|updated)/ig, '').replace(/nothing\
           \ was (opened|verified|displayed|shown)/ig, '').replace(/no print preview\
@@ -4101,7 +4088,7 @@ workflow:
           \ === -1 && healthSuffix.indexOf(healthReportHostPath) === -1) ? ' and saved\
           \ at ' + healthReportHostPath : ''; healthSuffix += String.fromCharCode(10,\
           \ 10) + 'System-Self-Check finished — the complete report is above' + finishPath\
-          \ + '.'; } if (healthSuffix) { return {result: answer + healthSuffix}; }\n\
+          \ + '.'; } if (healthSuffix) { return {result: capInlineImages(answer + healthSuffix)}; }\n\
           \  }\n  var claims = /local agent (completed|did|was)|the agent (sent|pressed|opened|typed|launched|focused|confirmed|handled)|the\
           \ tool (returned|responded)|confirmed (by |with )?(a |the )?(snapshot|it)|LAUNCH:\
           \ ?(SUCCESS|FAILED)|hermes_(launch_app|office_task|file_task|cancel_turn|run_command|run_powershell)\
@@ -4114,7 +4101,7 @@ workflow:
           \ processes, what is my computer name, show disk spaces, or ping a host.'};\n\
           \  }\n  if (healthDraftNotice && answer.indexOf(healthDraftNotice) === -1\
           \ && answer.indexOf(exactOffer) !== -1) { answer = String(answer).split(exactOffer).join(healthDraftNotice\
-          \ + String.fromCharCode(10, 10) + exactOffer); } return {result: answer};\n\
+          \ + String.fromCharCode(10, 10) + exactOffer); } return {result: capInlineImages(answer)};\n\
           }"
         code_language: javascript
         desc: Anti-fabrication gate — selects the active General cloud or Hermes answer;

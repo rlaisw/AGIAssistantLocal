@@ -83,3 +83,53 @@ def test_web_search_stays_byte_identical_without_engine_field(tmp_path, monkeypa
     srv = _server(tmp_path, monkeypatch, FakeProvider(HITS))
     out = call(srv, "web_search", {"query": "trace"})
     assert out == HITS                    # no engine key, no extra fields
+
+
+# ---- spec 050: additive images field (contract web-research-images.md) ----
+
+def test_hits_carry_images_field(tmp_path, monkeypatch):
+    from agentic_rag_mcp.search.web import research as research_mod
+
+    server = _server(tmp_path, monkeypatch, FakeProvider(hits=HITS))
+    monkeypatch.setattr(research_mod, "research_pages", lambda *a, **k: {
+        HITS[0]["url"]: {"url": HITS[0]["url"], "truncated": False, "status": "ok",
+                         "status_reason": None,
+                         "sections": [{"heading": "Trace", "blocks": [
+                             {"type": "img", "src": "https://docs.example/i.png",
+                              "alt": 'a "quoted"\nline'}]}]},
+    })
+    result = call(server, "web_research", {"query": "trace", "limit": 1})
+    hit = result["hits"][0]
+    assert isinstance(hit["images"], list)
+    ref = hit["images"][0]
+    assert set(ref) == {"url", "alt", "heading"}
+    assert ref["url"].startswith("https://") and ref["alt"] == 'a "quoted"\nline'
+    assert json.loads(json.dumps(hit)) == hit                     # serializes/re-parses
+
+
+def test_fallback_hit_has_empty_images(tmp_path, monkeypatch):
+    from agentic_rag_mcp.search.web import research as research_mod
+
+    server = _server(tmp_path, monkeypatch, FakeProvider(hits=HITS))
+    monkeypatch.setattr(research_mod, "research_pages", lambda *a, **k: {
+        HITS[0]["url"]: {"url": HITS[0]["url"], "sections": [], "truncated": False,
+                         "status": "fallback", "status_reason": "timeout"},
+    })
+    hit = call(server, "web_research", {"query": "trace", "limit": 1})["hits"][0]
+    assert hit["images"] == []
+
+
+def test_fetch_url_images_remain_strings(tmp_path, monkeypatch):
+    import httpx
+    import agentic_rag_mcp.server as server_mod
+
+    server = _server(tmp_path, monkeypatch, FakeProvider(hits=HITS))
+
+    def fake_get(*a, **k):
+        req = httpx.Request("GET", "https://docs.example/trace")
+        return httpx.Response(200, request=req, text='<img src="/a.png"><img src="/b.png">')
+
+    monkeypatch.setattr(server_mod.httpx, "get", fake_get)
+    result = call(server, "fetch_url", {"url": "https://docs.example/trace"})
+    assert result["images"] == ["https://docs.example/a.png", "https://docs.example/b.png"]
+    assert all(isinstance(u, str) for u in result["images"])

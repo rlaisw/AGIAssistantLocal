@@ -57,7 +57,7 @@ log = logging.getLogger("agentic_rag_mcp")
 
 
 _IMG_SRC_RE = re.compile(r"""<img[^>]+(?:src|data-src)=["']([^"']+)["']""", re.IGNORECASE)
-_IMG_SKIP = ("pixel", "tracker", "beacon", "spacer", "1x1", "blank.gif")
+from .search.web.research import IMG_SKIP as _IMG_SKIP  # spec 050: one noise list
 
 
 def _fetch_url(url: str, max_chars: int = 4000) -> dict:
@@ -345,7 +345,8 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
         standalone rendered HTML artifact per page (spec 003, FR-011)."""
         import time as _time
 
-        from .search.web.research import render_page, research_pages, sections_to_text
+        from .search.web.research import (flatten_images, render_page, research_pages,
+                                          sections_to_text)
 
         limit = max(1, min(limit, cfg.research_max_pages))
         started = _time.perf_counter()
@@ -368,7 +369,8 @@ def build_server(cfg: Config | None = None, **fastmcp_kwargs) -> FastMCP:
                       else render_page([], h["url"], h["title"],
                                        fallback_snippet=h["snippet"] or None))
             out_hits.append({**h, "scrape": scrape, "content": content,
-                             "render_html": render})
+                             "render_html": render,
+                             "images": flatten_images(scrape.get("sections")) if ok else []})
         return {
             "query": query,
             "engines_used": engines_used,
