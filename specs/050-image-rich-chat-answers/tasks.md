@@ -225,4 +225,10 @@ US1 (illustrated how-to) → US2 (overview spread) → US3 (honesty/reuse/genera
 
 ## Phase 9: Convergence
 
-- [ ] T049 (consolidates T037/T046/T048) Refresh `graphify-out/graph.json` for the spec-050 files by executing the library-level `--update` runbook in `references/update.md` (detect_incremental → AST + semantic chunks → pre-flight re-mint → `build_merge` → cluster → label transfer → `to_json` → restore hyperedges; never force), after owner approval for the semantic/label model calls, per tasks T037/T046/T048 (`partial`)
+- [X] T049 (consolidates T037/T046/T048) Refresh `graphify-out/graph.json` for the spec-050 files by executing the library-level `--update` runbook in `references/update.md` (detect_incremental → AST + semantic chunks → pre-flight re-mint → `build_merge` → cluster → label transfer → `to_json` → restore hyperedges; never force), after owner approval for the semantic/label model calls, per tasks T037/T046/T048 (`partial`)
+
+### T049 execution evidence (2026-11-25)
+
+Graph refreshed via the library-level runbook (the watch CLI still refuses on the documented bug, so it was not used). Incremental scope: 60 changed files (22 code, 38 docs). AST 917 nodes / 2,641 edges; semantic 184 nodes / 285 edges / 9 hyperedges from 3 chunks; built_merge preserved the known node (`specs_036_skill_manager_contracts_readme` present), 217 deduped saved nodes were re-minted verbatim and re-cached, 6 label-era ghosts were re-injected post-dedup (the to_json guard required them), and 132 prior hyperedges were restored after export.
+
+Result: 11,713 nodes / 19,060 edges / 1,061 communities / 141 hyperedges. `graphify query "image-rich chat answers source images binding policy"` returns the spec-050 nodes (Binding Image Policy for General Lanes, 10-Image Visible Answer Budget, Web Research Image Payload Additive Contract, image-rich-check.mjs). Estimated cost ~92k in / 29k out (agent token usage was not exposed; recorded as an estimate).
