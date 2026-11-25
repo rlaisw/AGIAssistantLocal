@@ -84,7 +84,7 @@ A user asks a question that has no visual dimension, or a visual question whose 
 
 ### Functional Requirements
 
-- **FR-001**: Web-research results MUST expose, per source page, a deduplicated ordered list of image references carrying the image URL, the alt text captured from the source (empty string when the source has none), and the section heading the image belongs to.
+- **FR-001**: Client-facing web-research results (`web_research`) MUST expose, per source page, a deduplicated ordered list of image references carrying the image URL, the alt text captured from the source (empty string when the source has none), and the section heading the image belongs to. Internal agent evidence paths (e.g. the reflexion `_web_evidence` scrape) are out of scope for this field.
 - **FR-002**: Every research result MUST carry the image list — an empty list when the page yielded no usable images — and MUST NOT omit the field or return a null.
 - **FR-003**: The image reference list MUST be a projection of the ordered page content the research tool already produces, so image position and page text cannot diverge.
 - **FR-004**: The single-page fetch capability MUST keep exposing its existing absolute-URL image list with its current shape; adding alt text there is out of scope.
@@ -115,8 +115,8 @@ A user asks a question that has no visual dimension, or a visual question whose 
 
 ### Measurable Outcomes
 
-- **SC-001**: On the standard how-to verification prompt, the visible image count rises from the current 0–1 to at least 3, with 100% of them carrying non-empty alt text and none showing an empty source.
-- **SC-002**: On the overview verification prompt, at least 2 images are visible and not all are clustered at the end of the answer.
+- **SC-001**: On the standard how-to verification prompt, at least 3 images are visible on each of 3 consecutive runs per app, 100% carry non-empty alt text, and none shows an empty source.
+- **SC-002**: On the overview verification prompt, at least 2 images are visible and at least one appears before the final 30% of the answer text (not a trailing cluster).
 - **SC-003**: On an explicit "as many as you can find" gallery prompt, the visible image count is between 1 and 10 inclusive — never 0, never more than 10.
 - **SC-004**: On a text-only factual prompt, the visible image count is exactly 0.
 - **SC-005**: Across the four verification prompts, 0 fabricated image URLs are found (every inlined URL traces to a tool result in that conversation).

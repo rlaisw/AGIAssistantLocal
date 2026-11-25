@@ -51,15 +51,34 @@ Expected: `t` for both apps on their latest rows.
 
 ## 4. Payload spot-check (live sidecar)
 
-Call `web_research` once (via the chat or MCP host) for a how-to topic and confirm the response shape:
+The sidecar speaks MCP over streamable HTTP; call the tool through the MCP client
+(the bare `/mcp` JSON-RPC POST does not complete the handshake):
 
 ```bash
-curl -s -X POST http://localhost:28080/mcp -H 'Content-Type: application/json' \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"web_research","arguments":{"query":"how to pair a bluetooth mouse windows 11","limit":2}}}' \
-  | python3 -c 'import json,sys; d=json.load(sys.stdin); h=d["result"]["hits"][0]; print(type(h.get("images")).__name__, len(h.get("images") or []), (h.get("images") or [{}])[0])'
+.venv/bin/python - <<'EOF'
+import asyncio, json
+from datetime import timedelta
+from mcp.client.streamable_http import streamablehttp_client
+from mcp import ClientSession
+
+async def main():
+    async with streamablehttp_client("http://localhost:28080/mcp",
+                                     timeout=timedelta(seconds=120)) as (r, w, _):
+        async with ClientSession(r, w, read_timeout_seconds=timedelta(seconds=120)) as s:
+            await s.initialize()
+            res = await s.call_tool("web_research",
+                                    {"query": "how to pair a bluetooth mouse windows 11",
+                                     "limit": 2})
+            data = json.loads(res.content[0].text)
+            for h in data["hits"]:
+                print(h["url"], "images:", len(h["images"]),
+                      (h["images"][:1] or [""])[0])
+
+asyncio.run(main())
+EOF
 ```
 
-Expected: `list`, a positive count (when the page has images), first ref with `url`/`alt`/`heading`; for an image-less page, `list 0`.
+Expected: one `images: <n>` line per hit; a ref with `url`/`alt`/`heading`; a text-only page reports `images: 0`. Hit quality and count depend on the search engine (a transient 0-hit result is possible) — the contract tests in §1 are authoritative for the schema.
 
 ## 5. CDP acceptance (real UI)
 
