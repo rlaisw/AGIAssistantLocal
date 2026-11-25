@@ -7,6 +7,13 @@ set -euo pipefail
 
 echo "=== AGI Assistant post-reboot restart ==="
 
+# Windows login id for the C:\Users\... paths below — never hardcode the user name.
+WINUSER=$(/mnt/c/Windows/System32/cmd.exe /c "echo %USERNAME%" 2>/dev/null | tr -d '\r' || true)
+if [ -z "$WINUSER" ]; then
+    echo "ERROR: cannot determine Windows user (WSL interop disabled?)"
+    exit 1
+fi
+
 # shortcut: /sse is a never-ending stream — curl -w never fires; sniff bytes instead
 sse_up() {
     # shellcheck disable=SC2016
@@ -17,7 +24,7 @@ echo "[1/6] OfficeMCP (Windows-side MCP server)..."
 if sse_up http://127.0.0.1:8888/sse; then
     echo "  OfficeMCP: already up on :8888"
 else
-    /mnt/c/Users/RLWC145/.local/bin/officemcp.exe sse --port 8888 --host 127.0.0.1 --folder "C:/OfficeMCP" > /tmp/agi-assistant-officemcp.log 2>&1 &
+    /mnt/c/Users/$WINUSER/.local/bin/officemcp.exe sse --port 8888 --host 127.0.0.1 --folder "C:/OfficeMCP" > /tmp/agi-assistant-officemcp.log 2>&1 &
     sleep 5
     if sse_up http://127.0.0.1:8888/sse; then
         echo "  OfficeMCP: up on :8888"
@@ -34,12 +41,12 @@ if sse_up http://127.0.0.1:8800/sse; then
     echo "  WindowsMCP: up on :8800"
 else
     /mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoProfile -Command \
-        "Start-Process 'C:\Users\RLWC145\.windows-mcp\start-server.cmd' -WindowStyle Hidden" >/dev/null 2>&1
+        "Start-Process 'C:/Users/$WINUSER/.windows-mcp/start-server.cmd' -WindowStyle Hidden" >/dev/null 2>&1
     sleep 6
     if sse_up http://127.0.0.1:8800/sse; then
         echo "  WindowsMCP: up on :8800 (started via wrapper)"
     else
-        echo "  WindowsMCP: not responding — check C:\\Users\\RLWC145\\.windows-mcp\\server.log"
+        echo "  WindowsMCP: not responding — check C:\\Users\\$WINUSER\\.windows-mcp\\server.log"
     fi
 fi
 
