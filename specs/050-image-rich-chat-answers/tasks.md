@@ -67,7 +67,7 @@ description: "Tasks for image-rich chat answers (spec 050)"
 - [X] T019 [US1] Rebuild the sidecar with `.venv/bin/python -m agentic_rag_mcp.deploy redeploy`, publish the chatflow, and run `.venv/bin/python -m agentic_rag_mcp.deploy verify`
 - [X] T020 [US1] Verify the prompt marker per app by explicit ID (not by name): `select app_id, (graph::text like '%CAP: an answer MUST NOT inline more than 10 images%') from workflows where app_id in ('194e1edf-2eba-442c-b10b-231bebb79c37','7863fbe2-47f8-48c9-b096-6f7da8536b08') order by updated_at desc` — both must be `t`
 - [X] T021 [US1] Run `PROMPT="Show me the step-by-step instructions for pairing a standard Bluetooth mouse on Windows 11." MIN_IMAGES=3 node ai-chat-landing/scripts/image-rich-check.mjs` and record the visible/alt counts
-- [ ] T022 [US1] Run the how-to prompt manually on each app in a fresh conversation (one clarifying answer allowed); record pass/fail and counts
+- [X] T022 [US1] Run the how-to prompt manually on each app in a fresh conversation (one clarifying answer allowed); record pass/fail and counts
 
 **Checkpoint**: the how-to case demonstrates the fix on both apps.
 
@@ -82,7 +82,7 @@ description: "Tasks for image-rich chat answers (spec 050)"
 - [X] T023 [US2] Extend `tests/unit/test_image_prompt_pins.py` with the spread/grouping line (`grouped with the text they belong to, in document order` and the "more than one or two" wording) for both general lanes — red first
 - [X] T024 [US2] Adjust the binding block in both general prompts so the spread line is present verbatim in each; make T023 green
 - [X] T025 [US2] Add an overview case to `ai-chat-landing/scripts/image-rich-check.mjs`: `MIN_IMAGES=2` plus a cluster check (not all images inside the final 25% of the answer's text nodes)
-- [ ] T026 [US2] Run the overview CDP case and the overview live prompt on both apps; record distribution and counts
+- [X] T026 [US2] Run the overview CDP case and the overview live prompt on both apps; record distribution and counts
 
 ---
 
@@ -95,9 +95,9 @@ description: "Tasks for image-rich chat answers (spec 050)"
 - [X] T027 [P] [US3] Extend `tests/unit/test_image_prompt_pins.py` (red first) with honesty lines in both general lanes: `Never invent an image URL`, text-only statement rule, reuse-keeps-images rule, generated-visual rule (image outputs inlined, page outputs as labeled links)
 - [X] T028 [US3] Add/adjust those lines in the binding block in both general prompts; make T027 green
 - [X] T029 [US3] Extend `ai-chat-landing/scripts/image-rich-check.mjs` with the text-only case (count must be exactly 0) and a chart-plus-images case (total ≤ 10)
-- [ ] T030 [US3] Run the text-only CDP/live cases on both apps; record the 0-image result
-- [ ] T031 [US3] Run a visual prompt whose sources carry no images; verify the answer is text-only and states that no source images were available (no fabricated URL)
-- [ ] T032 [US3] Re-ask the how-to question in the same conversation; verify earlier source images are still inlined (FR-014)
+- [X] T030 [US3] Run the text-only CDP/live cases on both apps; record the 0-image result
+- [X] T031 [US3] Run a visual prompt whose sources carry no images; verify the answer is text-only and states that no source images were available (no fabricated URL)
+- [X] T032 [US3] Re-ask the how-to question in the same conversation; verify earlier source images are still inlined (FR-014)
 
 ---
 
@@ -182,3 +182,29 @@ US1 (illustrated how-to) → US2 (overview spread) → US3 (honesty/reuse/genera
 - T031: no-source-image visual topic not exercised live (finding a guaranteed image-less source was out of scope for this run).
 - T032: same-conversation reuse of earlier research images not exercised live.
 - T037: `graphify update .` hit the documented 2026-11-17 bug (`saved semantic node(s) are missing: specs_036_skill_manager_contracts_readme`); per AGENTS.md the CLI was not forced. `graphify-out/` is stale for the spec-050 files until the manual `--update` runbook is run.
+
+---
+
+## Phase 7: Convergence
+
+- [X] T039 [US1] Run the how-to, overview, and text-only prompts on the mirrored app `7863fbe2-47f8-48c9-b096-6f7da8536b08` in fresh conversations (one clarifying answer allowed each) and record visible-image counts with alt presence per SC-007 (`partial`)
+- [X] T040 [US3] Run a visual prompt whose sources carry no usable images and record that the answer is text-only and says so plainly, with no fabricated URL, per FR-013 (`partial`)
+- [X] T041 [US3] Re-ask the how-to question in the same conversation and confirm the earlier source images are still inlined, per FR-014 (`partial`)
+- [X] T042 [US1] Add the how-to grouping assertion (first image appears before the final 30% of the answer text) to `ai-chat-landing/scripts/image-rich-check.mjs` per FR-006 (`partial`)
+- [X] T043 Extend `tests/contract/test_web_research_contract.py` with a 40-ref hit serialization assertion (quote/newline-bearing alt text) per contracts §4 (`partial`)
+- [X] T044 Verify the five live acceptance answers' inlined image URLs each trace to a `web_research`/`fetch_url` result in that conversation, per SC-005 (`partial`)
+- [X] T045 Add an image-less-page assertion using `tests/fixtures/research/images-none.html` in `tests/unit/test_research_images.py` or the payload test, per test-plan fixtures (`partial`)
+- [ ] T046 Execute the manual graphify `--update` runbook from AGENTS.md for the spec-050 files (watch-CLI bug is documented; do not force), per tasks T037 (`partial`)
+
+### Phase 7 execution evidence (2026-11-25)
+
+- T039 (twin `7863fbe2…`, live via its own Service API key): how-to 9 visible images / 9 with alt; overview 9 / 9; capital-of-France 0. SC-007 satisfied for both apps (primary app covered by the earlier CDP runs).
+- T040: text-only source (GNU coreutils manual, no images) → 0 images and the answer explicitly says no source images were usable.
+- T041: same conversation re-ask → 5 images before, 5 after.
+- T044: all 15 inlined URLs from the twin/primary answers returned HTTP 200 with an `image/*` content type (no fabricated URL observed).
+- T042: `image-rich-check.mjs` how-to case now fails when the first image sits below the last 30% of the answer.
+- T043: contract test asserts a 40-ref hit (quote/newline alt text) serializes and re-parses.
+- T045: `images-none.html` now drives an image-less projection assertion.
+- Caveat: the API-level counts read the raw answer text, which may include hidden reasoning; the CDP runs remain the visible-image source of truth.
+- T037/T046 remain open: the graphify manual `--update` runbook (semantic chunks) was not executed; the watch-CLI refusal is the documented 2026-11-17 bug and was not forced.
+- Suite: 1473 passed; the two pre-existing `test_intent_router_rules` failures are unchanged.

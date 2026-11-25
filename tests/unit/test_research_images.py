@@ -65,3 +65,9 @@ def test_empty_and_malformed_sections_yield_empty_list():
 def test_block_without_src_is_skipped_defensively():
     sections = [{"heading": "H", "blocks": [{"type": "img"}, None, {"type": "p", "text": "x"}]}]
     assert flatten_images(sections) == []
+
+
+def test_image_less_page_fixture_yields_empty_projection():
+    sections = _sections("images-none.html")
+    assert sections and all(b["type"] != "img" for s in sections for b in s["blocks"])
+    assert flatten_images(sections) == []

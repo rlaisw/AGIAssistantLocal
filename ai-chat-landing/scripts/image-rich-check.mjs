@@ -29,7 +29,7 @@ const CASES = [
     prompt: "Show me the step-by-step instructions for pairing a standard Bluetooth mouse on Windows 11.",
     followUp: "It's a generic Bluetooth mouse on Windows 11 — please show me the steps with the images from the source pages.",
     min: Number(process.env.MIN_IMAGES || 3),
-    max: 10,
+    max: 10, grouping: true,
   },
   {
     name: "overview",
@@ -185,6 +185,11 @@ function evaluate(c, m) {
   const emptySrc = images.filter(i => !i.src.trim() || i.src.startsWith("data:")).length
   if (emptyAlt) problems.push(`${emptyAlt} image(s) without alt text`)
   if (emptySrc) problems.push(`${emptySrc} image(s) without a usable src`)
+  if (c.grouping && visible >= 1) {
+    const total = Math.max(m.len, 1)
+    const first = Math.min(...images.map(i => i.before))
+    if (first > total * 0.7) problems.push("first image sits below the last 30% of the answer (not grouped with steps)")
+  }
   if (c.spread && visible >= 2) {
     const total = Math.max(m.len, 1)
     const trailing = images.filter(i => i.before > total * 0.75).length

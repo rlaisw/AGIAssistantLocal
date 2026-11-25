@@ -133,3 +133,19 @@ def test_fetch_url_images_remain_strings(tmp_path, monkeypatch):
     result = call(server, "fetch_url", {"url": "https://docs.example/trace"})
     assert result["images"] == ["https://docs.example/a.png", "https://docs.example/b.png"]
     assert all(isinstance(u, str) for u in result["images"])
+
+
+def test_forty_image_refs_serialize_with_quotes_and_newlines(tmp_path, monkeypatch):
+    from agentic_rag_mcp.search.web import research as research_mod
+
+    blocks = [{"type": "img", "src": f"https://docs.example/img/{i}.png",
+               "alt": f'step "how to" {i}\nsecond line'} for i in range(40)]
+    server = _server(tmp_path, monkeypatch, FakeProvider(hits=HITS))
+    monkeypatch.setattr(research_mod, "research_pages", lambda *a, **k: {
+        HITS[0]["url"]: {"url": HITS[0]["url"], "truncated": False, "status": "ok",
+                         "status_reason": None,
+                         "sections": [{"heading": "Steps", "blocks": blocks}]},
+    })
+    hit = call(server, "web_research", {"query": "trace", "limit": 1})["hits"][0]
+    assert len(hit["images"]) == 40
+    assert json.loads(json.dumps({"hits": [hit]})) == {"hits": [hit]}
