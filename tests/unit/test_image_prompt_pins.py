@@ -20,6 +20,7 @@ BINDING = "BINDING:"
 CAP = "CAP: an answer MUST NOT inline more than 10 images"
 PLAN_SILENTLY = "plan silently"
 SELF_CHECK = "SELF-CHECK"
+SECOND_SOURCE = "call fetch_url on another guide or tutorial page from the sources"
 NO_INVENT = "Never invent an image URL"
 FLAT_ARRAY = "web_research also returns a flat images array"
 GROUPING = "grouped with the text they belong to, in document order"
@@ -60,7 +61,7 @@ def test_both_general_prompts_carry_the_binding_policy():
         text = prompts[title]
         for marker in (HEADER, BINDING, CAP, PLAN_SILENTLY, SELF_CHECK,
                        NO_INVENT, FLAT_ARRAY, GROUPING, SPREAD,
-                       REUSE, TEXT_ONLY_STATEMENT, GENERATED):
+                       REUSE, TEXT_ONLY_STATEMENT, GENERATED, SECOND_SOURCE):
             assert marker in text, f"{title} missing: {marker}"
 
 

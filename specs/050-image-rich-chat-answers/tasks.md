@@ -208,3 +208,15 @@ US1 (illustrated how-to) → US2 (overview spread) → US3 (honesty/reuse/genera
 - Caveat: the API-level counts read the raw answer text, which may include hidden reasoning; the CDP runs remain the visible-image source of truth.
 - T037/T046 remain open: the graphify manual `--update` runbook (semantic chunks) was not executed; the watch-CLI refusal is the documented 2026-11-17 bug and was not forced.
 - Suite: 1473 passed; the two pre-existing `test_intent_router_rules` failures are unchanged.
+
+---
+
+## Phase 8: Convergence
+
+- [X] T047 Strengthen the binding image policy in both general prompts: when a visual answer's visible count is under 3 and the sources had more, fetch another guide/tutorial page before answering (never fabricate); re-publish both apps by explicit ID and verify ≥3 visible images with alt on 3 consecutive how-to runs per app, per FR-007 / SC-001 / SC-007 (`partial`)
+- [ ] T048 Execute the library-level graphify `--update` runbook from `references/update.md` for the spec-050 files (detect_incremental → AST + semantic chunks → build_merge → cluster → label → to_json → restore hyperedges; do not force), per tasks T037/T046 (`partial`)
+
+### Phase 8 execution evidence (2026-11-25)
+
+- T047: the self-check now requires a second `fetch_url` (or following tutorial links) and forbids finishing a visual answer below 3 images when the sources offered more; published to both apps and verified in Postgres. Live how-to runs, reasoning stripped: primary app 9 / 6 / 10 visible (all alt-ok, ≤10); twin app 5 / 6 / 9 — 6/6 runs ≥ 3, so FR-007/SC-001 now hold across repeats.
+- T048 remains open: `graphify update .` still refuses on the documented saved-semantic-node guard (`specs_036_skill_manager_contracts_readme`). The library-level runbook requires semantic re-extraction plus cluster/label LLM calls for the changed spec docs; that paid run was not started without owner approval. The CLI was not forced.
